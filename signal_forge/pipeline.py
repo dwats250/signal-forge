@@ -62,7 +62,8 @@ class SignalForgePipeline:
         if USE_OPENWOLF:
             try:
                 record = build_memory_record(reading, dislocation)
-                store_context(json.dumps(record))
+                prefix = f"{record['symbol']} {record['signal']}"
+                store_context(f"{prefix} | {json.dumps(record)}")
                 similar = find_similar_context(dislocation.pair, dislocation.signal)
                 count = len([l for l in similar.splitlines() if l.strip()])
                 memory_annotation = f"Memory: {count} similar cases found"
