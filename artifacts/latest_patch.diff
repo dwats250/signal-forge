@@ -1,0 +1,109 @@
+diff --git a/signal_forge/agents/__init__.py b/signal_forge/agents/__init__.py
+index ce379bd..9575480 100644
+--- a/signal_forge/agents/__init__.py
++++ b/signal_forge/agents/__init__.py
+@@ -1,6 +1,13 @@
+-from signal_forge.agents.stubs import GeoAgent, MacroAgent, MarketQualityAgent, OptionsBehaviorAgent
++from signal_forge.agents.stubs import (
++    DislocationFetcher,
++    GeoAgent,
++    MacroAgent,
++    MarketQualityAgent,
++    OptionsBehaviorAgent,
++)
+ 
+ __all__ = [
++    "DislocationFetcher",
+     "GeoAgent",
+     "MacroAgent",
+     "MarketQualityAgent",
+diff --git a/signal_forge/agents/stubs.py b/signal_forge/agents/stubs.py
+index 2845979..a885368 100644
+--- a/signal_forge/agents/stubs.py
++++ b/signal_forge/agents/stubs.py
+@@ -1,6 +1,6 @@
+ from __future__ import annotations
+ 
+-from dataclasses import dataclass
++from dataclasses import dataclass, field
+ from typing import Any
+ 
+ from signal_forge.contracts import AgentOutput
+@@ -64,3 +64,31 @@ class OptionsBehaviorAgent(StubAgent):
+             default_confidence="medium",
+             default_factors=["options surface balanced"],
+         )
++
++
++@dataclass(slots=True)
++class DislocationFetcher:
++    default_moves: dict[tuple[str, str], tuple[float, float]] = field(
++        default_factory=lambda: {
++            ("CL", "XLE"): (4.2, 0.1),
++            ("ES", "SPY"): (0.6, 0.5),
++        }
++    )
++
++    def fetch(
++        self,
++        futures_symbol: str,
++        etf_symbol: str,
++        context: dict[str, Any] | None = None,
++    ) -> dict[str, float]:
++        context = context or {}
++        pair = (futures_symbol, etf_symbol)
++        override = context.get("dislocation", {}).get(pair)
++        futures_pct_change, etf_pct_change = override or self.default_moves.get(
++            pair,
++            (0.0, 0.0),
++        )
++        return {
++            "futures_pct_change": futures_pct_change,
++            "etf_pct_change": etf_pct_change,
++        }
+diff --git a/signal_forge/contracts.py b/signal_forge/contracts.py
+index d573bac..cf41513 100644
+--- a/signal_forge/contracts.py
++++ b/signal_forge/contracts.py
+@@ -8,6 +8,7 @@ from uuid import uuid4
+ 
+ VALID_STATES = {"bullish", "bearish", "neutral", "blocked"}
+ VALID_CONFIDENCE = {"high", "medium", "low"}
++VALID_DISLOCATION_SIGNALS = {"CLEAN", "MIXED", "DISLOCATION"}
+ 
+ 
+ @dataclass(slots=True)
+@@ -108,3 +109,20 @@ class LogEntry:
+ 
+     def to_dict(self) -> dict[str, Any]:
+         return asdict(self)
++
++
++@dataclass(slots=True)
++class DislocatonReading:
++    futures_symbol: str
++    etf_symbol: str
++    futures_pct_change: float
++    etf_pct_change: float
++    divergence: float
++    signal: str
++
++    def __post_init__(self) -> None:
++        if self.signal not in VALID_DISLOCATION_SIGNALS:
++            raise ValueError(f"Unsupported dislocation signal: {self.signal}")
++
++    def to_dict(self) -> dict[str, Any]:
++        return asdict(self)
+diff --git a/docs/DEV_LOG.md b/docs/DEV_LOG.md
+new file mode 100644
+index 0000000..4f6671d
+--- /dev/null
++++ b/docs/DEV_LOG.md
+@@ -0,0 +1,7 @@
++# DEV LOG
++
++- Workflow initialized.
++- 2026-04-01: Completed NEXT_STEPS Phase 1 only by adding the `DislocatonReading`
++  contract and a `DislocationFetcher` stub that returns hardcoded futures/ETF percent
++  moves following the existing stub pattern. No Phase 2+ engine, tests, pipeline, or
++  report wiring were touched.
