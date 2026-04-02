@@ -1,109 +1,393 @@
-diff --git a/signal_forge/agents/__init__.py b/signal_forge/agents/__init__.py
-index ce379bd..9575480 100644
---- a/signal_forge/agents/__init__.py
-+++ b/signal_forge/agents/__init__.py
-@@ -1,6 +1,13 @@
--from signal_forge.agents.stubs import GeoAgent, MacroAgent, MarketQualityAgent, OptionsBehaviorAgent
-+from signal_forge.agents.stubs import (
+diff --git a/docs/DEV_LOG.md b/docs/DEV_LOG.md
+index 4f6671d..9d1ab81 100644
+--- a/docs/DEV_LOG.md
++++ b/docs/DEV_LOG.md
+@@ -5,3 +5,15 @@
+   contract and a `DislocationFetcher` stub that returns hardcoded futures/ETF percent
+   moves following the existing stub pattern. No Phase 2+ engine, tests, pipeline, or
+   report wiring were touched.
++- 2026-04-01: Completed NEXT_STEPS Phase 2 only by adding a pure
++  `DislocationEngine` module that classifies divergence between futures and ETF
++  percent moves into `CLEAN`, `MIXED`, and `DISLOCATION` using simple hardcoded
++  thresholds: under `1.0`, `1.0` through `3.0`, and above `3.0`. Added unit tests
++  for all three cases. Pipeline and report/output wiring were not changed.
++- 2026-04-01: PRD upgraded: interpretation-aware dislocation engine.
++- 2026-04-01: contracts fixed: correct dislocation model
++- 2026-04-01: engine upgraded: leader/lagger awareness
++- 2026-04-01: pipeline integrated: dislocation engine
++- 2026-04-01: report output added for dislocation signal
++- 2026-04-01: standards added: naming, formatting, and signal schema
++- 2026-04-01: standardized dislocation output: schema, formatting, and console template
+diff --git a/signal_forge/dislocation_engine.py b/signal_forge/dislocation_engine.py
+new file mode 100644
+index 0000000..ac32675
+--- /dev/null
++++ b/signal_forge/dislocation_engine.py
+@@ -0,0 +1,159 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++
++from signal_forge.contracts import DislocationReading
++
++
++DEFAULT_CLEAN_THRESHOLD = 1.0
++DEFAULT_DISLOCATION_THRESHOLD = 3.0
++
++
++@dataclass(slots=True, frozen=True)
++class DislocationClassification:
++    signal: str
++    pair: str
++    futures_symbol: str
++    etf_symbol: str
++    direction_relation: str
++    leader: str
++    explanation: str
++    divergence: float
++    divergence_band: str
++
++    def to_dict(self) -> dict[str, str | float]:
++        return {
++            "signal": self.signal,
++            "pair": self.pair,
++            "futures_symbol": self.futures_symbol,
++            "etf_symbol": self.etf_symbol,
++            "direction_relation": self.direction_relation,
++            "leader": self.leader,
++            "divergence": round(self.divergence, 2),
++            "divergence_band": self.divergence_band,
++            "explanation": self.explanation,
++        }
++
++
++def classify_dislocation(
++    reading: DislocationReading,
++    *,
++    clean_threshold: float = DEFAULT_CLEAN_THRESHOLD,
++    dislocation_threshold: float = DEFAULT_DISLOCATION_THRESHOLD,
++) -> DislocationClassification:
++    divergence = reading.divergence
++    pair = f"{reading.futures_symbol}/{reading.etf_symbol}"
++    same_direction = reading.futures_pct_change * reading.etf_pct_change > 0
++    direction_relation = (
++        "same_direction" if same_direction else "opposite_direction"
++    )
++    leader = _leader(
++        reading.futures_pct_change,
++        reading.etf_pct_change,
++    )
++    divergence_band = _divergence_band(
++        divergence,
++        clean_threshold=clean_threshold,
++        dislocation_threshold=dislocation_threshold,
++    )
++    explanation = _explanation(direction_relation, leader, divergence_band)
++
++    if not same_direction:
++        return DislocationClassification(
++            signal="DISLOCATION",
++            pair=pair,
++            futures_symbol=reading.futures_symbol,
++            etf_symbol=reading.etf_symbol,
++            direction_relation=direction_relation,
++            leader=leader,
++            explanation=explanation,
++            divergence=divergence,
++            divergence_band=divergence_band,
++        )
++
++    if divergence < clean_threshold:
++        return DislocationClassification(
++            signal="CLEAN",
++            pair=pair,
++            futures_symbol=reading.futures_symbol,
++            etf_symbol=reading.etf_symbol,
++            direction_relation=direction_relation,
++            leader=leader,
++            explanation=explanation,
++            divergence=divergence,
++            divergence_band=divergence_band,
++        )
++
++    if divergence <= dislocation_threshold:
++        return DislocationClassification(
++            signal="MIXED",
++            pair=pair,
++            futures_symbol=reading.futures_symbol,
++            etf_symbol=reading.etf_symbol,
++            direction_relation=direction_relation,
++            leader=leader,
++            explanation=explanation,
++            divergence=divergence,
++            divergence_band=divergence_band,
++        )
++
++    return DislocationClassification(
++        signal="DISLOCATION",
++        pair=pair,
++        futures_symbol=reading.futures_symbol,
++        etf_symbol=reading.etf_symbol,
++        direction_relation=direction_relation,
++        leader=leader,
++        explanation=explanation,
++        divergence=divergence,
++        divergence_band=divergence_band,
++    )
++
++
++@dataclass(slots=True)
++class DislocationEngine:
++    clean_threshold: float = DEFAULT_CLEAN_THRESHOLD
++    dislocation_threshold: float = DEFAULT_DISLOCATION_THRESHOLD
++
++    def evaluate(
++        self,
++        futures_symbol: str,
++        etf_symbol: str,
++        futures_pct: float,
++        etf_pct: float,
++    ) -> DislocationClassification:
++        reading = DislocationReading(
++            futures_symbol=futures_symbol,
++            etf_symbol=etf_symbol,
++            futures_pct_change=futures_pct,
++            etf_pct_change=etf_pct,
++        )
++        return classify_dislocation(
++            reading,
++            clean_threshold=self.clean_threshold,
++            dislocation_threshold=self.dislocation_threshold,
++        )
++
++
++def _leader(futures_pct_change: float, etf_pct_change: float) -> str:
++    if abs(futures_pct_change) > abs(etf_pct_change):
++        return "futures"
++    return "etf"
++
++
++def _divergence_band(
++    divergence: float,
++    *,
++    clean_threshold: float,
++    dislocation_threshold: float,
++) -> str:
++    if divergence < clean_threshold:
++        return "low"
++    if divergence <= dislocation_threshold:
++        return "moderate"
++    return "high"
++
++
++def _explanation(direction_relation: str, leader: str, divergence_band: str) -> str:
++    relation_label = direction_relation.replace("_", " ")
++    return f"{relation_label.capitalize()}, {leader} leading, {divergence_band} divergence."
+diff --git a/signal_forge/pipeline.py b/signal_forge/pipeline.py
+index c35f602..220b8f7 100644
+--- a/signal_forge/pipeline.py
++++ b/signal_forge/pipeline.py
+@@ -3,9 +3,17 @@ from __future__ import annotations
+ from pathlib import Path
+ from typing import Any
+ 
+-from signal_forge.agents import GeoAgent, MacroAgent, MarketQualityAgent, OptionsBehaviorAgent
++from signal_forge.agents import (
 +    DislocationFetcher,
 +    GeoAgent,
 +    MacroAgent,
 +    MarketQualityAgent,
 +    OptionsBehaviorAgent,
 +)
++from signal_forge.contracts import DislocationReading
+ from signal_forge.audit import AuditLogger
+ from signal_forge.conflict_rules import ConflictRulesEngine
++from signal_forge.dislocation_engine import classify_dislocation
+ from signal_forge.execution import ExecutionInterface
+ from signal_forge.thesis_engine import ThesisEngine
  
- __all__ = [
-+    "DislocationFetcher",
-     "GeoAgent",
-     "MacroAgent",
-     "MarketQualityAgent",
-diff --git a/signal_forge/agents/stubs.py b/signal_forge/agents/stubs.py
-index 2845979..a885368 100644
---- a/signal_forge/agents/stubs.py
-+++ b/signal_forge/agents/stubs.py
-@@ -1,6 +1,6 @@
+@@ -18,6 +26,7 @@ class SignalForgePipeline:
+             "market_quality": MarketQualityAgent(),
+             "options": OptionsBehaviorAgent(),
+         }
++        self.dislocation_fetcher = DislocationFetcher()
+         self.thesis_engine = ThesisEngine()
+         self.conflict_engine = ConflictRulesEngine()
+         self.execution_interface = ExecutionInterface()
+@@ -29,6 +38,20 @@ class SignalForgePipeline:
+             domain: agent.run(context)
+             for domain, agent in self.agents.items()
+         }
++        fetched = self.dislocation_fetcher.fetch("CL", "XLE", context)
++        reading = DislocationReading(
++            futures_symbol="CL",
++            etf_symbol="XLE",
++            futures_pct_change=fetched["futures_pct_change"],
++            etf_pct_change=fetched["etf_pct_change"],
++        )
++        dislocation = classify_dislocation(reading)
++        print(
++            f"[{dislocation.signal}] {dislocation.pair} | divergence: "
++            f"{dislocation.divergence:.2f}% | relation: {dislocation.direction_relation} "
++            f"| leader: {dislocation.leader}"
++        )
++        print(f"Explanation: {dislocation.explanation}")
+         thesis = self.thesis_engine.build(outputs)
+         conflict = self.conflict_engine.evaluate(thesis)
+         execution_input = self.execution_interface.build_input(thesis, conflict)
+@@ -36,6 +59,7 @@ class SignalForgePipeline:
+         log_entry = self.audit_logger.write(execution_input, decision, conflict.notes)
+         return {
+             "agent_outputs": {domain: output.to_dict() for domain, output in outputs.items()},
++            "dislocation_signal": dislocation.to_dict(),
+             "thesis": thesis.to_dict(),
+             "conflict": conflict.to_dict(),
+             "execution_input": execution_input.to_dict(),
+diff --git a/tests/test_dislocation_engine.py b/tests/test_dislocation_engine.py
+new file mode 100644
+index 0000000..f23b897
+--- /dev/null
++++ b/tests/test_dislocation_engine.py
+@@ -0,0 +1,77 @@
++from __future__ import annotations
++
++import unittest
++
++from signal_forge.contracts import DislocationReading
++from signal_forge.dislocation_engine import classify_dislocation
++
++
++class DislocationEngineTests(unittest.TestCase):
++    def test_classifies_aligned_move_as_clean(self) -> None:
++        reading = DislocationReading(
++            futures_symbol="ES",
++            etf_symbol="SPY",
++            futures_pct_change=0.8,
++            etf_pct_change=0.1,
++        )
++
++        result = classify_dislocation(reading)
++
++        self.assertEqual(result.signal, "CLEAN")
++        self.assertAlmostEqual(result.divergence, 0.7)
++        self.assertEqual(result.pair, "ES/SPY")
++        self.assertEqual(result.futures_symbol, "ES")
++        self.assertEqual(result.etf_symbol, "SPY")
++        self.assertEqual(result.direction_relation, "same_direction")
++        self.assertEqual(result.leader, "futures")
++        self.assertEqual(result.divergence_band, "low")
++        self.assertEqual(result.explanation, "Same direction, futures leading, low divergence.")
++        self.assertEqual(result.to_dict()["divergence"], 0.7)
++
++    def test_classifies_moderate_divergence_as_mixed(self) -> None:
++        reading = DislocationReading(
++            futures_symbol="NQ",
++            etf_symbol="QQQ",
++            futures_pct_change=2.6,
++            etf_pct_change=0.4,
++        )
++
++        result = classify_dislocation(reading)
++
++        self.assertEqual(result.signal, "MIXED")
++        self.assertAlmostEqual(result.divergence, 2.2)
++        self.assertEqual(result.pair, "NQ/QQQ")
++        self.assertEqual(result.direction_relation, "same_direction")
++        self.assertEqual(result.leader, "futures")
++        self.assertEqual(result.divergence_band, "moderate")
++        self.assertEqual(
++            result.explanation,
++            "Same direction, futures leading, moderate divergence.",
++        )
++        self.assertEqual(result.to_dict()["divergence"], 2.2)
++
++    def test_classifies_opposite_direction_as_dislocation(self) -> None:
++        reading = DislocationReading(
++            futures_symbol="CL",
++            etf_symbol="XLE",
++            futures_pct_change=2.5,
++            etf_pct_change=-0.4,
++        )
++
++        result = classify_dislocation(reading)
++
++        self.assertEqual(result.signal, "DISLOCATION")
++        self.assertAlmostEqual(result.divergence, 2.9)
++        self.assertEqual(result.pair, "CL/XLE")
++        self.assertEqual(result.direction_relation, "opposite_direction")
++        self.assertEqual(result.leader, "futures")
++        self.assertEqual(result.divergence_band, "moderate")
++        self.assertEqual(
++            result.explanation,
++            "Opposite direction, futures leading, moderate divergence.",
++        )
++        self.assertEqual(result.to_dict()["divergence"], 2.9)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_pipeline.py b/tests/test_pipeline.py
+index 6017d19..42d0d01 100644
+--- a/tests/test_pipeline.py
++++ b/tests/test_pipeline.py
+@@ -1,8 +1,10 @@
  from __future__ import annotations
  
--from dataclasses import dataclass
-+from dataclasses import dataclass, field
- from typing import Any
++import io
+ import json
+ import tempfile
+ import unittest
++from contextlib import redirect_stdout
+ from pathlib import Path
  
- from signal_forge.contracts import AgentOutput
-@@ -64,3 +64,31 @@ class OptionsBehaviorAgent(StubAgent):
-             default_confidence="medium",
-             default_factors=["options surface balanced"],
-         )
-+
-+
-+@dataclass(slots=True)
-+class DislocationFetcher:
-+    default_moves: dict[tuple[str, str], tuple[float, float]] = field(
-+        default_factory=lambda: {
-+            ("CL", "XLE"): (4.2, 0.1),
-+            ("ES", "SPY"): (0.6, 0.5),
-+        }
-+    )
-+
-+    def fetch(
-+        self,
-+        futures_symbol: str,
-+        etf_symbol: str,
-+        context: dict[str, Any] | None = None,
-+    ) -> dict[str, float]:
-+        context = context or {}
-+        pair = (futures_symbol, etf_symbol)
-+        override = context.get("dislocation", {}).get(pair)
-+        futures_pct_change, etf_pct_change = override or self.default_moves.get(
-+            pair,
-+            (0.0, 0.0),
-+        )
-+        return {
-+            "futures_pct_change": futures_pct_change,
-+            "etf_pct_change": etf_pct_change,
-+        }
-diff --git a/signal_forge/contracts.py b/signal_forge/contracts.py
-index d573bac..cf41513 100644
---- a/signal_forge/contracts.py
-+++ b/signal_forge/contracts.py
-@@ -8,6 +8,7 @@ from uuid import uuid4
+ from signal_forge.pipeline import SignalForgePipeline
+@@ -12,19 +14,41 @@ class PipelineTests(unittest.TestCase):
+     def test_aligned_bearish_flow_is_deployable(self) -> None:
+         with tempfile.TemporaryDirectory() as tmpdir:
+             pipeline = SignalForgePipeline(Path(tmpdir) / "audit.jsonl")
+-            result = pipeline.run(
+-                {
+-                    "macro": {"state": "bearish", "confidence": "high", "key_factors": ["macro weak"]},
+-                    "geo": {"state": "bearish", "confidence": "medium", "key_factors": ["risk premium rising"]},
+-                    "market_quality": {"state": "bearish", "confidence": "medium", "key_factors": ["breadth poor"]},
+-                    "options": {"state": "bearish", "confidence": "high", "key_factors": ["puts bid"]},
+-                }
+-            )
++            stdout = io.StringIO()
++            with redirect_stdout(stdout):
++                result = pipeline.run(
++                    {
++                        "macro": {"state": "bearish", "confidence": "high", "key_factors": ["macro weak"]},
++                        "geo": {"state": "bearish", "confidence": "medium", "key_factors": ["risk premium rising"]},
++                        "market_quality": {"state": "bearish", "confidence": "medium", "key_factors": ["breadth poor"]},
++                        "options": {"state": "bearish", "confidence": "high", "key_factors": ["puts bid"]},
++                    }
++                )
  
- VALID_STATES = {"bullish", "bearish", "neutral", "blocked"}
- VALID_CONFIDENCE = {"high", "medium", "low"}
-+VALID_DISLOCATION_SIGNALS = {"CLEAN", "MIXED", "DISLOCATION"}
+             self.assertEqual(result["thesis"]["direction"], "bearish")
+             self.assertEqual(result["thesis"]["confidence"], "high")
+             self.assertTrue(result["conflict"]["deployment_allowed"])
+             self.assertEqual(result["conflict"]["risk_level"], "low")
++            self.assertEqual(result["dislocation_signal"]["signal"], "DISLOCATION")
++            self.assertEqual(result["dislocation_signal"]["pair"], "CL/XLE")
++            self.assertEqual(result["dislocation_signal"]["futures_symbol"], "CL")
++            self.assertEqual(result["dislocation_signal"]["etf_symbol"], "XLE")
++            self.assertEqual(result["dislocation_signal"]["direction_relation"], "same_direction")
++            self.assertEqual(result["dislocation_signal"]["leader"], "futures")
++            self.assertEqual(result["dislocation_signal"]["divergence"], 4.1)
++            self.assertEqual(result["dislocation_signal"]["divergence_band"], "high")
++            self.assertEqual(
++                result["dislocation_signal"]["explanation"],
++                "Same direction, futures leading, high divergence.",
++            )
++            self.assertIn(
++                "[DISLOCATION] CL/XLE | divergence: 4.10% | relation: same_direction | leader: futures",
++                stdout.getvalue(),
++            )
++            self.assertIn(
++                "Explanation: Same direction, futures leading, high divergence.",
++                stdout.getvalue(),
++            )
  
- 
- @dataclass(slots=True)
-@@ -108,3 +109,20 @@ class LogEntry:
- 
-     def to_dict(self) -> dict[str, Any]:
-         return asdict(self)
-+
-+
-+@dataclass(slots=True)
-+class DislocatonReading:
-+    futures_symbol: str
-+    etf_symbol: str
-+    futures_pct_change: float
-+    etf_pct_change: float
-+    divergence: float
-+    signal: str
-+
-+    def __post_init__(self) -> None:
-+        if self.signal not in VALID_DISLOCATION_SIGNALS:
-+            raise ValueError(f"Unsupported dislocation signal: {self.signal}")
-+
-+    def to_dict(self) -> dict[str, Any]:
-+        return asdict(self)
-diff --git a/docs/DEV_LOG.md b/docs/DEV_LOG.md
-new file mode 100644
-index 0000000..4f6671d
---- /dev/null
-+++ b/docs/DEV_LOG.md
-@@ -0,0 +1,7 @@
-+# DEV LOG
-+
-+- Workflow initialized.
-+- 2026-04-01: Completed NEXT_STEPS Phase 1 only by adding the `DislocatonReading`
-+  contract and a `DislocationFetcher` stub that returns hardcoded futures/ETF percent
-+  moves following the existing stub pattern. No Phase 2+ engine, tests, pipeline, or
-+  report wiring were touched.
+     def test_structural_conflict_stays_allowed_but_constrained(self) -> None:
+         with tempfile.TemporaryDirectory() as tmpdir:

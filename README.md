@@ -1,23 +1,70 @@
 # Signal Forge
 
-Status: Pre-implementation
+## What Signal Forge Is
 
-Signal Forge is an agentic trading intelligence system designed to turn market data into durable, reviewable trading judgment.
+Signal Forge is a dislocation detection and classification engine for trading decision support.
 
-This project is fully independent and not part of any existing system.
+It converts macro and price relationships into structured, explainable signals that can be reviewed, validated, and acted on with clear context.
 
-## Initial Scope
+## Why It Exists
 
-- Establish an isolated repository and documentation baseline
-- Define domain boundaries before implementation
-- Prepare the system for a later agent implementation phase
+Market moves often break alignment across futures, ETFs, options behavior, and macro posture.
 
-## Repository Layout
+Signal Forge exists to:
 
-- `docs/` foundational project documentation
-- `agents/` domain ownership boundaries for future implementations
-- `data/` raw and normalized datasets
-- `outputs/` rendered system outputs
-- `reports/` review artifacts and operating notes
-- `tests/` validation coverage
-- `scripts/` project utilities
+- detect those breaks early
+- classify them in a consistent way
+- preserve the reasoning behind each signal
+- support faster, more disciplined trading decisions
+
+## Core Pipeline
+
+Signal Forge follows one canonical pipeline:
+
+Inputs
+-> Normalization
+-> Reading Construction
+-> Classification
+-> Scoring
+-> Context Filters
+-> Output
+-> Logging / Validation
+
+Current implementation covers the early pipeline directly and provides initial logging and validation support.
+
+## Current System Status
+
+Signal Forge is in active core-engine development.
+
+Implemented now:
+
+- stubbed input ingestion for domain signals and dislocation pairs
+- normalized contracts for agent outputs, theses, conflicts, execution inputs, and dislocation readings
+- deterministic dislocation classification
+- thesis construction across macro, geopolitical, market quality, and options domains
+- conflict evaluation and execution gating
+- audit logging and initial test coverage
+
+Not complete yet:
+
+- scoring as a dedicated subsystem
+- context filters as a formal post-classification layer
+- polished output surfaces for dashboards and reports
+- replay, validation, and benchmark tooling beyond current unit and integration tests
+
+## Roadmap Summary
+
+1. Core Engine
+Core contracts, classification, thesis construction, conflict handling, and logging are in place.
+
+2. Pipeline Standardization
+The immediate focus is aligning every component to the canonical pipeline and tightening subsystem boundaries.
+
+3. Output + Usability
+Next work centers on structured reports, dashboards, and operator-facing output.
+
+4. Validation + Replay
+The system then needs replay tools, validation datasets, and review workflows.
+
+5. Expansion + Automation
+Later work extends coverage, increases automation, and broadens the signal set without weakening explainability.

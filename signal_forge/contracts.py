@@ -8,7 +8,6 @@ from uuid import uuid4
 
 VALID_STATES = {"bullish", "bearish", "neutral", "blocked"}
 VALID_CONFIDENCE = {"high", "medium", "low"}
-VALID_DISLOCATION_SIGNALS = {"CLEAN", "MIXED", "DISLOCATION"}
 
 
 @dataclass(slots=True)
@@ -112,17 +111,21 @@ class LogEntry:
 
 
 @dataclass(slots=True)
-class DislocatonReading:
+class DislocationReading:
     futures_symbol: str
     etf_symbol: str
     futures_pct_change: float
     etf_pct_change: float
-    divergence: float
-    signal: str
 
-    def __post_init__(self) -> None:
-        if self.signal not in VALID_DISLOCATION_SIGNALS:
-            raise ValueError(f"Unsupported dislocation signal: {self.signal}")
+    @property
+    def divergence(self) -> float:
+        return abs(self.futures_pct_change - self.etf_pct_change)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return {
+            "futures_symbol": self.futures_symbol,
+            "etf_symbol": self.etf_symbol,
+            "futures_pct_change": self.futures_pct_change,
+            "etf_pct_change": self.etf_pct_change,
+            "divergence": self.divergence,
+        }

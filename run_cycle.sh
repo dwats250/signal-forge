@@ -12,7 +12,15 @@ Update docs/NEXT_STEPS.md with a phased plan
 Do not implement anything
 CLAUDE
 
-echo "⚙️ Running Codex (build phase 1)..."
+echo "🧠 Plan ready. Review docs/NEXT_STEPS.md before continuing."
+read -p "Proceed with Codex Phase execution? (y/n): " confirm
+
+if [[ "$confirm" != "y" ]]; then
+  echo "🛑 Stopping before execution."
+  exit 0
+fi
+
+echo "⚙️ Running Codex (build phase)..."
 codex <<'CODEX'
 Read docs/NEXT_STEPS.md
 Execute Phase 1 only

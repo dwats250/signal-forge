@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from signal_forge.pipeline import SignalForgePipeline
@@ -12,19 +14,41 @@ class PipelineTests(unittest.TestCase):
     def test_aligned_bearish_flow_is_deployable(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             pipeline = SignalForgePipeline(Path(tmpdir) / "audit.jsonl")
-            result = pipeline.run(
-                {
-                    "macro": {"state": "bearish", "confidence": "high", "key_factors": ["macro weak"]},
-                    "geo": {"state": "bearish", "confidence": "medium", "key_factors": ["risk premium rising"]},
-                    "market_quality": {"state": "bearish", "confidence": "medium", "key_factors": ["breadth poor"]},
-                    "options": {"state": "bearish", "confidence": "high", "key_factors": ["puts bid"]},
-                }
-            )
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                result = pipeline.run(
+                    {
+                        "macro": {"state": "bearish", "confidence": "high", "key_factors": ["macro weak"]},
+                        "geo": {"state": "bearish", "confidence": "medium", "key_factors": ["risk premium rising"]},
+                        "market_quality": {"state": "bearish", "confidence": "medium", "key_factors": ["breadth poor"]},
+                        "options": {"state": "bearish", "confidence": "high", "key_factors": ["puts bid"]},
+                    }
+                )
 
             self.assertEqual(result["thesis"]["direction"], "bearish")
             self.assertEqual(result["thesis"]["confidence"], "high")
             self.assertTrue(result["conflict"]["deployment_allowed"])
             self.assertEqual(result["conflict"]["risk_level"], "low")
+            self.assertEqual(result["dislocation_signal"]["signal"], "DISLOCATION")
+            self.assertEqual(result["dislocation_signal"]["pair"], "CL/XLE")
+            self.assertEqual(result["dislocation_signal"]["futures_symbol"], "CL")
+            self.assertEqual(result["dislocation_signal"]["etf_symbol"], "XLE")
+            self.assertEqual(result["dislocation_signal"]["direction_relation"], "same_direction")
+            self.assertEqual(result["dislocation_signal"]["leader"], "futures")
+            self.assertEqual(result["dislocation_signal"]["divergence"], 4.1)
+            self.assertEqual(result["dislocation_signal"]["divergence_band"], "high")
+            self.assertEqual(
+                result["dislocation_signal"]["explanation"],
+                "Same direction, futures leading, high divergence.",
+            )
+            self.assertIn(
+                "[DISLOCATION] CL/XLE | divergence: 4.10% | relation: same_direction | leader: futures",
+                stdout.getvalue(),
+            )
+            self.assertIn(
+                "Explanation: Same direction, futures leading, high divergence.",
+                stdout.getvalue(),
+            )
 
     def test_structural_conflict_stays_allowed_but_constrained(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

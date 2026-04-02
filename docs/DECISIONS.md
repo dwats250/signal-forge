@@ -1,13 +1,13 @@
 # Decisions
 
-## Why A New Project Was Created
+## Why Signal Forge Uses Structured Signals
 
-Signal Forge was created as a separate repository to establish a clean starting point for a new trading intelligence system without inherited assumptions, structural constraints, or documentation coupling.
+Signal Forge uses structured signals so every stage can be inspected, tested, and compared without hidden interpretation.
 
-## Why Separation Was Enforced
+## Why Classification Must Be Explainable
 
-Separation was enforced to prevent accidental reuse of legacy modules, mixed documentation history, and blurred ownership between an existing production-oriented system and a new pre-implementation architecture effort.
+Every signal must include a clear label and a plain-language explanation so operators can understand what changed and why it matters.
 
-## Why Agents Are Domain-Specific
+## Why Domain Logic Stays Explicit
 
-Agents are domain-specific so each market signal has a single interpretive owner, domain reasoning remains coherent, and the unified thesis can combine judgments without duplicating or conflicting interpretations.
+Domain logic stays explicit so the system can combine inputs without collapsing into opaque heuristics or conflicting interpretation paths.
