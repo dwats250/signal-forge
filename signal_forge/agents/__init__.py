@@ -1,6 +1,13 @@
-from signal_forge.agents.stubs import GeoAgent, MacroAgent, MarketQualityAgent, OptionsBehaviorAgent
+from signal_forge.agents.stubs import (
+    DislocationFetcher,
+    GeoAgent,
+    MacroAgent,
+    MarketQualityAgent,
+    OptionsBehaviorAgent,
+)
 
 __all__ = [
+    "DislocationFetcher",
     "GeoAgent",
     "MacroAgent",
     "MarketQualityAgent",

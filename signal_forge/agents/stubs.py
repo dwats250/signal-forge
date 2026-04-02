@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from signal_forge.contracts import AgentOutput
@@ -64,3 +64,31 @@ class OptionsBehaviorAgent(StubAgent):
             default_confidence="medium",
             default_factors=["options surface balanced"],
         )
+
+
+@dataclass(slots=True)
+class DislocationFetcher:
+    default_moves: dict[tuple[str, str], tuple[float, float]] = field(
+        default_factory=lambda: {
+            ("CL", "XLE"): (4.2, 0.1),
+            ("ES", "SPY"): (0.6, 0.5),
+        }
+    )
+
+    def fetch(
+        self,
+        futures_symbol: str,
+        etf_symbol: str,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, float]:
+        context = context or {}
+        pair = (futures_symbol, etf_symbol)
+        override = context.get("dislocation", {}).get(pair)
+        futures_pct_change, etf_pct_change = override or self.default_moves.get(
+            pair,
+            (0.0, 0.0),
+        )
+        return {
+            "futures_pct_change": futures_pct_change,
+            "etf_pct_change": etf_pct_change,
+        }
