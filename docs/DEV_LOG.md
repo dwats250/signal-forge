@@ -17,3 +17,5 @@
 - 2026-04-01: report output added for dislocation signal
 - 2026-04-01: standards added: naming, formatting, and signal schema
 - 2026-04-01: standardized dislocation output: schema, formatting, and console template
+- 2026-04-03: added a dedicated safeguards layer with JSONL logging, strict expression/volatility/catalyst rails, validated override codes, and pipeline wiring.
+- 2026-04-03: added a V1 pure-Python backtest engine that simulates credit/debit proxy trades on the underlying and reports win rate, expectancy, drawdown, profit factor, and no-trade frequency.

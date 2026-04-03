@@ -32,6 +32,8 @@ Inputs
 
 Current implementation covers the early pipeline directly and provides initial logging and validation support.
 
+The current execution path now also includes a safeguards layer that blocks invalid trade expression and a simple underlying-based backtest layer that validates the decision logic before more advanced options modeling is introduced.
+
 ## Current System Status
 
 Signal Forge is in active core-engine development.
@@ -42,7 +44,8 @@ Implemented now:
 - normalized contracts for agent outputs, theses, conflicts, execution inputs, and dislocation readings
 - deterministic dislocation classification
 - thesis construction across macro, geopolitical, market quality, and options domains
-- conflict evaluation and execution gating
+- conflict evaluation, expression guardrails, and execution gating
+- simple underlying-based proxy backtesting for credit and debit expressions
 - audit logging and initial test coverage
 
 Not complete yet:

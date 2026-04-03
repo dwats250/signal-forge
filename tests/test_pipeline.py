@@ -29,6 +29,11 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(result["thesis"]["confidence"], "high")
             self.assertTrue(result["conflict"]["deployment_allowed"])
             self.assertEqual(result["conflict"]["risk_level"], "low")
+            self.assertEqual(result["safeguards"]["decision"], "TRADE")
+            self.assertTrue(result["safeguards"]["allowed"])
+            self.assertEqual(result["execution_input"]["market_state"], "TREND")
+            self.assertEqual(result["execution_input"]["expression_type"], "CREDIT_BEAR")
+            self.assertEqual(result["backtest"]["summary"]["trades"], 1)
             self.assertEqual(result["dislocation_signal"]["signal"], "DISLOCATION")
             self.assertEqual(result["dislocation_signal"]["pair"], "CL/XLE")
             self.assertEqual(result["dislocation_signal"]["futures_symbol"], "CL")
@@ -77,6 +82,9 @@ class PipelineTests(unittest.TestCase):
             self.assertIn("structural", result["conflict"]["conflict_types"])
             self.assertIn("allow tactical trade only with defined exit plan", result["conflict"]["constraints"])
             self.assertTrue(result["conflict"]["deployment_allowed"])
+            self.assertEqual(result["safeguards"]["decision"], "NO_TRADE")
+            self.assertEqual(result["execution_input"]["market_state"], "CHOP")
+            self.assertEqual(result["backtest"]["summary"]["no_trade_count"], 1)
 
     def test_geo_blocker_blocks_execution(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -98,12 +106,13 @@ class PipelineTests(unittest.TestCase):
 
             self.assertFalse(result["conflict"]["deployment_allowed"])
             self.assertEqual(result["conflict"]["risk_level"], "blocked")
-            self.assertEqual(result["log_entry"]["decision"], "blocked")
+            self.assertEqual(result["safeguards"]["decision"], "NO_TRADE")
+            self.assertEqual(result["log_entry"]["decision"], "no_trade")
 
             lines = audit_path.read_text(encoding="utf-8").strip().splitlines()
             self.assertEqual(len(lines), 1)
             payload = json.loads(lines[0])
-            self.assertEqual(payload["log_entry"]["decision"], "blocked")
+            self.assertEqual(payload["log_entry"]["decision"], "no_trade")
 
 
 if __name__ == "__main__":
