@@ -22,6 +22,24 @@ class SignalForgeCliTests(unittest.TestCase):
 
         self.assertEqual(json.loads(stdout.getvalue()), {"decision": "PASS"})
 
+    def test_backtest_demo_prints_backtest_result(self) -> None:
+        stdout = io.StringIO()
+        with patch(
+            "signal_forge.__main__.run_backtest",
+            return_value={"metrics": {"win_rate": 0.5}, "trades": []},
+        ):
+            with patch(
+                "sys.argv",
+                ["signal_forge", "backtest-demo"],
+            ):
+                with redirect_stdout(stdout):
+                    __main__.main()
+
+        self.assertEqual(
+            json.loads(stdout.getvalue()),
+            {"metrics": {"win_rate": 0.5}, "trades": []},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

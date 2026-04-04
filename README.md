@@ -74,6 +74,10 @@ Later work extends coverage, increases automation, and broadens the signal set w
 
 ## Static Site Preview
 
+Morning Edge architecture and UX reference:
+
+- `docs/PRDs/macro_morning_edge_architecture_ux_v1.md`
+
 Build the publishable static site:
 
 ```bash

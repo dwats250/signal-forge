@@ -1,0 +1,141 @@
+{
+  "cached_at": "2026-04-03T20:02:57.073999-07:00",
+  "data": {
+    "BTC": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "DXY": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "GDX": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "GOLD": {
+      "day_chg": 0.43,
+      "formatted": "$2320.00",
+      "is_yield": false,
+      "price": 2320.0,
+      "week_chg": 0.87
+    },
+    "MU": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "NEM": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "OXY": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "QQQ": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "REAL10Y": {
+      "day_chg": null,
+      "estimated": true,
+      "formatted": "Source unavailable",
+      "is_yield": true,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "SILVER": {
+      "day_chg": 3.45,
+      "formatted": "$30.00",
+      "is_yield": false,
+      "price": 30.0,
+      "week_chg": 7.14
+    },
+    "SPY": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "TSLA": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "US10Y": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": true,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "VIX": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "WPM": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "WTI": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    },
+    "XLE": {
+      "day_chg": null,
+      "formatted": "Source unavailable",
+      "is_yield": false,
+      "price": null,
+      "source_unavailable": true,
+      "week_chg": null
+    }
+  },
+  "source": "yfinance"
+}

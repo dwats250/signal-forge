@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Macro Edge Archives</title>
+<style>
+  :root {
+    --bg: #0B0B0F;
+    --bg-card: #111117;
+    --bg-card2: #16161E;
+    --border: #1E1E2A;
+    --accent: #3B82F6;
+    --accent-gold: #F59E0B;
+    --text: #EAEAF0;
+    --text-muted: #8A8A9D;
+    --page-max: 1200px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 500 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  .page {
+    width: min(100%, 840px);
+    margin: 0 auto;
+    padding: 40px 24px 56px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    margin: 0 0 10px;
+    font-size: clamp(2rem, 1.7rem + 1vw, 2.4rem);
+    line-height: 1.1;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 22px;
+  }
+  .card {
+    background: linear-gradient(180deg, var(--bg-card2), var(--bg-card));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .archive-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .archive-list a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.01);
+  }
+  .archive-list a:hover {
+    border-color: rgba(59, 130, 246, 0.45);
+  }
+  .archive-date {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .archive-copy {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+  .meta {
+    margin-top: 24px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .back-link {
+    color: var(--accent);
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Signal Forge</div>
+    <h1>Morning Macro Edge Archives</h1>
+    <p class="subtitle">Dated report snapshots.</p>
+    <section class="card">
+      <ul class="archive-list">
+      <li><a href="2026-04-03.html">2026-04-03</a></li>
+      </ul>
+    </section>
+    <div class="meta"><a class="back-link" href="../">Back to latest report</a> · Report Generated at 7:04 PM PDT — 2026-04-03</div>
+  </main>
+</body>
+</html>

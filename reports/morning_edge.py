@@ -280,10 +280,17 @@ def _build_state_summary(md: dict, narrative: dict) -> dict:
 
     execution_bias = "Selective" if narrative.get("no_setups", True) else "Actionable"
 
+    posture_color = "positive" if posture == "Bullish" else "negative" if posture == "Bearish" else "neutral"
+    quality_color = "positive" if quality == "Calm" else "negative" if quality == "Fragile" else "neutral"
+    bias_color = "positive" if execution_bias == "Actionable" else "neutral"
+
     return {
         "market_posture": posture,
         "market_quality": quality,
         "execution_bias": execution_bias,
+        "posture_color": posture_color,
+        "quality_color": quality_color,
+        "bias_color": bias_color,
     }
 
 def _format_price(value: float, ticker: str) -> str:

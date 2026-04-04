@@ -27,20 +27,20 @@
     --tag-med-text: #FCD34D;
     --tag-low: #14532D;
     --tag-low-text: #86EFAC;
-    --page-max: 1420px;
-    --page-pad-x: 24px;
-    --page-pad-y: 22px;
+    --page-max: 1520px;
+    --page-pad-x: 28px;
+    --page-pad-y: 26px;
     --card-radius: 12px;
-    --card-pad: 20px;
-    --grid-gap: 20px;
+    --card-pad: 22px;
+    --grid-gap: 24px;
   }
 
   html, body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.62;
+    font-size: 16px;
+    line-height: 1.66;
     min-height: 100vh;
   }
 
@@ -53,29 +53,28 @@
     gap: var(--grid-gap);
   }
 
-  /* ── Header ── */
   .header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 18px;
-    padding-bottom: 6px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
   }
   .header h1 {
-    font-size: clamp(1.6rem, 1.35rem + 0.7vw, 2.2rem);
-    font-weight: 650;
-    letter-spacing: 0.015em;
+    font-size: clamp(2.15rem, 1.7rem + 1.1vw, 3.05rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
     color: var(--text);
   }
   .header h1 span { color: var(--accent); }
   .header .ts {
-    font-size: 0.9rem;
+    font-size: 0.98rem;
     color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.04em;
   }
 
-  /* ── Card base ── */
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -83,12 +82,12 @@
     padding: var(--card-pad);
   }
   .card-title {
-    font-size: 1.02rem;
+    font-size: 1.14rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 16px;
+    margin-bottom: 18px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -100,206 +99,172 @@
     background: var(--border);
   }
 
-  /* ── TIER 1: Thesis ── */
-  .thesis-card {
-    padding-top: 18px;
-    padding-bottom: 18px;
+  .state-card {
+    padding: 24px 24px 22px;
   }
-  .thesis-label {
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-  }
-  .thesis-text {
-    font-size: clamp(1.32rem, 1.14rem + 0.45vw, 1.66rem);
-    line-height: 1.4;
-    color: var(--accent-gold);
-    font-weight: 700;
-  }
-
-  /* ── TIER 1: Compact Macro Strip ── */
-  .macro-bar {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
-    padding: 10px 12px;
-  }
-  .macro-item {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    padding: 8px 10px;
-    background: var(--bg-card2);
-    border-radius: 7px;
-    border: 1px solid var(--border);
-    gap: 2px;
-  }
-  .macro-item .label {
-    font-size: 0.66rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .macro-item .value {
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-  .macro-item .change {
-    font-size: 0.72rem;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ── TIER 2: System State ── */
-  .state-card { padding: 18px 20px 16px; }
   .state-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 14px;
+    margin-bottom: 18px;
   }
   .state-metric {
     background: var(--bg-card2);
     border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 14px 16px;
   }
-  .state-metric.positive {
-    border-color: rgba(63, 211, 122, 0.4);
-    background: rgba(63, 211, 122, 0.07);
-  }
-  .state-metric.positive .state-value { color: var(--accent-green); }
-  .state-metric.negative {
-    border-color: rgba(240, 107, 107, 0.4);
-    background: rgba(240, 107, 107, 0.07);
-  }
-  .state-metric.negative .state-value { color: var(--accent-red); }
-  .state-metric.neutral {
-    border-color: rgba(168, 178, 195, 0.22);
-    background: rgba(168, 178, 195, 0.04);
-  }
-  .state-metric.neutral .state-value { color: var(--text); }
   .state-label {
-    font-size: 0.74rem;
+    font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
   .state-value {
-    font-size: 1rem;
+    font-size: 1.24rem;
     font-weight: 600;
     color: var(--text);
   }
   .system-state p {
-    font-size: 0.98rem;
-    line-height: 1.72;
+    font-size: 1.12rem;
+    line-height: 1.82;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
   .system-state p:last-child { margin-bottom: 0; }
 
-  /* ── TIER 2: Financial Plumbing ── */
   .plumbing-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 14px;
   }
   .plumbing-card {
     background: var(--bg-card2);
     border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 10px 12px;
-    min-height: 110px;
-    display: grid;
-    grid-template-rows: auto auto 1fr;
-    gap: 6px;
+    border-radius: 10px;
+    padding: 15px 16px;
   }
   .plumbing-label {
-    font-size: 0.74rem;
+    font-size: 0.82rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
+    margin-bottom: 8px;
   }
   .plumbing-value {
-    font-size: 1rem;
+    font-size: 1.26rem;
     font-weight: 600;
     color: var(--text);
     font-variant-numeric: tabular-nums;
+    margin-bottom: 8px;
   }
   .plumbing-moves {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    align-items: end;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
   }
   .plumbing-abs,
   .plumbing-pct {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: 0.78rem;
+    font-size: 0.92rem;
     font-variant-numeric: tabular-nums;
   }
-  .plumbing-abs::before,
-  .plumbing-pct::before {
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-  .plumbing-abs::before { content: 'Abs'; }
-  .plumbing-pct::before { content: 'Pct'; }
   .plumbing-abs { color: var(--text); }
   .plumbing-pct { color: var(--text-muted); }
   .dir-up { color: var(--accent-green); }
   .dir-down { color: var(--accent-red); }
   .dir-flat { color: var(--text-muted); }
   .plumbing-note {
-    margin-top: 12px;
-    font-size: 0.9rem;
-    line-height: 1.64;
+    margin-top: 16px;
+    font-size: 1rem;
+    line-height: 1.74;
     color: #D3D9E5;
   }
 
-  /* ── Events ── */
+  .thesis-card {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .thesis-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .thesis-text {
+    font-size: 1.34rem;
+    line-height: 1.55;
+    color: var(--accent-gold);
+    font-weight: 600;
+  }
+
   .events-list { display: flex; flex-direction: column; gap: 10px; }
   .event-row {
-    display: grid;
-    grid-template-columns: 72px minmax(0, 1fr);
+    display: flex;
     align-items: flex-start;
     gap: 12px;
-    font-size: 0.98rem;
-    line-height: 1.62;
+    font-size: 1.02rem;
+    line-height: 1.68;
   }
   .event-tag {
-    font-size: 0.66rem;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.06em;
-    padding: 4px 0;
+    padding: 2px 7px;
     border-radius: 4px;
     white-space: nowrap;
-    width: 100%;
-    text-align: center;
+    flex-shrink: 0;
+    margin-top: 2px;
   }
   .event-tag.HIGH { background: var(--tag-high); color: var(--tag-high-text); }
   .event-tag.MEDIUM { background: var(--tag-med); color: var(--tag-med-text); }
   .event-tag.LOW { background: var(--tag-low); color: var(--tag-low-text); }
   .event-name { font-weight: 600; color: var(--text); }
-  .event-impact { font-size: 0.9rem; color: var(--text-muted); }
+  .event-impact { font-size: 0.96rem; color: var(--text-muted); }
 
-  /* ── Setups ── */
+  .macro-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 14px 16px;
+  }
+  .macro-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 112px;
+    padding: 9px 11px;
+    background: var(--bg-card2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .macro-item .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .macro-item .value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .macro-item .change {
+    font-size: 0.8rem;
+    margin-top: 1px;
+    font-variant-numeric: tabular-nums;
+  }
+
   .setup-block {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -315,7 +280,11 @@
     margin-bottom: 12px;
     flex-wrap: wrap;
   }
-  .setup-ticker { font-size: 1.06rem; font-weight: 700; color: var(--text); }
+  .setup-ticker {
+    font-size: 1.14rem;
+    font-weight: 700;
+    color: var(--text);
+  }
   .setup-bias {
     font-size: 0.82rem;
     font-weight: 600;
@@ -334,9 +303,17 @@
     padding: 2px 6px;
     border-radius: 3px;
   }
-  .setup-confidence { font-size: 0.82rem; color: var(--text-muted); margin-left: auto; }
+  .setup-confidence {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
   .setup-rows { display: flex; flex-direction: column; gap: 7px; }
-  .setup-row { display: flex; gap: 10px; font-size: 0.98rem; }
+  .setup-row {
+    display: flex;
+    gap: 10px;
+    font-size: 0.98rem;
+  }
   .setup-row .sk { color: var(--text-muted); min-width: 92px; flex-shrink: 0; }
   .setup-row .sv { color: var(--text); }
   .no-setups {
@@ -348,18 +325,18 @@
     border-radius: 8px;
   }
 
-  /* ── Support grid (3 cards) ── */
   .support-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
   }
   .context-copy,
   .sector-interp,
+  .miner-row,
   .inventory-note,
   .appendix-note {
-    font-size: 0.96rem;
-    line-height: 1.7;
+    font-size: 1rem;
+    line-height: 1.76;
     color: #D3D9E5;
   }
   .eq-data,
@@ -374,30 +351,53 @@
     background: var(--bg-card2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 11px;
+    padding: 8px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
-  .eq-name, .s-label {
+  .eq-name,
+  .s-label {
     color: var(--text-muted);
     font-size: 0.76rem;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .eq-val, .s-value { font-size: 0.98rem; font-weight: 600; color: var(--text); }
-  .eq-chg, .s-chg { font-size: 0.8rem; }
-  .inventory-list { display: flex; flex-direction: column; gap: 8px; }
-  .inventory-row { display: flex; gap: 10px; align-items: flex-start; }
-  .inventory-label { min-width: 172px; color: var(--text); font-weight: 600; }
-  .inventory-value { color: var(--text-muted); }
-  .inventory-value.is-unavailable { color: var(--text-dim); }
-
-  /* ── Secondary Watchlist ── */
+  .eq-val,
+  .s-value {
+    font-size: 1.04rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .eq-chg,
+  .s-chg {
+    font-size: 0.84rem;
+  }
+  .inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .inventory-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .inventory-label {
+    min-width: 172px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .inventory-value {
+    color: var(--text-muted);
+  }
+  .inventory-value.is-unavailable {
+    color: var(--text-dim);
+  }
   .miner-block {
-    margin-bottom: 18px;
-    padding-bottom: 18px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
   .miner-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -407,37 +407,20 @@
     letter-spacing: 0.08em;
     color: var(--accent-gold);
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
-  .miner-row {
-    display: grid;
-    grid-template-columns: 110px minmax(0, 1fr);
-    gap: 10px;
-    align-items: start;
-    margin-top: 12px;
-  }
-  .miner-key {
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    padding-top: 2px;
-  }
-  .miner-val {
-    font-size: 0.96rem;
-    line-height: 1.66;
-    color: var(--text);
-  }
+  .miner-key { color: var(--text-muted); min-width: 98px; flex-shrink: 0; }
+  .miner-val { color: var(--text); }
   .miner-conclusion {
     color: var(--accent-green);
-    margin-top: 14px;
+    margin-top: 8px;
     font-weight: 500;
-    font-size: 0.96rem;
   }
-
-  /* ── Appendix ── */
-  .appendix-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .appendix-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .appendix-item {
     font-size: 0.92rem;
     font-weight: 500;
@@ -449,7 +432,6 @@
     border-radius: 999px;
   }
 
-  /* ── Footer ── */
   .footer {
     text-align: center;
     font-size: 0.84rem;
@@ -457,7 +439,12 @@
     padding: 14px 0 20px;
     letter-spacing: 0.04em;
   }
-  .footer-meta { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .footer-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
   .footer-copy {
     display: flex;
     justify-content: center;
@@ -474,7 +461,6 @@
   }
   .footer-link:hover { color: var(--accent); }
 
-  /* ── Mobile ── */
   @media (max-width: 899px) {
     :root {
       --page-max: 100%;
@@ -483,24 +469,48 @@
       --card-pad: 16px;
       --grid-gap: 16px;
     }
+
     html, body { font-size: 15px; }
-    .header { flex-direction: column; align-items: flex-start; }
-    .state-summary { grid-template-columns: 1fr; }
-    .plumbing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .support-grid { grid-template-columns: 1fr; }
-    .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .inventory-row, .setup-row, .miner-row { display: flex; flex-direction: column; gap: 3px; }
-    .inventory-label, .setup-row .sk { min-width: 0; }
-    .event-row { grid-template-columns: 64px minmax(0, 1fr); }
+
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .state-summary,
+    .plumbing-grid,
+    .support-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .macro-item {
+      min-width: calc(50% - 5px);
+      flex: 1 1 calc(50% - 5px);
+    }
+
+    .inventory-row,
+    .setup-row,
+    .miner-row {
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .inventory-label,
+    .setup-row .sk,
+    .miner-key {
+      min-width: 0;
+    }
   }
 
-  /* ── Desktop ── */
   @media (min-width: 900px) {
-    html, body { font-size: 14px; }
-    .page { padding-top: 24px; }
+    html, body { font-size: 17px; }
+    .page { padding-top: 30px; }
   }
 
-  @page { size: A3 landscape; margin: 10mm; }
+  @page {
+    size: A3 landscape;
+    margin: 10mm;
+  }
   @media print {
     body { background: var(--bg) !important; }
     .page { padding: 0; }
@@ -512,92 +522,21 @@
 
   <header class="header">
     <h1>Morning <span>Macro</span> Edge</h1>
-    <span class="ts">Report Generated at 8:02 PM PDT — 2026-04-03</span>
+    <span class="ts">Report Generated at 7:04 PM PDT — 2026-04-03</span>
   </header>
 
-  <!-- TIER 1: Decision Strip -->
-  <section class="card thesis-card">
-    <div class="thesis-label">One-Line Thesis</div>
-    <div class="thesis-text">Range-bound macro regime — preserve capital, wait for conviction entry with clear invalidation.</div>
-  </section>
-
-  <section class="macro-bar">
-    
-    <div class="macro-item">
-      <span class="label">DXY</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">US10Y</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">REAL10Y ~est</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">WTI</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">GOLD</span>
-      <span class="value">$2320.00</span>
-      <span class="change dir-up">+0.4%</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">SILVER</span>
-      <span class="value">$30.00</span>
-      <span class="change dir-up">+3.5%</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">SPY</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">QQQ</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">BTC</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-    <div class="macro-item">
-      <span class="label">VIX</span>
-      <span class="value">Source unavailable</span>
-      <span class="change dir-flat">N/A</span>
-    </div>
-    
-  </section>
-
-  <!-- TIER 2: Explanation Layer -->
   <section class="card state-card">
     <div class="card-title">System State</div>
     <div class="state-summary">
-      <div class="state-metric neutral">
+      <div class="state-metric">
         <div class="state-label">Market Posture</div>
         <div class="state-value">Range-bound</div>
       </div>
-      <div class="state-metric neutral">
+      <div class="state-metric">
         <div class="state-label">Market Quality</div>
         <div class="state-value">Mixed</div>
       </div>
-      <div class="state-metric neutral">
+      <div class="state-metric">
         <div class="state-label">Execution Bias</div>
         <div class="state-value">Selective</div>
       </div>
@@ -675,6 +614,11 @@
     <div class="plumbing-note">VIX regime neutral. Gamma positioning unclear without live GEX data. Discretionary flows dominant.</div>
   </section>
 
+  <section class="card thesis-card">
+    <div class="thesis-label">One-Line Thesis</div>
+    <div class="thesis-text">Range-bound macro regime — preserve capital, wait for conviction entry with clear invalidation.</div>
+  </section>
+
   <section class="card">
     <div class="card-title">High-Impact Events</div>
     <div class="events-list">
@@ -712,61 +656,72 @@
     </div>
   </section>
 
-  <div class="card">
-    <div class="card-title">Overnight Context</div>
-    <div class="eq-data">
-      
-      
-      <div class="eq-chip">
-        <span class="eq-name">SPY</span>
-        <span class="eq-val">Source unavailable</span>
-        
-        <span class="eq-chg dir-flat">Unavailable</span>
-        
-      </div>
-      
-      
-      <div class="eq-chip">
-        <span class="eq-name">QQQ</span>
-        <span class="eq-val">Source unavailable</span>
-        
-        <span class="eq-chg dir-flat">Unavailable</span>
-        
-      </div>
-      
-      
-      <div class="eq-chip">
-        <span class="eq-name">BTC</span>
-        <span class="eq-val">Source unavailable</span>
-        
-        <span class="eq-chg dir-flat">Unavailable</span>
-        
-      </div>
-      
-      
-      <div class="eq-chip">
-        <span class="eq-name">TSLA</span>
-        <span class="eq-val">Source unavailable</span>
-        
-        <span class="eq-chg dir-flat">Unavailable</span>
-        
-      </div>
-      
-      
-      <div class="eq-chip">
-        <span class="eq-name">MU</span>
-        <span class="eq-val">Source unavailable</span>
-        
-        <span class="eq-chg dir-flat">Unavailable</span>
-        
-      </div>
-      
+  <section class="macro-bar">
+    
+    <div class="macro-item">
+      <span class="label">DXY</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
     </div>
-    <div class="context-copy">SPY Source unavailable, QQQ Source unavailable — equity indices mixed. BTC Source unavailable trading in risk-on correlation. TSLA Source unavailable, MU Source unavailable — monitor for sector rotation.</div>
-  </div>
+    
+    <div class="macro-item">
+      <span class="label">US10Y</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">REAL10Y ~est</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">WTI</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">GOLD</span>
+      <span class="value">$2320.00</span>
+      <span class="change dir-up">+0.4%</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">SILVER</span>
+      <span class="value">$30.00</span>
+      <span class="change dir-up">+3.5%</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">SPY</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">QQQ</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">BTC</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+    <div class="macro-item">
+      <span class="label">VIX</span>
+      <span class="value">Source unavailable</span>
+      <span class="change dir-flat">N/A</span>
+    </div>
+    
+  </section>
 
   <section class="card">
-    <div class="card-title">Top Setups</div>
+    <div class="card-title">Opportunities / Top Setups</div>
     
     <div class="no-setups">No valid setups — preserve capital</div>
     
@@ -774,42 +729,56 @@
 
   <section class="support-grid">
     <div class="card">
-      <div class="card-title">Miners Watchlist</div>
-      
-      <div class="miner-block">
-        <div class="miner-ticker">GDX — VanEck Gold Miners ETF</div>
-        <div class="miner-row">
-          <span class="miner-key">Structure</span>
-          <span class="miner-val">Level at Source unavailable — trend direction requires comparison to prior session.</span>
+      <div class="card-title">Overnight Context</div>
+      <div class="eq-data">
+        
+        
+        <div class="eq-chip">
+          <span class="eq-name">SPY</span>
+          <span class="eq-val">Source unavailable</span>
+          
+          <span class="eq-chg dir-flat">Unavailable</span>
+          
         </div>
-        <div class="miner-row">
-          <span class="miner-key">Rel. Strength</span>
-          <span class="miner-val">Compare GDX vs GOLD for miner leverage confirmation.</span>
+        
+        
+        <div class="eq-chip">
+          <span class="eq-name">QQQ</span>
+          <span class="eq-val">Source unavailable</span>
+          
+          <span class="eq-chg dir-flat">Unavailable</span>
+          
         </div>
-        <div class="miner-row">
-          <span class="miner-key">Interpretation</span>
-          <span class="miner-val">If GDX underperforms gold, distribution pressure likely.</span>
+        
+        
+        <div class="eq-chip">
+          <span class="eq-name">BTC</span>
+          <span class="eq-val">Source unavailable</span>
+          
+          <span class="eq-chg dir-flat">Unavailable</span>
+          
         </div>
-        <div class="miner-conclusion">→ Monitor GDX/GOLD ratio for accumulation or distribution signal.</div>
+        
+        
+        <div class="eq-chip">
+          <span class="eq-name">TSLA</span>
+          <span class="eq-val">Source unavailable</span>
+          
+          <span class="eq-chg dir-flat">Unavailable</span>
+          
+        </div>
+        
+        
+        <div class="eq-chip">
+          <span class="eq-name">MU</span>
+          <span class="eq-val">Source unavailable</span>
+          
+          <span class="eq-chg dir-flat">Unavailable</span>
+          
+        </div>
+        
       </div>
-      
-      <div class="miner-block">
-        <div class="miner-ticker">NEM — Newmont Corporation</div>
-        <div class="miner-row">
-          <span class="miner-key">Structure</span>
-          <span class="miner-val">NEM at Source unavailable — large-cap miner with high GOLD beta.</span>
-        </div>
-        <div class="miner-row">
-          <span class="miner-key">Rel. Strength</span>
-          <span class="miner-val">Should lead GDX in a sustained gold bull move.</span>
-        </div>
-        <div class="miner-row">
-          <span class="miner-key">Interpretation</span>
-          <span class="miner-val">Lagging GDX suggests institutional selling or hedging.</span>
-        </div>
-        <div class="miner-conclusion">→ Watch NEM relative to GDX for miner sector leadership.</div>
-      </div>
-      
+      <div class="context-copy">SPY Source unavailable, QQQ Source unavailable — equity indices mixed. BTC Source unavailable trading in risk-on correlation. TSLA Source unavailable, MU Source unavailable — monitor for sector rotation.</div>
     </div>
 
     <div class="card">
@@ -874,6 +843,27 @@
     </div>
 
     <div class="card">
+      <div class="card-title">Secondary Watchlist</div>
+      
+      <div class="miner-block">
+        <div class="miner-ticker">GDX — VanEck Gold Miners ETF</div>
+        <div class="miner-row"><span class="miner-key">Structure</span><span class="miner-val">Level at Source unavailable — trend direction requires comparison to prior session.</span></div>
+        <div class="miner-row"><span class="miner-key">Rel. Strength</span><span class="miner-val">Compare GDX vs GOLD for miner leverage confirmation.</span></div>
+        <div class="miner-row"><span class="miner-key">Interpretation</span><span class="miner-val">If GDX underperforms gold, distribution pressure likely.</span></div>
+        <div class="miner-conclusion">→ Monitor GDX/GOLD ratio for accumulation or distribution signal.</div>
+      </div>
+      
+      <div class="miner-block">
+        <div class="miner-ticker">NEM — Newmont Corporation</div>
+        <div class="miner-row"><span class="miner-key">Structure</span><span class="miner-val">NEM at Source unavailable — large-cap miner with high GOLD beta.</span></div>
+        <div class="miner-row"><span class="miner-key">Rel. Strength</span><span class="miner-val">Should lead GDX in a sustained gold bull move.</span></div>
+        <div class="miner-row"><span class="miner-key">Interpretation</span><span class="miner-val">Lagging GDX suggests institutional selling or hedging.</span></div>
+        <div class="miner-conclusion">→ Watch NEM relative to GDX for miner sector leadership.</div>
+      </div>
+      
+    </div>
+
+    <div class="card">
       <div class="card-title">Appendix</div>
       <div class="appendix-note" style="margin-bottom: 12px;">Risk map reference levels and invalidation triggers.</div>
       <div class="appendix-list">
@@ -895,12 +885,12 @@
   <div class="footer">
     <div class="footer-meta">
       <div class="footer-copy">
-        <span>Report Generated at 8:02 PM PDT — 2026-04-03</span>
+        <span>Report Generated at 7:04 PM PDT — 2026-04-03</span>
         <span>&middot;</span>
         <span>For decision support only. Not financial advice.</span>
       </div>
       
-      <a class="footer-link" href="archive/">Archives</a>
+      <a class="footer-link" href="index.html">Archives</a>
       
     </div>
   </div>

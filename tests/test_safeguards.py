@@ -5,49 +5,34 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from signal_forge.backtest.trades import Trade
 from signal_forge.contracts import SafeguardInput
 from signal_forge.rails.safeguards import SafeguardsLayer
+from signal_forge.safeguards.guardrails import validate_trade
 
 
 class SafeguardsTests(unittest.TestCase):
-    def test_chop_blocks_debit_expression(self) -> None:
+    def test_validate_trade_rejects_chaotic_market(self) -> None:
+        result = validate_trade(
+            Trade("SPY", "bullish", "call_debit", 100.0, 98.0, 104.0),
+            {"market_quality": "CHAOTIC", "iv_regime": "low"},
+        )
+
+        self.assertFalse(result["approved"])
+        self.assertIn("Market quality is CHAOTIC, trade rejected", result["reasons"])
+
+    def test_validate_trade_requires_high_quality_for_mixed_market(self) -> None:
+        result = validate_trade(
+            Trade("SPY", "bullish", "call_debit", 100.0, 99.0, 102.0),
+            {"market_quality": "MIXED", "iv_regime": "low"},
+        )
+
+        self.assertFalse(result["approved"])
+        self.assertIn("MIXED market only allows high-quality setups", result["reasons"])
+
+    def test_safeguards_layer_logs_override_reason(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             layer = SafeguardsLayer(Path(tmpdir) / "safeguards.jsonl")
-            result = layer.evaluate(
-                SafeguardInput(
-                    market_state="CHOP",
-                    volatility_regime="NORMAL",
-                    expression_type="DEBIT_BULL",
-                    confidence_score=85,
-                    catalyst_flag=False,
-                )
-            )
-
-            self.assertEqual(result.decision, "NO_TRADE")
-            self.assertFalse(result.allowed)
-            self.assertIn("CHOP only allows CREDIT spreads", result.reason)
-
-    def test_low_iv_credit_mismatch_reduces_confidence_to_no_trade(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            layer = SafeguardsLayer(Path(tmpdir) / "safeguards.jsonl")
-            result = layer.evaluate(
-                SafeguardInput(
-                    market_state="TREND",
-                    volatility_regime="LOW",
-                    expression_type="CREDIT_BULL",
-                    confidence_score=72,
-                    catalyst_flag=False,
-                )
-            )
-
-            self.assertEqual(result.confidence, 57)
-            self.assertEqual(result.decision, "NO_TRADE")
-            self.assertIn("Adjusted confidence fell below 70", result.reason)
-
-    def test_override_allows_blocked_setup_and_logs_reason(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            log_path = Path(tmpdir) / "safeguards.jsonl"
-            layer = SafeguardsLayer(log_path)
             result = layer.evaluate(
                 SafeguardInput(
                     market_state="MIXED",
@@ -62,7 +47,7 @@ class SafeguardsTests(unittest.TestCase):
 
             self.assertEqual(result.decision, "OVERRIDE")
             self.assertTrue(result.allowed)
-            payload = json.loads(log_path.read_text(encoding="utf-8").strip())
+            payload = json.loads((Path(tmpdir) / "safeguards.jsonl").read_text(encoding="utf-8").strip())
             self.assertEqual(payload["safeguard_result"]["override_reason"], "EVENT_DISLOCATION")
 
 

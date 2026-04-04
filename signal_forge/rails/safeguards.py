@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from signal_forge.backtest.trades import Trade
 from signal_forge.contracts import SafeguardInput, SafeguardResult
+from signal_forge.safeguards.guardrails import validate_trade
 
 
 class SafeguardsLayer:
@@ -12,71 +14,47 @@ class SafeguardsLayer:
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def evaluate(self, guard_input: SafeguardInput) -> SafeguardResult:
-        confidence = guard_input.confidence_score
-        reasons: list[str] = []
-        blocked_expressions: list[str] = []
+        trade = Trade(
+            symbol="UNKNOWN",
+            direction="bullish" if guard_input.expression_type.endswith("BULL") else "bearish",
+            structure=self._structure_from_expression(guard_input.expression_type),
+            entry_price=100.0,
+            stop=99.0 if guard_input.expression_type.endswith("BULL") else 101.0,
+            target=102.5 if guard_input.expression_type.endswith("BULL") else 97.5,
+            timeout_bars=5,
+        )
+        evaluation = validate_trade(
+            trade,
+            {
+                "market_quality": self._market_quality(guard_input.market_state),
+                "iv_regime": guard_input.volatility_regime.lower(),
+            },
+        )
 
-        decision = "TRADE"
-        allowed = True
-        posture = self._posture(guard_input.market_state, guard_input.expression_type)
-
-        if guard_input.market_state == "CHOP":
-            blocked_expressions = ["DEBIT_BULL", "DEBIT_BEAR"]
-            if guard_input.expression_type.startswith("DEBIT"):
-                decision = "NO_TRADE"
-                allowed = False
-                reasons.append("CHOP only allows CREDIT spreads")
-        elif guard_input.market_state == "EXPANSION":
-            blocked_expressions = ["CREDIT_BULL", "CREDIT_BEAR"]
-            if guard_input.expression_type.startswith("CREDIT"):
-                decision = "NO_TRADE"
-                allowed = False
-                reasons.append("EXPANSION only allows DEBIT spreads")
-        elif guard_input.market_state == "MIXED":
-            blocked_expressions = [
-                "CREDIT_BULL",
-                "CREDIT_BEAR",
-                "DEBIT_BULL",
-                "DEBIT_BEAR",
-            ]
-            decision = "NO_TRADE"
-            allowed = False
-            reasons.append("MIXED market state defaults to NO_TRADE")
-
-        mismatch_penalty = self._volatility_penalty(guard_input)
-        if mismatch_penalty:
-            confidence = max(0, confidence - mismatch_penalty)
-            reasons.append(f"Volatility mismatch reduced confidence by {mismatch_penalty}")
+        decision = "TRADE" if evaluation["approved"] else "NO_TRADE"
+        allowed = evaluation["approved"]
+        reasons = list(evaluation["reasons"])
 
         if guard_input.confidence_score < 70:
             decision = "NO_TRADE"
             allowed = False
             reasons.append("Confidence score below 70")
-        elif confidence < 70:
+        if guard_input.catalyst_flag and trade.structure.endswith("credit"):
             decision = "NO_TRADE"
             allowed = False
-            reasons.append("Adjusted confidence fell below 70")
-
-        if guard_input.catalyst_flag and guard_input.expression_type.startswith("CREDIT"):
-            decision = "NO_TRADE"
-            allowed = False
-            reasons.append("Catalyst risk blocks CREDIT spreads")
-
+            reasons.append("Catalyst risk blocks credit spreads")
         if guard_input.override_flag:
             decision = "OVERRIDE"
             allowed = True
             reasons.append(f"Manual override applied: {guard_input.override_reason}")
 
-        if not reasons:
-            reasons.append("Expression passed safeguard checks")
-
         result = SafeguardResult(
             decision=decision,
             allowed=allowed,
             reason="; ".join(reasons),
-            confidence=confidence,
-            blocked_expressions=blocked_expressions,
-            posture=posture,
+            confidence=max(int(evaluation["score"] * 100), 0),
+            blocked_expressions=[],
+            posture=self._posture(self._market_quality(guard_input.market_state), trade.structure),
             override_flag=guard_input.override_flag,
             override_reason=guard_input.override_reason,
         )
@@ -92,20 +70,27 @@ class SafeguardsLayer:
             handle.write(json.dumps(payload, sort_keys=True))
             handle.write("\n")
 
-    def _volatility_penalty(self, guard_input: SafeguardInput) -> int:
-        if guard_input.volatility_regime == "HIGH" and guard_input.expression_type.startswith("DEBIT"):
-            return 15
-        if guard_input.volatility_regime == "LOW" and guard_input.expression_type.startswith("CREDIT"):
-            return 15
-        return 0
+    def _market_quality(self, market_state: str) -> str:
+        if market_state in {"CHOP", "MIXED"}:
+            return "MIXED"
+        if market_state == "CHAOS":
+            return "CHAOTIC"
+        return "CLEAN"
 
-    def _posture(self, market_state: str, expression_type: str) -> str:
-        if market_state == "CHOP":
-            return "SELL PREMIUM / WAIT"
-        if market_state == "EXPANSION":
-            return "BUY CONVEXITY / WAIT"
-        if market_state == "MIXED":
+    def _structure_from_expression(self, expression_type: str) -> str:
+        mapping = {
+            "DEBIT_BULL": "call_debit",
+            "DEBIT_BEAR": "put_debit",
+            "CREDIT_BULL": "put_credit",
+            "CREDIT_BEAR": "call_credit",
+        }
+        return mapping[expression_type]
+
+    def _posture(self, market_quality: str, structure: str) -> str:
+        if market_quality == "MIXED":
             return "WAIT"
-        if expression_type.startswith("CREDIT"):
+        if market_quality == "CHAOTIC":
+            return "NO TRADE"
+        if structure.endswith("credit"):
             return "SELL PREMIUM"
         return "BUY CONVEXITY"

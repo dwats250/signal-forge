@@ -27,20 +27,20 @@
     --tag-med-text: #FCD34D;
     --tag-low: #14532D;
     --tag-low-text: #86EFAC;
-    --page-max: 1520px;
-    --page-pad-x: 28px;
-    --page-pad-y: 26px;
+    --page-max: 1420px;
+    --page-pad-x: 24px;
+    --page-pad-y: 22px;
     --card-radius: 12px;
-    --card-pad: 22px;
-    --grid-gap: 24px;
+    --card-pad: 20px;
+    --grid-gap: 20px;
   }
 
   html, body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 16px;
-    line-height: 1.66;
+    font-size: 15px;
+    line-height: 1.62;
     min-height: 100vh;
   }
 
@@ -53,28 +53,29 @@
     gap: var(--grid-gap);
   }
 
+  /* ── Header ── */
   .header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 18px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
   }
   .header h1 {
-    font-size: clamp(2.15rem, 1.7rem + 1.1vw, 3.05rem);
-    font-weight: 700;
-    letter-spacing: 0.02em;
+    font-size: clamp(1.6rem, 1.35rem + 0.7vw, 2.2rem);
+    font-weight: 650;
+    letter-spacing: 0.015em;
     color: var(--text);
   }
   .header h1 span { color: var(--accent); }
   .header .ts {
-    font-size: 0.98rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
     font-weight: 500;
     letter-spacing: 0.04em;
   }
 
+  /* ── Card base ── */
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -82,12 +83,12 @@
     padding: var(--card-pad);
   }
   .card-title {
-    font-size: 1.14rem;
+    font-size: 1.02rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 18px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -99,172 +100,206 @@
     background: var(--border);
   }
 
-  .state-card {
-    padding: 24px 24px 22px;
+  /* ── TIER 1: Thesis ── */
+  .thesis-card {
+    padding-top: 18px;
+    padding-bottom: 18px;
   }
+  .thesis-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .thesis-text {
+    font-size: clamp(1.32rem, 1.14rem + 0.45vw, 1.66rem);
+    line-height: 1.4;
+    color: var(--accent-gold);
+    font-weight: 700;
+  }
+
+  /* ── TIER 1: Compact Macro Strip ── */
+  .macro-bar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 10px 12px;
+  }
+  .macro-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 8px 10px;
+    background: var(--bg-card2);
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    gap: 2px;
+  }
+  .macro-item .label {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .macro-item .value {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .macro-item .change {
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── TIER 2: System State ── */
+  .state-card { padding: 18px 20px 16px; }
   .state-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-bottom: 18px;
+    gap: 10px;
+    margin-bottom: 14px;
   }
   .state-metric {
     background: var(--bg-card2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
+    border-radius: 9px;
+    padding: 10px 12px;
   }
+  .state-metric.positive {
+    border-color: rgba(63, 211, 122, 0.4);
+    background: rgba(63, 211, 122, 0.07);
+  }
+  .state-metric.positive .state-value { color: var(--accent-green); }
+  .state-metric.negative {
+    border-color: rgba(240, 107, 107, 0.4);
+    background: rgba(240, 107, 107, 0.07);
+  }
+  .state-metric.negative .state-value { color: var(--accent-red); }
+  .state-metric.neutral {
+    border-color: rgba(168, 178, 195, 0.22);
+    background: rgba(168, 178, 195, 0.04);
+  }
+  .state-metric.neutral .state-value { color: var(--text); }
   .state-label {
-    font-size: 0.82rem;
+    font-size: 0.74rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
   .state-value {
-    font-size: 1.24rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text);
   }
   .system-state p {
-    font-size: 1.12rem;
-    line-height: 1.82;
+    font-size: 0.98rem;
+    line-height: 1.72;
     color: var(--text);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
   .system-state p:last-child { margin-bottom: 0; }
 
+  /* ── TIER 2: Financial Plumbing ── */
   .plumbing-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
+    gap: 10px;
   }
   .plumbing-card {
     background: var(--bg-card2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 15px 16px;
+    border-radius: 9px;
+    padding: 10px 12px;
+    min-height: 110px;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 6px;
   }
   .plumbing-label {
-    font-size: 0.82rem;
+    font-size: 0.74rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 8px;
   }
   .plumbing-value {
-    font-size: 1.26rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text);
     font-variant-numeric: tabular-nums;
-    margin-bottom: 8px;
   }
   .plumbing-moves {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: end;
   }
   .plumbing-abs,
   .plumbing-pct {
-    font-size: 0.92rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
   }
+  .plumbing-abs::before,
+  .plumbing-pct::before {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .plumbing-abs::before { content: 'Abs'; }
+  .plumbing-pct::before { content: 'Pct'; }
   .plumbing-abs { color: var(--text); }
   .plumbing-pct { color: var(--text-muted); }
   .dir-up { color: var(--accent-green); }
   .dir-down { color: var(--accent-red); }
   .dir-flat { color: var(--text-muted); }
   .plumbing-note {
-    margin-top: 16px;
-    font-size: 1rem;
-    line-height: 1.74;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    line-height: 1.64;
     color: #D3D9E5;
   }
 
-  .thesis-card {
-    padding-top: 20px;
-    padding-bottom: 20px;
-  }
-  .thesis-label {
-    font-size: 0.88rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-  }
-  .thesis-text {
-    font-size: 1.34rem;
-    line-height: 1.55;
-    color: var(--accent-gold);
-    font-weight: 600;
-  }
-
+  /* ── Events ── */
   .events-list { display: flex; flex-direction: column; gap: 10px; }
   .event-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
     align-items: flex-start;
     gap: 12px;
-    font-size: 1.02rem;
-    line-height: 1.68;
+    font-size: 0.98rem;
+    line-height: 1.62;
   }
   .event-tag {
-    font-size: 10px;
+    font-size: 0.66rem;
     font-weight: 700;
     letter-spacing: 0.06em;
-    padding: 2px 7px;
+    padding: 4px 0;
     border-radius: 4px;
     white-space: nowrap;
-    flex-shrink: 0;
-    margin-top: 2px;
+    width: 100%;
+    text-align: center;
   }
   .event-tag.HIGH { background: var(--tag-high); color: var(--tag-high-text); }
   .event-tag.MEDIUM { background: var(--tag-med); color: var(--tag-med-text); }
   .event-tag.LOW { background: var(--tag-low); color: var(--tag-low-text); }
   .event-name { font-weight: 600; color: var(--text); }
-  .event-impact { font-size: 0.96rem; color: var(--text-muted); }
+  .event-impact { font-size: 0.9rem; color: var(--text-muted); }
 
-  .macro-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
-    padding: 14px 16px;
-  }
-  .macro-item {
-    display: flex;
-    flex-direction: column;
-    min-width: 112px;
-    padding: 9px 11px;
-    background: var(--bg-card2);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-  }
-  .macro-item .label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
-  .macro-item .value {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-  }
-  .macro-item .change {
-    font-size: 0.8rem;
-    margin-top: 1px;
-    font-variant-numeric: tabular-nums;
-  }
-
+  /* ── Setups ── */
   .setup-block {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -280,11 +315,7 @@
     margin-bottom: 12px;
     flex-wrap: wrap;
   }
-  .setup-ticker {
-    font-size: 1.14rem;
-    font-weight: 700;
-    color: var(--text);
-  }
+  .setup-ticker { font-size: 1.06rem; font-weight: 700; color: var(--text); }
   .setup-bias {
     font-size: 0.82rem;
     font-weight: 600;
@@ -303,17 +334,9 @@
     padding: 2px 6px;
     border-radius: 3px;
   }
-  .setup-confidence {
-    font-size: 0.84rem;
-    color: var(--text-muted);
-    margin-left: auto;
-  }
+  .setup-confidence { font-size: 0.82rem; color: var(--text-muted); margin-left: auto; }
   .setup-rows { display: flex; flex-direction: column; gap: 7px; }
-  .setup-row {
-    display: flex;
-    gap: 10px;
-    font-size: 0.98rem;
-  }
+  .setup-row { display: flex; gap: 10px; font-size: 0.98rem; }
   .setup-row .sk { color: var(--text-muted); min-width: 92px; flex-shrink: 0; }
   .setup-row .sv { color: var(--text); }
   .no-setups {
@@ -325,18 +348,18 @@
     border-radius: 8px;
   }
 
+  /* ── Support grid (3 cards) ── */
   .support-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
   }
   .context-copy,
   .sector-interp,
-  .miner-row,
   .inventory-note,
   .appendix-note {
-    font-size: 1rem;
-    line-height: 1.76;
+    font-size: 0.96rem;
+    line-height: 1.7;
     color: #D3D9E5;
   }
   .eq-data,
@@ -351,53 +374,30 @@
     background: var(--bg-card2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: 8px 11px;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
-  .eq-name,
-  .s-label {
+  .eq-name, .s-label {
     color: var(--text-muted);
     font-size: 0.76rem;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .eq-val,
-  .s-value {
-    font-size: 1.04rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .eq-chg,
-  .s-chg {
-    font-size: 0.84rem;
-  }
-  .inventory-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .inventory-row {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .inventory-label {
-    min-width: 172px;
-    color: var(--text);
-    font-weight: 600;
-  }
-  .inventory-value {
-    color: var(--text-muted);
-  }
-  .inventory-value.is-unavailable {
-    color: var(--text-dim);
-  }
+  .eq-val, .s-value { font-size: 0.98rem; font-weight: 600; color: var(--text); }
+  .eq-chg, .s-chg { font-size: 0.8rem; }
+  .inventory-list { display: flex; flex-direction: column; gap: 8px; }
+  .inventory-row { display: flex; gap: 10px; align-items: flex-start; }
+  .inventory-label { min-width: 172px; color: var(--text); font-weight: 600; }
+  .inventory-value { color: var(--text-muted); }
+  .inventory-value.is-unavailable { color: var(--text-dim); }
+
+  /* ── Secondary Watchlist ── */
   .miner-block {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+    margin-bottom: 18px;
+    padding-bottom: 18px;
     border-bottom: 1px solid var(--border);
   }
   .miner-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -407,20 +407,37 @@
     letter-spacing: 0.08em;
     color: var(--accent-gold);
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
-  .miner-key { color: var(--text-muted); min-width: 98px; flex-shrink: 0; }
-  .miner-val { color: var(--text); }
+  .miner-row {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    margin-top: 12px;
+  }
+  .miner-key {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-top: 2px;
+  }
+  .miner-val {
+    font-size: 0.96rem;
+    line-height: 1.66;
+    color: var(--text);
+  }
   .miner-conclusion {
     color: var(--accent-green);
-    margin-top: 8px;
+    margin-top: 14px;
     font-weight: 500;
+    font-size: 0.96rem;
   }
-  .appendix-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
+
+  /* ── Appendix ── */
+  .appendix-list { display: flex; flex-wrap: wrap; gap: 10px; }
   .appendix-item {
     font-size: 0.92rem;
     font-weight: 500;
@@ -432,6 +449,7 @@
     border-radius: 999px;
   }
 
+  /* ── Footer ── */
   .footer {
     text-align: center;
     font-size: 0.84rem;
@@ -439,12 +457,7 @@
     padding: 14px 0 20px;
     letter-spacing: 0.04em;
   }
-  .footer-meta {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
+  .footer-meta { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .footer-copy {
     display: flex;
     justify-content: center;
@@ -461,6 +474,7 @@
   }
   .footer-link:hover { color: var(--accent); }
 
+  /* ── Mobile ── */
   @media (max-width: 899px) {
     :root {
       --page-max: 100%;
@@ -469,48 +483,24 @@
       --card-pad: 16px;
       --grid-gap: 16px;
     }
-
     html, body { font-size: 15px; }
-
-    .header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .state-summary,
-    .plumbing-grid,
-    .support-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .macro-item {
-      min-width: calc(50% - 5px);
-      flex: 1 1 calc(50% - 5px);
-    }
-
-    .inventory-row,
-    .setup-row,
-    .miner-row {
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .inventory-label,
-    .setup-row .sk,
-    .miner-key {
-      min-width: 0;
-    }
+    .header { flex-direction: column; align-items: flex-start; }
+    .state-summary { grid-template-columns: 1fr; }
+    .plumbing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .support-grid { grid-template-columns: 1fr; }
+    .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .inventory-row, .setup-row, .miner-row { display: flex; flex-direction: column; gap: 3px; }
+    .inventory-label, .setup-row .sk { min-width: 0; }
+    .event-row { grid-template-columns: 64px minmax(0, 1fr); }
   }
 
+  /* ── Desktop ── */
   @media (min-width: 900px) {
-    html, body { font-size: 17px; }
-    .page { padding-top: 30px; }
+    html, body { font-size: 14px; }
+    .page { padding-top: 24px; }
   }
 
-  @page {
-    size: A3 landscape;
-    margin: 10mm;
-  }
+  @page { size: A3 landscape; margin: 10mm; }
   @media print {
     body { background: var(--bg) !important; }
     .page { padding: 0; }
@@ -525,18 +515,35 @@
     <span class="ts">{{ generated_line }}</span>
   </header>
 
+  <!-- TIER 1: Decision Strip -->
+  <section class="card thesis-card">
+    <div class="thesis-label">One-Line Thesis</div>
+    <div class="thesis-text">{{ thesis }}</div>
+  </section>
+
+  <section class="macro-bar">
+    {% for item in macro_bar %}
+    <div class="macro-item">
+      <span class="label">{{ item.name }}</span>
+      <span class="value">{{ item.value }}</span>
+      <span class="change dir-{{ item.direction }}">{{ item.change }}</span>
+    </div>
+    {% endfor %}
+  </section>
+
+  <!-- TIER 2: Explanation Layer -->
   <section class="card state-card">
     <div class="card-title">System State</div>
     <div class="state-summary">
-      <div class="state-metric">
+      <div class="state-metric {{ state_summary.posture_color }}">
         <div class="state-label">Market Posture</div>
         <div class="state-value">{{ state_summary.market_posture }}</div>
       </div>
-      <div class="state-metric">
+      <div class="state-metric {{ state_summary.quality_color }}">
         <div class="state-label">Market Quality</div>
         <div class="state-value">{{ state_summary.market_quality }}</div>
       </div>
-      <div class="state-metric">
+      <div class="state-metric {{ state_summary.bias_color }}">
         <div class="state-label">Execution Bias</div>
         <div class="state-value">{{ state_summary.execution_bias }}</div>
       </div>
@@ -565,11 +572,6 @@
     <div class="plumbing-note">{{ plumbing }}</div>
   </section>
 
-  <section class="card thesis-card">
-    <div class="thesis-label">One-Line Thesis</div>
-    <div class="thesis-text">{{ thesis }}</div>
-  </section>
-
   <section class="card">
     <div class="card-title">High-Impact Events</div>
     <div class="events-list">
@@ -587,18 +589,29 @@
     </div>
   </section>
 
-  <section class="macro-bar">
-    {% for item in macro_bar %}
-    <div class="macro-item">
-      <span class="label">{{ item.name }}</span>
-      <span class="value">{{ item.value }}</span>
-      <span class="change dir-{{ item.direction }}">{{ item.change }}</span>
+  <div class="card">
+    <div class="card-title">Overnight Context</div>
+    <div class="eq-data">
+      {% for name, key in [('SPY', 'spy'), ('QQQ', 'qqq'), ('BTC', 'btc'), ('TSLA', 'tsla'), ('MU', 'mu')] %}
+      {% set chip = equities[key] %}
+      <div class="eq-chip">
+        <span class="eq-name">{{ name }}</span>
+        <span class="eq-val">{{ chip.formatted }}</span>
+        {% if chip.price is not none %}
+        <span class="eq-chg dir-{% if chip.day_chg >= 0 %}up{% else %}down{% endif %}">
+          {{ '+' if chip.day_chg >= 0 else '' }}{{ "%.1f"|format(chip.day_chg) }}%
+        </span>
+        {% else %}
+        <span class="eq-chg dir-flat">Unavailable</span>
+        {% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
-  </section>
+    <div class="context-copy">{{ equities.context }}</div>
+  </div>
 
   <section class="card">
-    <div class="card-title">Opportunities / Top Setups</div>
+    <div class="card-title">Top Setups</div>
     {% if no_setups or not setups %}
     <div class="no-setups">No valid setups — preserve capital</div>
     {% else %}
@@ -624,24 +637,25 @@
 
   <section class="support-grid">
     <div class="card">
-      <div class="card-title">Overnight Context</div>
-      <div class="eq-data">
-        {% for name, key in [('SPY', 'spy'), ('QQQ', 'qqq'), ('BTC', 'btc'), ('TSLA', 'tsla'), ('MU', 'mu')] %}
-        {% set chip = equities[key] %}
-        <div class="eq-chip">
-          <span class="eq-name">{{ name }}</span>
-          <span class="eq-val">{{ chip.formatted }}</span>
-          {% if chip.price is not none %}
-          <span class="eq-chg dir-{% if chip.day_chg >= 0 %}up{% else %}down{% endif %}">
-            {{ '+' if chip.day_chg >= 0 else '' }}{{ "%.1f"|format(chip.day_chg) }}%
-          </span>
-          {% else %}
-          <span class="eq-chg dir-flat">Unavailable</span>
-          {% endif %}
+      <div class="card-title">Miners Watchlist</div>
+      {% for miner in miners %}
+      <div class="miner-block">
+        <div class="miner-ticker">{{ miner.ticker }} — {{ miner.name }}</div>
+        <div class="miner-row">
+          <span class="miner-key">Structure</span>
+          <span class="miner-val">{{ miner.structure }}</span>
         </div>
-        {% endfor %}
+        <div class="miner-row">
+          <span class="miner-key">Rel. Strength</span>
+          <span class="miner-val">{{ miner.relative_strength }}</span>
+        </div>
+        <div class="miner-row">
+          <span class="miner-key">Interpretation</span>
+          <span class="miner-val">{{ miner.interpretation }}</span>
+        </div>
+        <div class="miner-conclusion">→ {{ miner.conclusion }}</div>
       </div>
-      <div class="context-copy">{{ equities.context }}</div>
+      {% endfor %}
     </div>
 
     <div class="card">
@@ -693,19 +707,6 @@
         </div>
         {% endfor %}
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Secondary Watchlist</div>
-      {% for miner in miners %}
-      <div class="miner-block">
-        <div class="miner-ticker">{{ miner.ticker }} — {{ miner.name }}</div>
-        <div class="miner-row"><span class="miner-key">Structure</span><span class="miner-val">{{ miner.structure }}</span></div>
-        <div class="miner-row"><span class="miner-key">Rel. Strength</span><span class="miner-val">{{ miner.relative_strength }}</span></div>
-        <div class="miner-row"><span class="miner-key">Interpretation</span><span class="miner-val">{{ miner.interpretation }}</span></div>
-        <div class="miner-conclusion">→ {{ miner.conclusion }}</div>
-      </div>
-      {% endfor %}
     </div>
 
     <div class="card">
