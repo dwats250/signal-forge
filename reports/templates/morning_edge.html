@@ -492,6 +492,12 @@
     border-radius: 999px;
   }
 
+  /* ── Inline ticker highlight ── */
+  .ticker-inline {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
   /* ── Footer ── */
   .footer {
     text-align: center;
@@ -673,7 +679,7 @@
     </div>
     <div class="system-state">
       {% for para in system_state.split('\n\n') %}
-      {% if para.strip() %}<p>{{ para.strip() }}</p>{% endif %}
+      {% if para.strip() %}<p>{{ para.strip() | highlight_tickers }}</p>{% endif %}
       {% endfor %}
     </div>
     {% if system_state_action %}
@@ -695,7 +701,7 @@
       </div>
       {% endfor %}
     </div>
-    <div class="plumbing-note">{{ plumbing }}</div>
+    <div class="plumbing-note">{{ plumbing | highlight_tickers }}</div>
     {% if plumbing_action %}
     <div class="directive-line {{ plumbing_action_tone }}">→ {{ plumbing_action }}</div>
     {% endif %}
@@ -736,7 +742,7 @@
       </div>
       {% endfor %}
     </div>
-    <div class="context-copy">{{ equities.context }}</div>
+    <div class="context-copy">{{ equities.context | highlight_tickers }}</div>
     {% if equities.action %}
     <div class="directive-line {{ equities.action_tone }}">→ {{ equities.action }}</div>
     {% endif %}
@@ -775,17 +781,17 @@
         <div class="miner-ticker">{{ miner.ticker }} — {{ miner.name }}</div>
         <div class="miner-row">
           <span class="miner-key">Structure</span>
-          <span class="miner-val">{{ miner.structure }}</span>
+          <span class="miner-val">{{ miner.structure | highlight_tickers }}</span>
         </div>
         <div class="miner-row">
           <span class="miner-key">Rel. Strength</span>
-          <span class="miner-val">{{ miner.relative_strength }}</span>
+          <span class="miner-val">{{ miner.relative_strength | highlight_tickers }}</span>
         </div>
         <div class="miner-row">
           <span class="miner-key">Interpretation</span>
-          <span class="miner-val">{{ miner.interpretation }}</span>
+          <span class="miner-val">{{ miner.interpretation | highlight_tickers }}</span>
         </div>
-        <div class="miner-conclusion">→ {{ miner.conclusion }}</div>
+        <div class="miner-conclusion">→ {{ miner.conclusion | highlight_tickers }}</div>
       </div>
       {% endfor %}
     </div>
@@ -809,7 +815,7 @@
       {% endfor %}
     </div>
       <div class="metals-divider"></div>
-      <div class="sector-interp">{{ metals.interpretation }}</div>
+      <div class="sector-interp">{{ metals.interpretation | highlight_tickers }}</div>
       <div class="inventory-list inventory-note" style="margin-top: 14px;">
         {% for line in metals.inventory_lines %}
         {% set parts = line.split(': ', 1) %}

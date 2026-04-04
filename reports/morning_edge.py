@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -12,6 +13,7 @@ from zoneinfo import ZoneInfo
 import anthropic
 import yfinance as yf
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup, escape
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +50,22 @@ TICKERS: dict[str, str] = {
 YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
 METALS_FALLBACK_TEXT = "Source unavailable"
 INVENTORY_FALLBACK_TEXT = "Inventory data unavailable"
+
+# ── Ticker highlight filter ────────────────────────────────────────────────
+
+_TICKER_NAMES: frozenset[str] = frozenset(TICKERS) | {"REAL10Y"}
+_TICKER_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(t) for t in sorted(_TICKER_NAMES, key=len, reverse=True)) + r")\b"
+)
+
+
+def _highlight_tickers_filter(text: str) -> Markup:
+    """Wrap known ticker symbols in text with a highlight span. Safe for autoescape."""
+    if not text:
+        return Markup("")
+    safe = str(escape(text))
+    highlighted = _TICKER_PATTERN.sub(r'<span class="ticker-inline">\1</span>', safe)
+    return Markup(highlighted)
 
 
 # ── Data layer ─────────────────────────────────────────────────────────────
@@ -390,6 +408,24 @@ def fetch_market_data() -> dict:
     else:
         result["REAL10Y"] = _missing_market_entry(is_yield=True, estimated=True)
 
+    # ── Gold price audit ───────────────────────────────────────────────────
+    gold_entry = result.get("GOLD", {})
+    silver_entry = result.get("SILVER", {})
+    gold_price = gold_entry.get("price")
+    silver_price = silver_entry.get("price")
+    if gold_price is not None:
+        print(f"  [audit] GOLD  price: {gold_price:.2f} USD  (symbol: GC=F, source: yfinance)")
+        print(f"  [audit] SILVER price: {silver_price:.2f} USD  (symbol: SI=F, source: yfinance)" if silver_price else "  [audit] SILVER price: unavailable")
+        if not (1000.0 <= gold_price <= 5500.0):
+            print(f"  Warning: GOLD price {gold_price:.2f} is outside expected range [1000, 5500]. Possible data error in GC=F.")
+        if silver_price and silver_price > 0:
+            ratio = gold_price / silver_price
+            print(f"  [audit] Gold/Silver ratio: {ratio:.1f}")
+            if not (25.0 <= ratio <= 150.0):
+                print(f"  Warning: Gold/Silver ratio {ratio:.1f} is anomalous — check GC=F vs SI=F data integrity.")
+    else:
+        print("  Warning: GOLD price is unavailable after fetch. GC=F may have returned no data.")
+
     save_market_data_cache(result)
     return result
 
@@ -694,6 +730,7 @@ def build_report_data(md: dict, narrative: dict) -> dict:
 
 def render_html(report_data: dict) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
+    env.filters["highlight_tickers"] = _highlight_tickers_filter
     template = env.get_template("morning_edge.html")
     html_content = template.render(**report_data)
     archive_report_data = {**report_data, "archive_href": "index.html"}
