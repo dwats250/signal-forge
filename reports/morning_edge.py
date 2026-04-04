@@ -434,7 +434,7 @@ NARRATIVE_SCHEMA = {
         "MEDIUM": "list of {event: str, impact: str}",
         "LOW": "list of {event: str, impact: str}",
     },
-    "plumbing": "string (1-2 sentences on gamma positioning, liquidity, forced vs discretionary flows)",
+    "plumbing": "string (2-4 compact sentences explaining which cross-asset drivers matter most, whether they align or conflict, and what that implies for current market posture)",
     "energy_interpretation": "string (2-3 sentences on WTI/XLE/OXY context and directional bias)",
     "metals_interpretation": "string (2-3 sentences on gold/silver vs dollar and real yields)",
     "silver_inventory": "string (note on COMEX/LBMA trends or fallback if unavailable)",
@@ -448,7 +448,7 @@ NARRATIVE_SCHEMA = {
             "conclusion": "string",
         }
     ],
-    "equities_btc": "string (2-3 sentences: SPY/QQQ context, TSLA/MU if notable, BTC regime)",
+    "equities_btc": "string (2-4 compact sentences explaining what happened from prior close into premarket/open setup, including futures reversals, headline shocks, commodity or macro reactions when relevant)",
     "setups": [
         {
             "ticker": "string",
@@ -487,7 +487,12 @@ def _stub_narrative(md: dict) -> dict:
             "MEDIUM": [{"event": "Oil inventory data", "impact": "Potential catalyst for WTI direction if surprise vs consensus."}],
             "LOW": [{"event": "Earnings season underway", "impact": "Individual movers may affect sector ETFs."}],
         },
-        "plumbing": "VIX regime neutral. Gamma positioning unclear without live GEX data. Discretionary flows dominant.",
+        "plumbing": (
+            f"DXY {p('DXY')} and US10Y {p('US10Y')} are the main macro constraints, with real yields near {p('REAL10Y')} "
+            f"keeping duration-sensitive risk from expanding cleanly. VIX at {p('VIX')} is not confirming outright stress, "
+            f"so the tape reads more conflicted than panicked. Oil at {p('WTI')} adds inflation sensitivity without a full "
+            f"risk-off impulse, which argues for selective rather than aggressive posture."
+        ),
         "energy_interpretation": f"WTI at {p('WTI')}. XLE and OXY tracking futures with normal beta. No clear dislocation signal.",
         "metals_interpretation": f"Gold {p('GOLD')}, Silver {p('SILVER')}. Real yield {p('REAL10Y')} (est.) — monitor for regime inflection.",
         "silver_inventory": "No new inventory data — structural narrative unchanged.",
@@ -510,8 +515,10 @@ def _stub_narrative(md: dict) -> dict:
             },
         ],
         "equities_btc": (
-            f"SPY {p('SPY')}, QQQ {p('QQQ')} — equity indices mixed. "
-            f"BTC {p('BTC')} trading in risk-on correlation. TSLA {p('TSLA')}, MU {p('MU')} — monitor for sector rotation."
+            f"From the prior close into the open setup, index futures remain mixed with SPY {p('SPY')} and QQQ {p('QQQ')} "
+            f"not yet breaking into a clean follow-through regime. BTC at {p('BTC')} is still behaving like a loose risk proxy "
+            f"rather than a standalone signal, while TSLA {p('TSLA')} and MU {p('MU')} keep single-name beta in focus. "
+            f"No major overnight headline shock is confirmed in offline mode, so the open still looks driven primarily by rates, dollar, and commodity tone."
         ),
         "setups": [],
         "no_setups": True,
@@ -567,7 +574,8 @@ Generate a structured JSON response matching this exact schema:
 Rules:
 - system_state: 2-4 short paragraphs. Reference specific data values. Clive-style: no fluff, direct, intelligent.
 - events: Use current macro context (Fed policy, geopolitical, economic data releases). Be realistic for {today}.
-- plumbing: Focus on known gamma levels, VIX regime, liquidity conditions based on the data shown.
+- plumbing: 2-4 compact sentences. Explain which drivers matter most, whether they align or conflict, and what that implies for market posture. This should answer: why is the market behaving this way?
+- equities_btc: 2-4 compact sentences. Explain what happened from prior close into the premarket/open setup and why it matters. Include overnight reversals, geopolitical/headline shocks, commodity moves, or macro reactions if relevant. If a meaningful overnight shock exists, fold it into the narrative naturally or flag it briefly as "Headline shock:".
 - miners: Analyze GDX and NEM. Use relative strength vs GOLD price action.
 - setups: Only include if genuinely A or A- quality based on current structure. Set no_setups: true if nothing qualifies.
 - risk_map: List 3-5 explicit numeric triggers that would invalidate the current thesis.

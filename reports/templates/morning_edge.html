@@ -62,9 +62,9 @@
     padding-bottom: 6px;
   }
   .header h1 {
-    font-size: clamp(1.6rem, 1.35rem + 0.7vw, 2.2rem);
-    font-weight: 650;
-    letter-spacing: 0.015em;
+    font-size: clamp(1.92rem, 1.52rem + 0.95vw, 2.78rem);
+    font-weight: 700;
+    letter-spacing: 0.01em;
     color: var(--text);
   }
   .header h1 span { color: var(--accent); }
@@ -81,6 +81,7 @@
     border: 1px solid var(--border);
     border-radius: var(--card-radius);
     padding: var(--card-pad);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
   }
   .card-title {
     font-size: 1.02rem;
@@ -134,27 +135,27 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 9px 10px;
     background: var(--bg-card2);
     border-radius: 7px;
     border: 1px solid var(--border);
     gap: 2px;
   }
   .macro-item .label {
-    font-size: 0.66rem;
+    font-size: 0.7rem;
     font-weight: 600;
     letter-spacing: 0.08em;
     color: var(--text-muted);
     text-transform: uppercase;
   }
   .macro-item .value {
-    font-size: 0.92rem;
-    font-weight: 600;
+    font-size: 1.02rem;
+    font-weight: 700;
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
   .macro-item .change {
-    font-size: 0.72rem;
+    font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
   }
 
@@ -268,9 +269,11 @@
   .dir-flat { color: var(--text-muted); }
   .plumbing-note {
     margin-top: 12px;
-    font-size: 0.9rem;
-    line-height: 1.64;
-    color: #D3D9E5;
+    padding: 12px 14px 0;
+    border-top: 1px solid rgba(168, 178, 195, 0.18);
+    font-size: 0.96rem;
+    line-height: 1.7;
+    color: #DCE2EC;
   }
 
   /* ── Events ── */
@@ -362,6 +365,14 @@
     line-height: 1.7;
     color: #D3D9E5;
   }
+  .context-copy {
+    margin-top: 6px;
+    padding: 14px 15px;
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(91, 151, 229, 0.03));
+    border: 1px solid rgba(91, 151, 229, 0.18);
+    border-radius: 10px;
+    color: #E2E8F3;
+  }
   .eq-data,
   .sector-data {
     display: flex;
@@ -374,24 +385,35 @@
     background: var(--bg-card2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 8px 11px;
+    padding: 9px 12px;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
   .eq-name, .s-label {
     color: var(--text-muted);
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .eq-val, .s-value { font-size: 0.98rem; font-weight: 600; color: var(--text); }
-  .eq-chg, .s-chg { font-size: 0.8rem; }
-  .inventory-list { display: flex; flex-direction: column; gap: 8px; }
-  .inventory-row { display: flex; gap: 10px; align-items: flex-start; }
-  .inventory-label { min-width: 172px; color: var(--text); font-weight: 600; }
-  .inventory-value { color: var(--text-muted); }
+  .eq-val, .s-value { font-size: 1.04rem; font-weight: 700; color: var(--text); }
+  .eq-chg, .s-chg { font-size: 0.84rem; }
+  .metals-card .sector-data { margin-bottom: 14px; }
+  .metals-card .sector-interp {
+    margin-top: 2px;
+    line-height: 1.76;
+  }
+  .inventory-list { display: flex; flex-direction: column; gap: 10px; }
+  .inventory-row {
+    display: grid;
+    grid-template-columns: 176px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding-top: 2px;
+  }
+  .inventory-label { color: var(--text); font-weight: 600; line-height: 1.5; }
+  .inventory-value { color: var(--text-muted); line-height: 1.62; }
   .inventory-value.is-unavailable { color: var(--text-dim); }
 
   /* ── Secondary Watchlist ── */
@@ -485,16 +507,21 @@
     }
     html, body { font-size: 15px; }
     .header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 2px; }
-    .header h1 { font-size: clamp(1.68rem, 1.42rem + 1vw, 2.08rem); }
+    .header h1 { font-size: clamp(2.1rem, 1.72rem + 1.5vw, 2.7rem); letter-spacing: 0.005em; }
     .header .ts { font-size: 0.82rem; }
-    .thesis-card { padding-top: 16px; padding-bottom: 16px; }
+    .thesis-card {
+      padding-top: 18px;
+      padding-bottom: 18px;
+      border-color: rgba(230, 180, 74, 0.22);
+      background: linear-gradient(180deg, rgba(230, 180, 74, 0.06), rgba(23, 27, 35, 1) 46%);
+    }
     .thesis-label { font-size: 0.76rem; margin-bottom: 8px; }
-    .thesis-text { font-size: clamp(1.28rem, 1.12rem + 1vw, 1.52rem); line-height: 1.36; }
+    .thesis-text { font-size: clamp(1.36rem, 1.18rem + 1.04vw, 1.64rem); line-height: 1.34; }
     .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 9px 10px; }
-    .macro-item { padding: 7px 8px; gap: 1px; }
-    .macro-item .label { font-size: 0.62rem; }
-    .macro-item .value { font-size: 0.88rem; }
-    .macro-item .change { font-size: 0.7rem; }
+    .macro-item { padding: 8px 9px; gap: 2px; border-radius: 8px; }
+    .macro-item .label { font-size: 0.64rem; }
+    .macro-item .value { font-size: 0.96rem; }
+    .macro-item .change { font-size: 0.76rem; }
     .state-summary { grid-template-columns: 1fr; }
     .state-card { padding: 16px 16px 14px; }
     .state-metric { padding: 10px 11px; }
@@ -514,20 +541,25 @@
     .inventory-note,
     .appendix-note,
     .miner-val { font-size: 0.94rem; line-height: 1.64; }
+    .plumbing-note { padding: 11px 0 0; }
+    .context-copy { padding: 12px 13px; margin-top: 4px; }
     .support-grid { grid-template-columns: 1fr; }
     .eq-data,
     .sector-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .eq-chip,
-    .sector-chip { padding: 8px 10px; }
+    .sector-chip { padding: 9px 10px; }
     .eq-name, .s-label { font-size: 0.72rem; }
-    .eq-val, .s-value { font-size: 0.94rem; }
-    .eq-chg, .s-chg { font-size: 0.78rem; }
+    .eq-val, .s-value { font-size: 1rem; }
+    .eq-chg, .s-chg { font-size: 0.82rem; }
     .setup-block { padding: 14px; }
     .setup-header { gap: 8px; margin-bottom: 10px; }
     .setup-ticker { font-size: 1rem; }
     .setup-confidence { margin-left: 0; width: 100%; }
     .inventory-row, .setup-row, .miner-row { display: flex; flex-direction: column; gap: 4px; }
+    .inventory-row { gap: 2px; padding-top: 0; }
     .inventory-label, .setup-row .sk { min-width: 0; }
+    .inventory-label { font-size: 0.9rem; }
+    .inventory-value { font-size: 0.94rem; line-height: 1.6; }
     .event-row { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; font-size: 0.95rem; }
     .event-impact { font-size: 0.86rem; }
     .miner-block { margin-bottom: 16px; padding-bottom: 16px; }
@@ -549,11 +581,12 @@
   @media (min-width: 900px) {
     html, body { font-size: 15px; }
     .page { padding-top: 26px; }
-    .header h1 { font-size: clamp(1.72rem, 1.45rem + 0.8vw, 2.35rem); }
+    .header h1 { font-size: clamp(2.08rem, 1.7rem + 0.92vw, 2.9rem); }
     .card-title { font-size: 1.06rem; }
     .thesis-text { font-size: clamp(1.42rem, 1.2rem + 0.48vw, 1.76rem); }
-    .macro-item .value { font-size: 0.96rem; }
-    .macro-item .change { font-size: 0.76rem; }
+    .macro-item .label { font-size: 0.72rem; }
+    .macro-item .value { font-size: 1.06rem; }
+    .macro-item .change { font-size: 0.84rem; }
     .state-value, .plumbing-value { font-size: 1.04rem; }
     .system-state p,
     .context-copy,
@@ -561,6 +594,10 @@
     .inventory-note,
     .appendix-note,
     .miner-val { font-size: 1rem; }
+    .plumbing-note { font-size: 0.98rem; }
+    .context-copy { font-size: 1rem; }
+    .eq-val, .s-value { font-size: 1.08rem; }
+    .eq-chg, .s-chg { font-size: 0.86rem; }
   }
 
   @page { size: A3 landscape; margin: 10mm; }
@@ -699,7 +736,7 @@
   </section>
 
   <section class="support-grid">
-    <div class="card">
+    <div class="card metals-card">
       <div class="card-title">Miners Watchlist</div>
       {% for miner in miners %}
       <div class="miner-block">
