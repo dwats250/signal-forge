@@ -478,26 +478,89 @@
   @media (max-width: 899px) {
     :root {
       --page-max: 100%;
-      --page-pad-x: 14px;
-      --page-pad-y: 18px;
-      --card-pad: 16px;
-      --grid-gap: 16px;
+      --page-pad-x: 13px;
+      --page-pad-y: 16px;
+      --card-pad: 15px;
+      --grid-gap: 14px;
     }
     html, body { font-size: 15px; }
-    .header { flex-direction: column; align-items: flex-start; }
+    .header { flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 2px; }
+    .header h1 { font-size: clamp(1.68rem, 1.42rem + 1vw, 2.08rem); }
+    .header .ts { font-size: 0.82rem; }
+    .thesis-card { padding-top: 16px; padding-bottom: 16px; }
+    .thesis-label { font-size: 0.76rem; margin-bottom: 8px; }
+    .thesis-text { font-size: clamp(1.28rem, 1.12rem + 1vw, 1.52rem); line-height: 1.36; }
+    .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 9px 10px; }
+    .macro-item { padding: 7px 8px; gap: 1px; }
+    .macro-item .label { font-size: 0.62rem; }
+    .macro-item .value { font-size: 0.88rem; }
+    .macro-item .change { font-size: 0.7rem; }
     .state-summary { grid-template-columns: 1fr; }
-    .plumbing-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .state-card { padding: 16px 16px 14px; }
+    .state-metric { padding: 10px 11px; }
+    .state-value { font-size: 0.98rem; }
+    .system-state p { font-size: 0.96rem; line-height: 1.66; }
+    .plumbing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .plumbing-card { min-height: 0; padding: 10px 11px; }
+    .plumbing-label { font-size: 0.7rem; }
+    .plumbing-value { font-size: 0.98rem; }
+    .plumbing-abs,
+    .plumbing-pct { font-size: 0.74rem; }
+    .plumbing-abs::before,
+    .plumbing-pct::before { font-size: 0.58rem; }
+    .plumbing-note,
+    .context-copy,
+    .sector-interp,
+    .inventory-note,
+    .appendix-note,
+    .miner-val { font-size: 0.94rem; line-height: 1.64; }
     .support-grid { grid-template-columns: 1fr; }
-    .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .inventory-row, .setup-row, .miner-row { display: flex; flex-direction: column; gap: 3px; }
+    .eq-data,
+    .sector-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .eq-chip,
+    .sector-chip { padding: 8px 10px; }
+    .eq-name, .s-label { font-size: 0.72rem; }
+    .eq-val, .s-value { font-size: 0.94rem; }
+    .eq-chg, .s-chg { font-size: 0.78rem; }
+    .setup-block { padding: 14px; }
+    .setup-header { gap: 8px; margin-bottom: 10px; }
+    .setup-ticker { font-size: 1rem; }
+    .setup-confidence { margin-left: 0; width: 100%; }
+    .inventory-row, .setup-row, .miner-row { display: flex; flex-direction: column; gap: 4px; }
     .inventory-label, .setup-row .sk { min-width: 0; }
-    .event-row { grid-template-columns: 64px minmax(0, 1fr); }
+    .event-row { grid-template-columns: 58px minmax(0, 1fr); gap: 10px; font-size: 0.95rem; }
+    .event-impact { font-size: 0.86rem; }
+    .miner-block { margin-bottom: 16px; padding-bottom: 16px; }
+    .miner-ticker { font-size: 0.9rem; margin-bottom: 8px; }
+    .miner-conclusion { font-size: 0.94rem; margin-top: 12px; }
+    .appendix-item { font-size: 0.86rem; padding: 6px 9px; }
+    .footer { font-size: 0.8rem; padding: 12px 0 18px; }
+    .footer-link { font-size: 0.86rem; }
+  }
+
+  @media (max-width: 560px) {
+    .macro-bar,
+    .eq-data,
+    .sector-data { grid-template-columns: 1fr 1fr; }
+    .footer-copy { gap: 6px; }
   }
 
   /* ── Desktop ── */
   @media (min-width: 900px) {
-    html, body { font-size: 14px; }
-    .page { padding-top: 24px; }
+    html, body { font-size: 15px; }
+    .page { padding-top: 26px; }
+    .header h1 { font-size: clamp(1.72rem, 1.45rem + 0.8vw, 2.35rem); }
+    .card-title { font-size: 1.06rem; }
+    .thesis-text { font-size: clamp(1.42rem, 1.2rem + 0.48vw, 1.76rem); }
+    .macro-item .value { font-size: 0.96rem; }
+    .macro-item .change { font-size: 0.76rem; }
+    .state-value, .plumbing-value { font-size: 1.04rem; }
+    .system-state p,
+    .context-copy,
+    .sector-interp,
+    .inventory-note,
+    .appendix-note,
+    .miner-val { font-size: 1rem; }
   }
 
   @page { size: A3 landscape; margin: 10mm; }
