@@ -429,12 +429,16 @@ def build_macro_bar(md: dict) -> list[dict]:
 
 NARRATIVE_SCHEMA = {
     "system_state": "string (2-4 short paragraphs, Clive-style: clear, direct, references specific data values, no fluff)",
+    "system_state_action": "string (short directive line prefixed in UI with an arrow; what to do or expect next)",
+    "system_state_action_tone": "positive|negative|neutral",
     "events": {
         "HIGH": "list of {event: str, impact: str}",
         "MEDIUM": "list of {event: str, impact: str}",
         "LOW": "list of {event: str, impact: str}",
     },
     "plumbing": "string (2-4 compact sentences explaining which cross-asset drivers matter most, whether they align or conflict, and what that implies for current market posture)",
+    "plumbing_action": "string (short directive line prefixed in UI with an arrow; what to do or expect next)",
+    "plumbing_action_tone": "positive|negative|neutral",
     "energy_interpretation": "string (2-3 sentences on WTI/XLE/OXY context and directional bias)",
     "metals_interpretation": "string (2-3 sentences on gold/silver vs dollar and real yields)",
     "silver_inventory": "string (note on COMEX/LBMA trends or fallback if unavailable)",
@@ -449,6 +453,8 @@ NARRATIVE_SCHEMA = {
         }
     ],
     "equities_btc": "string (2-4 compact sentences explaining what happened from prior close into premarket/open setup, including futures reversals, headline shocks, commodity or macro reactions when relevant)",
+    "overnight_action": "string (short directive line prefixed in UI with an arrow; what to do or expect next)",
+    "overnight_action_tone": "positive|negative|neutral",
     "setups": [
         {
             "ticker": "string",
@@ -482,6 +488,8 @@ def _stub_narrative(md: dict) -> dict:
             f"Gold {p('GOLD')} and Silver {p('SILVER')} reflecting dollar and rate dynamics.\n\n"
             f"VIX at {p('VIX')} — not elevated, but watch for regime shift catalysts."
         ),
+        "system_state_action": "Stay selective until rates and dollar stop pulling in different directions.",
+        "system_state_action_tone": "neutral",
         "events": {
             "HIGH": [{"event": "Fed speakers scheduled", "impact": "Tone on rate path could move yields and DXY significantly."}],
             "MEDIUM": [{"event": "Oil inventory data", "impact": "Potential catalyst for WTI direction if surprise vs consensus."}],
@@ -493,6 +501,8 @@ def _stub_narrative(md: dict) -> dict:
             f"so the tape reads more conflicted than panicked. Oil at {p('WTI')} adds inflation sensitivity without a full "
             f"risk-off impulse, which argues for selective rather than aggressive posture."
         ),
+        "plumbing_action": "Favor selective risk rather than broad beta until the driver stack aligns.",
+        "plumbing_action_tone": "neutral",
         "energy_interpretation": f"WTI at {p('WTI')}. XLE and OXY tracking futures with normal beta. No clear dislocation signal.",
         "metals_interpretation": f"Gold {p('GOLD')}, Silver {p('SILVER')}. Real yield {p('REAL10Y')} (est.) — monitor for regime inflection.",
         "silver_inventory": "No new inventory data — structural narrative unchanged.",
@@ -520,6 +530,8 @@ def _stub_narrative(md: dict) -> dict:
             f"rather than a standalone signal, while TSLA {p('TSLA')} and MU {p('MU')} keep single-name beta in focus. "
             f"No major overnight headline shock is confirmed in offline mode, so the open still looks driven primarily by rates, dollar, and commodity tone."
         ),
+        "overnight_action": "Expect an open driven by macro confirmation, not overnight momentum alone.",
+        "overnight_action_tone": "neutral",
         "setups": [],
         "no_setups": True,
         "risk_map": [
@@ -573,9 +585,12 @@ Generate a structured JSON response matching this exact schema:
 
 Rules:
 - system_state: 2-4 short paragraphs. Reference specific data values. Clive-style: no fluff, direct, intelligent.
+- system_state_action: one short directive line on what to do or expect next. Also set system_state_action_tone.
 - events: Use current macro context (Fed policy, geopolitical, economic data releases). Be realistic for {today}.
 - plumbing: 2-4 compact sentences. Explain which drivers matter most, whether they align or conflict, and what that implies for market posture. This should answer: why is the market behaving this way?
+- plumbing_action: one short directive line on what to do or expect next. Also set plumbing_action_tone.
 - equities_btc: 2-4 compact sentences. Explain what happened from prior close into the premarket/open setup and why it matters. Include overnight reversals, geopolitical/headline shocks, commodity moves, or macro reactions if relevant. If a meaningful overnight shock exists, fold it into the narrative naturally or flag it briefly as "Headline shock:".
+- overnight_action: one short directive line on what to do or expect next. Also set overnight_action_tone.
 - miners: Analyze GDX and NEM. Use relative strength vs GOLD price action.
 - setups: Only include if genuinely A or A- quality based on current structure. Set no_setups: true if nothing qualifies.
 - risk_map: List 3-5 explicit numeric triggers that would invalidate the current thesis.
@@ -620,8 +635,12 @@ def build_report_data(md: dict, narrative: dict) -> dict:
         "state_summary": _build_state_summary(md, narrative),
         "financial_plumbing": _build_financial_plumbing(md),
         "system_state": narrative.get("system_state", ""),
+        "system_state_action": narrative.get("system_state_action", ""),
+        "system_state_action_tone": narrative.get("system_state_action_tone", "neutral"),
         "events": narrative.get("events", {"HIGH": [], "MEDIUM": [], "LOW": []}),
         "plumbing": narrative.get("plumbing", ""),
+        "plumbing_action": narrative.get("plumbing_action", ""),
+        "plumbing_action_tone": narrative.get("plumbing_action_tone", "neutral"),
         "energy": {
             "wti": md.get("WTI", {}),
             "xle": md.get("XLE", {}),
@@ -641,6 +660,8 @@ def build_report_data(md: dict, narrative: dict) -> dict:
             "mu": md.get("MU", {}),
             "btc": md.get("BTC", {}),
             "context": narrative.get("equities_btc", ""),
+            "action": narrative.get("overnight_action", ""),
+            "action_tone": narrative.get("overnight_action_tone", "neutral"),
         },
         "setups": narrative.get("setups", []),
         "no_setups": narrative.get("no_setups", True),
