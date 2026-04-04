@@ -43,6 +43,8 @@ TICKERS: dict[str, str] = {
 }
 
 YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
+METALS_FALLBACK_TEXT = "Source unavailable"
+INVENTORY_FALLBACK_TEXT = "Inventory data unavailable"
 
 
 # ── Data layer ─────────────────────────────────────────────────────────────
@@ -109,6 +111,181 @@ def load_market_data_cache() -> dict | None:
         return None
     return data
 
+
+def _missing_market_entry(*, is_yield: bool = False, estimated: bool = False, reason: str = METALS_FALLBACK_TEXT) -> dict:
+    entry = {
+        "price": None,
+        "day_chg": None,
+        "week_chg": None,
+        "formatted": reason,
+        "is_yield": is_yield,
+        "source_unavailable": True,
+    }
+    if estimated:
+        entry["estimated"] = True
+    return entry
+
+
+def _extract_close_series(raw: object, symbol: str):
+    try:
+        close_frame = raw["Close"]
+    except Exception as exc:
+        raise KeyError(f"missing Close data: {exc}") from exc
+
+    try:
+        if hasattr(close_frame, "columns"):
+            if len(getattr(close_frame, "columns", [])) == 1:
+                return close_frame.iloc[:, 0].dropna()
+            if symbol in close_frame.columns:
+                return close_frame[symbol].dropna()
+        return close_frame.dropna()
+    except Exception as exc:
+        raise KeyError(f"unable to extract close series for {symbol}: {exc}") from exc
+
+
+def _build_market_entry(name: str, closes) -> dict:
+    if len(closes) < 2:
+        return _missing_market_entry(is_yield=name in YIELD_TICKERS)
+
+    current = float(closes.iloc[-1])
+    prev = float(closes.iloc[-2])
+    week_ago = float(closes.iloc[-6]) if len(closes) >= 6 else float(closes.iloc[0])
+
+    if name in YIELD_TICKERS:
+        day_chg = (current - prev) * 100
+        week_chg = (current - week_ago) * 100
+    else:
+        day_chg = (current - prev) / prev * 100
+        week_chg = (current - week_ago) / week_ago * 100
+
+    return {
+        "price": current,
+        "day_chg": round(day_chg, 2),
+        "week_chg": round(week_chg, 2),
+        "formatted": _format_price(current, name),
+        "is_yield": name in YIELD_TICKERS,
+    }
+
+
+def _fetch_symbol_fallback(name: str, symbol: str) -> dict:
+    try:
+        raw = yf.download(
+            tickers=symbol,
+            period="10d",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+        )
+        closes = _extract_close_series(raw, symbol)
+        return _build_market_entry(name, closes)
+    except Exception as exc:
+        print(f"  Warning: single-symbol fallback failed for {name} ({symbol}): {exc}")
+        return _missing_market_entry(is_yield=name in YIELD_TICKERS)
+
+
+def _build_metals_context(md: dict) -> dict:
+    gold = md.get("GOLD", _missing_market_entry())
+    silver = md.get("SILVER", _missing_market_entry())
+    real10y = md.get("REAL10Y", _missing_market_entry(is_yield=True, estimated=True))
+
+    ratio = None
+    if gold.get("price") and silver.get("price"):
+        ratio = round(gold["price"] / silver["price"], 2)
+
+    inventory_lines = [
+        f"COMEX silver front month: {silver.get('formatted', METALS_FALLBACK_TEXT)}"
+        if silver.get("price") is not None
+        else "COMEX silver front month: Source unavailable",
+        "Shanghai silver reference: Shanghai data not yet integrated",
+        "Warehouse / exchange inventory: Inventory data coming soon",
+    ]
+
+    return {
+        "gold": gold,
+        "silver": silver,
+        "real10y": real10y,
+        "gold_silver_ratio": f"{ratio:.2f}" if ratio is not None else "Unavailable",
+        "inventory_lines": inventory_lines,
+    }
+
+
+def _format_numeric_delta(name: str, delta: float | None) -> str:
+    if delta is None:
+        return "Unavailable"
+    return f"{delta:+.2f}"
+
+
+def _plumbing_item(name: str, label: str, entry: dict) -> dict:
+    price = entry.get("price")
+    day_chg = entry.get("day_chg")
+    if price is None or day_chg is None:
+        return {
+            "label": label,
+            "value": entry.get("formatted", METALS_FALLBACK_TEXT),
+            "absolute_change": "Unavailable",
+            "percent_change": "Unavailable",
+            "direction": "flat",
+        }
+
+    if entry.get("is_yield"):
+        absolute_change = f"{day_chg / 100:+.2f} pts"
+        percent_change = f"{day_chg:+.0f}bps"
+    else:
+        prev = price / (1 + (day_chg / 100))
+        absolute_change = _format_numeric_delta(name, price - prev)
+        percent_change = f"{day_chg:+.2f}%"
+
+    return {
+        "label": label,
+        "value": entry.get("formatted", METALS_FALLBACK_TEXT),
+        "absolute_change": absolute_change,
+        "percent_change": percent_change,
+        "direction": "up" if day_chg > 0 else "down" if day_chg < 0 else "flat",
+    }
+
+
+def _build_financial_plumbing(md: dict) -> list[dict]:
+    return [
+        _plumbing_item("DXY", "DXY", md.get("DXY", _missing_market_entry())),
+        _plumbing_item("US10Y", "US 10Y", md.get("US10Y", _missing_market_entry(is_yield=True))),
+        _plumbing_item("VIX", "VIX", md.get("VIX", _missing_market_entry())),
+        _plumbing_item("WTI", "Oil", md.get("WTI", _missing_market_entry())),
+        _plumbing_item("GOLD", "Gold", md.get("GOLD", _missing_market_entry())),
+        _plumbing_item("SILVER", "Silver", md.get("SILVER", _missing_market_entry())),
+    ]
+
+
+def _build_state_summary(md: dict, narrative: dict) -> dict:
+    thesis = narrative.get("thesis", "")
+    thesis_lower = thesis.lower()
+    vix = md.get("VIX", {}).get("price")
+
+    if "bull" in thesis_lower:
+        posture = "Bullish"
+    elif "bear" in thesis_lower:
+        posture = "Bearish"
+    elif "range" in thesis_lower:
+        posture = "Range-bound"
+    else:
+        posture = "Mixed"
+
+    if vix is None:
+        quality = "Mixed"
+    elif vix < 16:
+        quality = "Calm"
+    elif vix < 22:
+        quality = "Balanced"
+    else:
+        quality = "Fragile"
+
+    execution_bias = "Selective" if narrative.get("no_setups", True) else "Actionable"
+
+    return {
+        "market_posture": posture,
+        "market_quality": quality,
+        "execution_bias": execution_bias,
+    }
+
 def _format_price(value: float, ticker: str) -> str:
     if ticker in ("GOLD", "SILVER", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
         return f"${value:.2f}"
@@ -161,35 +338,14 @@ def fetch_market_data() -> dict:
 
     for name, symbol in TICKERS.items():
         try:
-            closes = raw["Close"][symbol].dropna()
-
+            closes = _extract_close_series(raw, symbol)
             if len(closes) < 2:
-                result[name] = {"price": None, "day_chg": None, "week_chg": None, "formatted": "N/A"}
-                continue
-
-            current = float(closes.iloc[-1])
-            prev = float(closes.iloc[-2])
-            week_ago = float(closes.iloc[-6]) if len(closes) >= 6 else float(closes.iloc[0])
-
-            if name in YIELD_TICKERS:
-                # yields: change in basis points
-                day_chg = (current - prev) * 100  # bps
-                week_chg = (current - week_ago) * 100  # bps
+                result[name] = _fetch_symbol_fallback(name, symbol)
             else:
-                day_chg = (current - prev) / prev * 100
-                week_chg = (current - week_ago) / week_ago * 100
-
-            result[name] = {
-                "price": current,
-                "day_chg": round(day_chg, 2),
-                "week_chg": round(week_chg, 2),
-                "formatted": _format_price(current, name),
-                "is_yield": name in YIELD_TICKERS,
-            }
-
+                result[name] = _build_market_entry(name, closes)
         except Exception as e:
             print(f"  Warning: failed to fetch {name} ({symbol}): {e}")
-            result[name] = {"price": None, "day_chg": None, "week_chg": None, "formatted": "N/A"}
+            result[name] = _fetch_symbol_fallback(name, symbol)
 
     # Estimate REAL10Y: US10Y minus approximate 10Y breakeven inflation (~2.2%)
     us10y = result.get("US10Y", {}).get("price")
@@ -205,7 +361,7 @@ def fetch_market_data() -> dict:
             "estimated": True,
         }
     else:
-        result["REAL10Y"] = {"price": None, "day_chg": None, "week_chg": None, "formatted": "N/A", "estimated": True}
+        result["REAL10Y"] = _missing_market_entry(is_yield=True, estimated=True)
 
     save_market_data_cache(result)
     return result
@@ -246,7 +402,7 @@ def build_macro_bar(md: dict) -> list[dict]:
             "value": d.get("formatted", "N/A"),
             "change": chg,
             "estimated": d.get("estimated", False),
-            "positive": (d.get("day_chg") or 0) >= 0,
+            "direction": "up" if d.get("day_chg") is not None and d.get("day_chg") > 0 else "down" if d.get("day_chg") is not None and d.get("day_chg") < 0 else "flat",
         })
 
     add("DXY", include_5d=True)
@@ -446,6 +602,8 @@ def build_report_data(md: dict, narrative: dict) -> dict:
         "date": now_vancouver.strftime("%Y-%m-%d"),
         "archive_href": "archive/",
         "macro_bar": build_macro_bar(md),
+        "state_summary": _build_state_summary(md, narrative),
+        "financial_plumbing": _build_financial_plumbing(md),
         "system_state": narrative.get("system_state", ""),
         "events": narrative.get("events", {"HIGH": [], "MEDIUM": [], "LOW": []}),
         "plumbing": narrative.get("plumbing", ""),
@@ -456,12 +614,10 @@ def build_report_data(md: dict, narrative: dict) -> dict:
             "interpretation": narrative.get("energy_interpretation", ""),
         },
         "metals": {
-            "gold": md.get("GOLD", {}),
-            "silver": md.get("SILVER", {}),
-            "real10y": md.get("REAL10Y", {}),
+            **_build_metals_context(md),
             "interpretation": narrative.get("metals_interpretation", ""),
         },
-        "inventory": narrative.get("silver_inventory", "No new inventory data — structural narrative unchanged"),
+        "inventory": narrative.get("silver_inventory", INVENTORY_FALLBACK_TEXT),
         "miners": narrative.get("miners", []),
         "equities": {
             "spy": md.get("SPY", {}),

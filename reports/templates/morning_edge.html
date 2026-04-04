@@ -5,24 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Morning Macro Edge — {{ date }}</title>
 <style>
-  /* ── Reset & Base ────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
   :root {
-    --bg: #0B0B0F;
-    --bg-card: #111117;
-    --bg-card2: #16161E;
-    --border: #1E1E2A;
-    --accent: #3B82F6;
-    --accent-gold: #F59E0B;
-    --accent-green: #22C55E;
-    --accent-red: #EF4444;
-    --accent-silver: #94A3B8;
-    --text: #EAEAF0;
-    --text-muted: #7B7B8E;
-    --text-dim: #4A4A5A;
+    --bg: #0F1218;
+    --bg-card: #171B23;
+    --bg-card2: #1D2330;
+    --border: #2A3140;
+    --accent: #5B97E5;
+    --accent-gold: #E6B44A;
+    --accent-green: #3FD37A;
+    --accent-red: #F06B6B;
+    --text: #EDF1F7;
+    --text-muted: #A8B2C3;
+    --text-dim: #7C879A;
     --tag-high: #7F1D1D;
     --tag-high-text: #FCA5A5;
     --tag-med: #78350F;
@@ -31,22 +29,21 @@
     --tag-low-text: #86EFAC;
     --page-max: 1520px;
     --page-pad-x: 28px;
-    --page-pad-y: 24px;
+    --page-pad-y: 26px;
     --card-radius: 12px;
-    --card-pad: 19px;
-    --grid-gap: 20px;
+    --card-pad: 22px;
+    --grid-gap: 24px;
   }
 
   html, body {
     background: var(--bg);
     color: var(--text);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 16px;
+    line-height: 1.66;
     min-height: 100vh;
   }
 
-  /* ── Layout ──────────────────────────────────────── */
   .page {
     width: min(100%, var(--page-max));
     margin: 0 auto;
@@ -56,46 +53,194 @@
     gap: var(--grid-gap);
   }
 
-  /* ── Header ──────────────────────────────────────── */
   .header {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border);
     gap: 18px;
-    padding-bottom: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
   }
   .header h1 {
-    font-size: clamp(1.5rem, 1.22rem + 0.7vw, 2rem);
+    font-size: clamp(2.15rem, 1.7rem + 1.1vw, 3.05rem);
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--text);
   }
-  .header h1 span {
-    color: var(--accent);
-  }
+  .header h1 span { color: var(--accent); }
   .header .ts {
-    font-size: 0.82rem;
+    font-size: 0.98rem;
     color: var(--text-muted);
-    font-weight: 400;
-    letter-spacing: 0.05em;
+    font-weight: 500;
+    letter-spacing: 0.04em;
   }
 
-  /* ── Macro Bar ───────────────────────────────────── */
-  .macro-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+  .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--card-radius);
-    padding: 16px 18px;
+    padding: var(--card-pad);
+  }
+  .card-title {
+    font-size: 1.14rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .state-card {
+    padding: 24px 24px 22px;
+  }
+  .state-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .state-metric {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .state-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .state-value {
+    font-size: 1.24rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .system-state p {
+    font-size: 1.12rem;
+    line-height: 1.82;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .system-state p:last-child { margin-bottom: 0; }
+
+  .plumbing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .plumbing-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 15px 16px;
+  }
+  .plumbing-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .plumbing-value {
+    font-size: 1.26rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 8px;
+  }
+  .plumbing-moves {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+  }
+  .plumbing-abs,
+  .plumbing-pct {
+    font-size: 0.92rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .plumbing-abs { color: var(--text); }
+  .plumbing-pct { color: var(--text-muted); }
+  .dir-up { color: var(--accent-green); }
+  .dir-down { color: var(--accent-red); }
+  .dir-flat { color: var(--text-muted); }
+  .plumbing-note {
+    margin-top: 16px;
+    font-size: 1rem;
+    line-height: 1.74;
+    color: #D3D9E5;
+  }
+
+  .thesis-card {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .thesis-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .thesis-text {
+    font-size: 1.34rem;
+    line-height: 1.55;
+    color: var(--accent-gold);
+    font-weight: 600;
+  }
+
+  .events-list { display: flex; flex-direction: column; gap: 10px; }
+  .event-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 1.02rem;
+    line-height: 1.68;
+  }
+  .event-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .event-tag.HIGH { background: var(--tag-high); color: var(--tag-high-text); }
+  .event-tag.MEDIUM { background: var(--tag-med); color: var(--tag-med-text); }
+  .event-tag.LOW { background: var(--tag-low); color: var(--tag-low-text); }
+  .event-name { font-weight: 600; color: var(--text); }
+  .event-impact { font-size: 0.96rem; color: var(--text-muted); }
+
+  .macro-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 14px 16px;
   }
   .macro-item {
     display: flex;
     flex-direction: column;
-    min-width: 118px;
-    padding: 10px 12px;
+    min-width: 112px;
+    padding: 9px 11px;
     background: var(--bg-card2);
     border-radius: 8px;
     border: 1px solid var(--border);
@@ -109,214 +254,17 @@
     margin-bottom: 2px;
   }
   .macro-item .value {
-    font-size: 1.04rem;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
   .macro-item .change {
-    font-size: 0.78rem;
-    font-weight: 500;
+    font-size: 0.8rem;
     margin-top: 1px;
     font-variant-numeric: tabular-nums;
   }
-  .change.pos { color: var(--accent-green); }
-  .change.neg { color: var(--accent-red); }
-  .change.neutral { color: var(--text-muted); }
 
-  /* ── Two-column body ────────────────────────────── */
-  .body-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.96fr);
-    gap: 24px;
-  }
-
-  .column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
-  }
-
-  /* ── Cards ───────────────────────────────────────── */
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
-    padding: var(--card-pad);
-  }
-  .card-title {
-    font-size: 0.76rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .card-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* ── System State ────────────────────────────────── */
-  .system-state p {
-    font-size: 1rem;
-    line-height: 1.76;
-    color: var(--text);
-    margin-bottom: 12px;
-  }
-  .system-state p:last-child { margin-bottom: 0; }
-
-  /* ── Events ──────────────────────────────────────── */
-  .events-list { display: flex; flex-direction: column; gap: 7px; }
-  .event-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    font-size: 0.96rem;
-    line-height: 1.6;
-  }
-  .event-tag {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    padding: 1px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .event-tag.HIGH { background: var(--tag-high); color: var(--tag-high-text); }
-  .event-tag.MEDIUM { background: var(--tag-med); color: var(--tag-med-text); }
-  .event-tag.LOW { background: var(--tag-low); color: var(--tag-low-text); }
-  .event-content .event-name { font-weight: 500; color: var(--text); }
-  .event-content .event-impact { font-size: 0.88rem; color: var(--text-muted); }
-
-  /* ── Plumbing ────────────────────────────────────── */
-  .plumbing-text {
-    font-size: 0.96rem;
-    line-height: 1.72;
-    color: #C8C8D8;
-  }
-
-  /* ── Energy / Metals ─────────────────────────────── */
-  .sector-data {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .sector-chip {
-    background: var(--bg-card2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-  }
-  .sector-chip .s-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-  }
-  .sector-chip .s-value {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .sector-chip .s-chg { font-size: 0.8rem; }
-  .sector-interp {
-    font-size: 0.96rem;
-    line-height: 1.74;
-    color: #C8C8D8;
-  }
-
-  /* ── Silver Inventory ────────────────────────────── */
-  .inventory-note {
-    font-size: 0.96rem;
-    color: var(--text-muted);
-    font-style: italic;
-    line-height: 1.5;
-  }
-
-  /* ── Miners ──────────────────────────────────────── */
-  .miner-block {
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .miner-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-  .miner-ticker {
-    font-size: 0.88rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--accent-gold);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .miner-row {
-    display: flex;
-    gap: 8px;
-    font-size: 0.9rem;
-    line-height: 1.62;
-    margin-bottom: 5px;
-  }
-  .miner-row .miner-key {
-    color: var(--text-muted);
-    min-width: 98px;
-    flex-shrink: 0;
-  }
-  .miner-row .miner-val { color: var(--text); }
-  .miner-conclusion {
-    font-size: 0.9rem;
-    color: var(--accent-green);
-    margin-top: 8px;
-    font-weight: 500;
-  }
-
-  /* ── Equities / BTC ──────────────────────────────── */
-  .eq-data {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-  .eq-chip {
-    background: var(--bg-card2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 11px;
-    font-size: 0.88rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .eq-chip .eq-name { color: var(--text-muted); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; }
-  .eq-chip .eq-val { color: var(--text); font-weight: 600; }
-  .eq-chip .eq-chg { font-size: 0.8rem; }
-  .eq-context {
-    font-size: 0.96rem;
-    line-height: 1.74;
-    color: #C8C8D8;
-  }
-
-  /* ── Setups ──────────────────────────────────────── */
-  .no-setups {
-    font-size: 0.96rem;
-    color: var(--text-muted);
-    font-style: italic;
-    text-align: center;
-    padding: 24px 0;
-    border: 1px dashed var(--border);
-    border-radius: 8px;
-  }
   .setup-block {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -333,13 +281,12 @@
     flex-wrap: wrap;
   }
   .setup-ticker {
-    font-size: 1.06rem;
+    font-size: 1.14rem;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: 0.04em;
   }
   .setup-bias {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 600;
     padding: 2px 7px;
     border-radius: 3px;
@@ -349,7 +296,7 @@
   .setup-bias.Bearish { background: #7F1D1D; color: #FCA5A5; }
   .setup-bias.Neutral { background: #1E293B; color: #94A3B8; }
   .setup-grade {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: var(--accent-gold);
     background: rgba(245, 158, 11, 0.15);
@@ -357,46 +304,125 @@
     border-radius: 3px;
   }
   .setup-confidence {
-    font-size: 0.78rem;
+    font-size: 0.84rem;
     color: var(--text-muted);
     margin-left: auto;
   }
-  .setup-rows { display: flex; flex-direction: column; gap: 6px; }
+  .setup-rows { display: flex; flex-direction: column; gap: 7px; }
   .setup-row {
     display: flex;
     gap: 10px;
-    font-size: 0.9rem;
+    font-size: 0.98rem;
   }
-  .setup-row .sk { color: var(--text-muted); min-width: 88px; flex-shrink: 0; }
+  .setup-row .sk { color: var(--text-muted); min-width: 92px; flex-shrink: 0; }
   .setup-row .sv { color: var(--text); }
-
-  /* ── Bottom Band ─────────────────────────────────── */
-  .bottom-band {
-    margin-top: 6px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
-    padding: 18px 20px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-    gap: 24px;
-    align-items: start;
-  }
-  .risk-map-title {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+  .no-setups {
+    font-size: 1rem;
     color: var(--text-muted);
-    margin-bottom: 10px;
+    text-align: center;
+    padding: 24px 0;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
   }
-  .risk-items {
+
+  .support-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  .context-copy,
+  .sector-interp,
+  .miner-row,
+  .inventory-note,
+  .appendix-note {
+    font-size: 1rem;
+    line-height: 1.76;
+    color: #D3D9E5;
+  }
+  .eq-data,
+  .sector-data {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .eq-chip,
+  .sector-chip {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .eq-name,
+  .s-label {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .eq-val,
+  .s-value {
+    font-size: 1.04rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .eq-chg,
+  .s-chg {
+    font-size: 0.84rem;
+  }
+  .inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .inventory-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .inventory-label {
+    min-width: 172px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .inventory-value {
+    color: var(--text-muted);
+  }
+  .inventory-value.is-unavailable {
+    color: var(--text-dim);
+  }
+  .miner-block {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .miner-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .miner-ticker {
+    font-size: 0.94rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .miner-key { color: var(--text-muted); min-width: 98px; flex-shrink: 0; }
+  .miner-val { color: var(--text); }
+  .miner-conclusion {
+    color: var(--accent-green);
+    margin-top: 8px;
+    font-weight: 500;
+  }
+  .appendix-list {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
   }
-  .risk-item {
-    font-size: 0.88rem;
+  .appendix-item {
+    font-size: 0.92rem;
     font-weight: 500;
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--accent-red);
@@ -405,34 +431,21 @@
     padding: 6px 10px;
     border-radius: 999px;
   }
-  .thesis-block {
-    min-width: 280px;
-    text-align: right;
-  }
-  .thesis-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 5px;
-  }
-  .thesis-text {
-    font-size: 1.08rem;
-    font-weight: 600;
-    color: var(--accent-gold);
-    line-height: 1.5;
-  }
 
-  /* ── Footer ──────────────────────────────────────── */
   .footer {
     text-align: center;
-    font-size: 0.74rem;
+    font-size: 0.84rem;
     color: var(--text-dim);
-    padding: 12px 0 18px;
+    padding: 14px 0 20px;
     letter-spacing: 0.04em;
   }
   .footer-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .footer-copy {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -440,73 +453,60 @@
     flex-wrap: wrap;
   }
   .footer-link {
-    color: var(--text-muted);
+    color: var(--text);
     text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
     transition: color 120ms ease;
   }
-  .footer-link:hover {
-    color: var(--text);
-  }
+  .footer-link:hover { color: var(--accent); }
 
   @media (max-width: 899px) {
     :root {
       --page-max: 100%;
       --page-pad-x: 14px;
-      --page-pad-y: 16px;
-      --card-pad: 14px;
-      --grid-gap: 14px;
+      --page-pad-y: 18px;
+      --card-pad: 16px;
+      --grid-gap: 16px;
     }
 
-    html, body {
-      font-size: 13px;
-    }
+    html, body { font-size: 15px; }
 
     .header {
       flex-direction: column;
       align-items: flex-start;
     }
 
-    .footer-meta {
-      gap: 6px 10px;
-    }
-
-    .macro-bar {
-      gap: 8px;
-      padding: 12px;
+    .state-summary,
+    .plumbing-grid,
+    .support-grid {
+      grid-template-columns: 1fr;
     }
 
     .macro-item {
-      min-width: calc(50% - 4px);
-      flex: 1 1 calc(50% - 4px);
+      min-width: calc(50% - 5px);
+      flex: 1 1 calc(50% - 5px);
     }
 
-    .body-grid,
-    .bottom-band {
-      grid-template-columns: 1fr;
-      gap: 14px;
+    .inventory-row,
+    .setup-row,
+    .miner-row {
+      flex-direction: column;
+      gap: 3px;
     }
 
-    .column {
-      gap: 14px;
-    }
-
-    .thesis-block {
+    .inventory-label,
+    .setup-row .sk,
+    .miner-key {
       min-width: 0;
-      text-align: left;
     }
   }
 
   @media (min-width: 900px) {
-    html, body {
-      font-size: 15px;
-    }
-
-    .page {
-      padding-top: 30px;
-    }
+    html, body { font-size: 17px; }
+    .page { padding-top: 30px; }
   }
 
-  /* ── PDF ─────────────────────────────────────────── */
   @page {
     size: A3 landscape;
     margin: 10mm;
@@ -520,238 +520,215 @@
 <body>
 <div class="page">
 
-  <!-- ── Header ── -->
   <header class="header">
     <h1>Morning <span>Macro</span> Edge</h1>
     <span class="ts">{{ generated_line }}</span>
   </header>
 
-  <!-- ── Macro Snapshot Bar ── -->
+  <section class="card state-card">
+    <div class="card-title">System State</div>
+    <div class="state-summary">
+      <div class="state-metric">
+        <div class="state-label">Market Posture</div>
+        <div class="state-value">{{ state_summary.market_posture }}</div>
+      </div>
+      <div class="state-metric">
+        <div class="state-label">Market Quality</div>
+        <div class="state-value">{{ state_summary.market_quality }}</div>
+      </div>
+      <div class="state-metric">
+        <div class="state-label">Execution Bias</div>
+        <div class="state-value">{{ state_summary.execution_bias }}</div>
+      </div>
+    </div>
+    <div class="system-state">
+      {% for para in system_state.split('\n\n') %}
+      {% if para.strip() %}<p>{{ para.strip() }}</p>{% endif %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">Financial Plumbing</div>
+    <div class="plumbing-grid">
+      {% for item in financial_plumbing %}
+      <div class="plumbing-card">
+        <div class="plumbing-label">{{ item.label }}</div>
+        <div class="plumbing-value">{{ item.value }}</div>
+        <div class="plumbing-moves">
+          <span class="plumbing-abs dir-{{ item.direction }}">{{ item.absolute_change }}</span>
+          <span class="plumbing-pct dir-{{ item.direction }}">{{ item.percent_change }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="plumbing-note">{{ plumbing }}</div>
+  </section>
+
+  <section class="card thesis-card">
+    <div class="thesis-label">One-Line Thesis</div>
+    <div class="thesis-text">{{ thesis }}</div>
+  </section>
+
+  <section class="card">
+    <div class="card-title">High-Impact Events</div>
+    <div class="events-list">
+      {% for level in ['HIGH', 'MEDIUM', 'LOW'] %}
+      {% for ev in events.get(level, []) %}
+      <div class="event-row">
+        <span class="event-tag {{ level }}">{{ level }}</span>
+        <div class="event-content">
+          <div class="event-name">{{ ev.event }}</div>
+          <div class="event-impact">{{ ev.impact }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
   <section class="macro-bar">
     {% for item in macro_bar %}
     <div class="macro-item">
       <span class="label">{{ item.name }}</span>
       <span class="value">{{ item.value }}</span>
-      <span class="change {% if item.positive %}pos{% else %}neg{% endif %}">{{ item.change }}</span>
+      <span class="change dir-{{ item.direction }}">{{ item.change }}</span>
     </div>
     {% endfor %}
   </section>
 
-  <!-- ── Two-column body ── -->
-  <div class="body-grid">
-
-    <!-- ── LEFT COLUMN ── -->
-    <div class="column">
-
-      <!-- System State -->
-      <div class="card">
-        <div class="card-title">System State</div>
-        <div class="system-state">
-          {% for para in system_state.split('\n\n') %}
-          {% if para.strip() %}<p>{{ para.strip() }}</p>{% endif %}
-          {% endfor %}
-        </div>
+  <section class="card">
+    <div class="card-title">Opportunities / Top Setups</div>
+    {% if no_setups or not setups %}
+    <div class="no-setups">No valid setups — preserve capital</div>
+    {% else %}
+    {% for s in setups %}
+    <div class="setup-block">
+      <div class="setup-header">
+        <span class="setup-ticker">{{ s.ticker }}</span>
+        <span class="setup-bias {{ s.bias }}">{{ s.bias }}</span>
+        <span class="setup-grade">{{ s.grade }}</span>
+        <span class="setup-confidence">{{ s.confidence }} confidence</span>
       </div>
-
-      <!-- High-Impact Events -->
-      <div class="card">
-        <div class="card-title">High-Impact Events</div>
-        <div class="events-list">
-          {% for level in ['HIGH', 'MEDIUM', 'LOW'] %}
-          {% for ev in events.get(level, []) %}
-          <div class="event-row">
-            <span class="event-tag {{ level }}">{{ level }}</span>
-            <div class="event-content">
-              <div class="event-name">{{ ev.event }}</div>
-              <div class="event-impact">{{ ev.impact }}</div>
-            </div>
-          </div>
-          {% endfor %}
-          {% endfor %}
-        </div>
+      <div class="setup-rows">
+        <div class="setup-row"><span class="sk">Resistance</span><span class="sv">{{ s.resistance }}</span></div>
+        <div class="setup-row"><span class="sk">Support</span><span class="sv">{{ s.support }}</span></div>
+        <div class="setup-row"><span class="sk">Structure</span><span class="sv">{{ s.structure }}</span></div>
+        <div class="setup-row"><span class="sk">Trigger</span><span class="sv">{{ s.trigger }}</span></div>
+        <div class="setup-row"><span class="sk">Invalidation</span><span class="sv">{{ s.invalidation }}</span></div>
       </div>
-
-      <!-- Plumbing -->
-      <div class="card">
-        <div class="card-title">Plumbing</div>
-        <div class="plumbing-text">{{ plumbing }}</div>
-      </div>
-
-      <!-- Setups -->
-      <div class="card">
-        <div class="card-title">Setups</div>
-        {% if no_setups or not setups %}
-        <div class="no-setups">No valid setups — preserve capital</div>
-        {% else %}
-        {% for s in setups %}
-        <div class="setup-block">
-          <div class="setup-header">
-            <span class="setup-ticker">{{ s.ticker }}</span>
-            <span class="setup-bias {{ s.bias }}">{{ s.bias }}</span>
-            <span class="setup-grade">{{ s.grade }}</span>
-            <span class="setup-confidence">{{ s.confidence }} confidence</span>
-          </div>
-          <div class="setup-rows">
-            <div class="setup-row"><span class="sk">Resistance</span><span class="sv">{{ s.resistance }}</span></div>
-            <div class="setup-row"><span class="sk">Support</span><span class="sv">{{ s.support }}</span></div>
-            <div class="setup-row"><span class="sk">Structure</span><span class="sv">{{ s.structure }}</span></div>
-            <div class="setup-row"><span class="sk">Trigger</span><span class="sv">{{ s.trigger }}</span></div>
-            <div class="setup-row"><span class="sk">Invalidation</span><span class="sv">{{ s.invalidation }}</span></div>
-          </div>
-        </div>
-        {% endfor %}
-        {% endif %}
-      </div>
-
     </div>
+    {% endfor %}
+    {% endif %}
+  </section>
 
-    <!-- ── RIGHT COLUMN ── -->
-    <div class="column">
-
-      <!-- Energy -->
-      <div class="card">
-        <div class="card-title">Energy</div>
-        <div class="sector-data">
-          {% set wti = energy.wti %}
-          {% if wti.price %}
-          <div class="sector-chip">
-            <span class="s-label">WTI</span>
-            <span class="s-value">{{ wti.formatted }}</span>
-            <span class="s-chg {% if wti.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if wti.day_chg >= 0 else '' }}{{ "%.1f"|format(wti.day_chg) }}%
-            </span>
-          </div>
+  <section class="support-grid">
+    <div class="card">
+      <div class="card-title">Overnight Context</div>
+      <div class="eq-data">
+        {% for name, key in [('SPY', 'spy'), ('QQQ', 'qqq'), ('BTC', 'btc'), ('TSLA', 'tsla'), ('MU', 'mu')] %}
+        {% set chip = equities[key] %}
+        <div class="eq-chip">
+          <span class="eq-name">{{ name }}</span>
+          <span class="eq-val">{{ chip.formatted }}</span>
+          {% if chip.price is not none %}
+          <span class="eq-chg dir-{% if chip.day_chg >= 0 %}up{% else %}down{% endif %}">
+            {{ '+' if chip.day_chg >= 0 else '' }}{{ "%.1f"|format(chip.day_chg) }}%
+          </span>
+          {% else %}
+          <span class="eq-chg dir-flat">Unavailable</span>
           {% endif %}
-          {% set xle = energy.xle %}
-          {% if xle.price %}
-          <div class="sector-chip">
-            <span class="s-label">XLE</span>
-            <span class="s-value">{{ xle.formatted }}</span>
-            <span class="s-chg {% if xle.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if xle.day_chg >= 0 else '' }}{{ "%.1f"|format(xle.day_chg) }}%
-            </span>
-          </div>
-          {% endif %}
-          {% set oxy = energy.oxy %}
-          {% if oxy.price %}
-          <div class="sector-chip">
-            <span class="s-label">OXY</span>
-            <span class="s-value">{{ oxy.formatted }}</span>
-            <span class="s-chg {% if oxy.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if oxy.day_chg >= 0 else '' }}{{ "%.1f"|format(oxy.day_chg) }}%
-            </span>
-          </div>
-          {% endif %}
-        </div>
-        <div class="sector-interp">{{ energy.interpretation }}</div>
-      </div>
-
-      <!-- Metals -->
-      <div class="card">
-        <div class="card-title">Metals</div>
-        <div class="sector-data">
-          {% set gold = metals.gold %}
-          {% if gold.price %}
-          <div class="sector-chip">
-            <span class="s-label">GOLD</span>
-            <span class="s-value">{{ gold.formatted }}</span>
-            <span class="s-chg {% if gold.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if gold.day_chg >= 0 else '' }}{{ "%.1f"|format(gold.day_chg) }}%
-            </span>
-          </div>
-          {% endif %}
-          {% set silver = metals.silver %}
-          {% if silver.price %}
-          <div class="sector-chip">
-            <span class="s-label">SILVER</span>
-            <span class="s-value">{{ silver.formatted }}</span>
-            <span class="s-chg {% if silver.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if silver.day_chg >= 0 else '' }}{{ "%.1f"|format(silver.day_chg) }}%
-            </span>
-          </div>
-          {% endif %}
-          {% set r10y = metals.real10y %}
-          {% if r10y.price %}
-          <div class="sector-chip">
-            <span class="s-label">REAL10Y ~est</span>
-            <span class="s-value">{{ r10y.formatted }}</span>
-            <span class="s-chg {% if r10y.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if r10y.day_chg >= 0 else '' }}{{ "%.0f"|format(r10y.day_chg) }}bps
-            </span>
-          </div>
-          {% endif %}
-        </div>
-        <div class="sector-interp">{{ metals.interpretation }}</div>
-      </div>
-
-      <!-- Silver Inventory -->
-      <div class="card">
-        <div class="card-title">Silver Inventory</div>
-        <div class="inventory-note">{{ inventory }}</div>
-      </div>
-
-      <!-- Miners -->
-      <div class="card">
-        <div class="card-title">Miner Focus</div>
-        {% for miner in miners %}
-        <div class="miner-block">
-          <div class="miner-ticker">{{ miner.ticker }} — {{ miner.name }}</div>
-          <div class="miner-row"><span class="miner-key">Structure</span><span class="miner-val">{{ miner.structure }}</span></div>
-          <div class="miner-row"><span class="miner-key">Rel. Strength</span><span class="miner-val">{{ miner.relative_strength }}</span></div>
-          <div class="miner-row"><span class="miner-key">Interpretation</span><span class="miner-val">{{ miner.interpretation }}</span></div>
-          <div class="miner-conclusion">→ {{ miner.conclusion }}</div>
         </div>
         {% endfor %}
       </div>
-
-      <!-- Equities & BTC -->
-      <div class="card">
-        <div class="card-title">Equities &amp; BTC</div>
-        <div class="eq-data">
-          {% for name, key in [('SPY', 'spy'), ('QQQ', 'qqq'), ('BTC', 'btc'), ('TSLA', 'tsla'), ('MU', 'mu')] %}
-          {% set chip = equities[key] %}
-          {% if chip.price %}
-          <div class="eq-chip">
-            <span class="eq-name">{{ name }}</span>
-            <span class="eq-val">{{ chip.formatted }}</span>
-            <span class="eq-chg {% if chip.day_chg >= 0 %}pos{% else %}neg{% endif %}">
-              {{ '+' if chip.day_chg >= 0 else '' }}{{ "%.1f"|format(chip.day_chg) }}%
-            </span>
-          </div>
-          {% endif %}
-          {% endfor %}
-        </div>
-        <div class="eq-context">{{ equities.context }}</div>
-      </div>
-
+      <div class="context-copy">{{ equities.context }}</div>
     </div>
-  </div>
 
-  <!-- ── Bottom Execution Band ── -->
-  <div class="bottom-band">
-    <div>
-      <div class="risk-map-title">Risk Map</div>
-      <div class="risk-items">
+    <div class="card">
+      <div class="card-title">Metals</div>
+      <div class="sector-data">
+        {% set gold = metals.gold %}
+        <div class="sector-chip">
+          <span class="s-label">Gold</span>
+          <span class="s-value">{{ gold.formatted }}</span>
+          {% if gold.price is not none %}
+          <span class="s-chg dir-{% if gold.day_chg >= 0 %}up{% else %}down{% endif %}">
+            {{ '+' if gold.day_chg >= 0 else '' }}{{ "%.1f"|format(gold.day_chg) }}%
+          </span>
+          {% else %}
+          <span class="s-chg dir-flat">Unavailable</span>
+          {% endif %}
+        </div>
+        {% set silver = metals.silver %}
+        <div class="sector-chip">
+          <span class="s-label">Silver</span>
+          <span class="s-value">{{ silver.formatted }}</span>
+          {% if silver.price is not none %}
+          <span class="s-chg dir-{% if silver.day_chg >= 0 %}up{% else %}down{% endif %}">
+            {{ '+' if silver.day_chg >= 0 else '' }}{{ "%.1f"|format(silver.day_chg) }}%
+          </span>
+          {% else %}
+          <span class="s-chg dir-flat">Source unavailable</span>
+          {% endif %}
+        </div>
+        <div class="sector-chip">
+          <span class="s-label">AU/AG Ratio</span>
+          <span class="s-value">{{ metals.gold_silver_ratio }}</span>
+          <span class="s-chg dir-flat">Gold / Silver</span>
+        </div>
+        <div class="sector-chip">
+          <span class="s-label">COMEX Silver</span>
+          <span class="s-value">{{ metals.silver.formatted }}</span>
+          <span class="s-chg dir-flat">Existing source</span>
+        </div>
+      </div>
+      <div class="sector-interp">{{ metals.interpretation }}</div>
+      <div class="inventory-list inventory-note" style="margin-top: 14px;">
+        {% for line in metals.inventory_lines %}
+        {% set parts = line.split(': ', 1) %}
+        {% set value = parts[1] if parts|length > 1 else line %}
+        <div class="inventory-row">
+          <div class="inventory-label">{{ parts[0] }}</div>
+          <div class="inventory-value{% if 'not yet integrated' in value|lower or 'coming soon' in value|lower or 'unavailable' in value|lower %} is-unavailable{% endif %}">{{ value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Secondary Watchlist</div>
+      {% for miner in miners %}
+      <div class="miner-block">
+        <div class="miner-ticker">{{ miner.ticker }} — {{ miner.name }}</div>
+        <div class="miner-row"><span class="miner-key">Structure</span><span class="miner-val">{{ miner.structure }}</span></div>
+        <div class="miner-row"><span class="miner-key">Rel. Strength</span><span class="miner-val">{{ miner.relative_strength }}</span></div>
+        <div class="miner-row"><span class="miner-key">Interpretation</span><span class="miner-val">{{ miner.interpretation }}</span></div>
+        <div class="miner-conclusion">→ {{ miner.conclusion }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Appendix</div>
+      <div class="appendix-note" style="margin-bottom: 12px;">Risk map reference levels and invalidation triggers.</div>
+      <div class="appendix-list">
         {% for trigger in risk_map %}
-        <span class="risk-item">{{ trigger }}</span>
+        <span class="appendix-item">{{ trigger }}</span>
         {% endfor %}
       </div>
     </div>
-    <div class="thesis-block">
-      <div class="thesis-label">One-Line Thesis</div>
-      <div class="thesis-text">{{ thesis }}</div>
-    </div>
-  </div>
+  </section>
 
   <div class="footer">
     <div class="footer-meta">
-      <span>{{ generated_line }}</span>
+      <div class="footer-copy">
+        <span>{{ generated_line }}</span>
+        <span>&middot;</span>
+        <span>For decision support only. Not financial advice.</span>
+      </div>
       {% if archive_href %}
-      <span>&middot;</span>
       <a class="footer-link" href="{{ archive_href }}">Archives</a>
       {% endif %}
-      <span>&middot;</span>
-      <span>For decision support only. Not financial advice.</span>
     </div>
   </div>
 
