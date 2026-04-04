@@ -19,6 +19,7 @@ REPORTS_DIR = Path(__file__).parent
 TEMPLATE_DIR = REPORTS_DIR / "templates"
 OUTPUT_DIR = REPORTS_DIR / "output"
 ARCHIVE_DIR = REPORTS_DIR / "archive"
+MARKET_CACHE_PATH = OUTPUT_DIR / "market_data.latest.json"
 
 # ── Ticker map ─────────────────────────────────────────────────────────────
 
@@ -76,6 +77,38 @@ def build_stub_market_data() -> dict:
     }
     return stub
 
+
+def _cache_payload(data: dict) -> dict:
+    now_vancouver = datetime.now(ZoneInfo("America/Vancouver"))
+    return {
+        "cached_at": now_vancouver.isoformat(),
+        "source": "yfinance",
+        "data": data,
+    }
+
+
+def save_market_data_cache(data: dict) -> None:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    MARKET_CACHE_PATH.write_text(
+        json.dumps(_cache_payload(data), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def load_market_data_cache() -> dict | None:
+    if not MARKET_CACHE_PATH.exists():
+        return None
+    try:
+        payload = json.loads(MARKET_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"  Warning: failed to read cached market data: {exc}")
+        return None
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        print("  Warning: cached market data payload is malformed.")
+        return None
+    return data
+
 def _format_price(value: float, ticker: str) -> str:
     if ticker in ("GOLD", "SILVER", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
         return f"${value:.2f}"
@@ -96,6 +129,15 @@ def fetch_market_data() -> dict:
     """Fetch live market data for all tracked tickers."""
     print("Fetching market data...")
 
+    def fallback(reason: str) -> dict:
+        print(f"  Warning: {reason}")
+        cached = load_market_data_cache()
+        if cached is not None:
+            print(f"  Using cached market data from {MARKET_CACHE_PATH}.")
+            return cached
+        print("  Falling back to deterministic stub market data for this build.")
+        return build_stub_market_data()
+
     all_symbols = list(TICKERS.values())
     try:
         raw = yf.download(
@@ -106,20 +148,14 @@ def fetch_market_data() -> dict:
             progress=False,
         )
     except Exception as exc:
-        print(f"  Warning: live market data fetch failed: {exc}")
-        print("  Falling back to deterministic stub market data for this build.")
-        return build_stub_market_data()
+        return fallback(f"live market data fetch failed: {exc}")
 
     try:
         closes = raw["Close"]
         if closes.dropna(how="all").empty:
-            print("  Warning: live market data returned no usable close data.")
-            print("  Falling back to deterministic stub market data for this build.")
-            return build_stub_market_data()
+            return fallback("live market data returned no usable close data.")
     except Exception as exc:
-        print(f"  Warning: malformed market data response: {exc}")
-        print("  Falling back to deterministic stub market data for this build.")
-        return build_stub_market_data()
+        return fallback(f"malformed market data response: {exc}")
 
     result: dict = {}
 
@@ -171,6 +207,7 @@ def fetch_market_data() -> dict:
     else:
         result["REAL10Y"] = {"price": None, "day_chg": None, "week_chg": None, "formatted": "N/A", "estimated": True}
 
+    save_market_data_cache(result)
     return result
 
 
@@ -402,10 +439,12 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
 # ── Report assembly ─────────────────────────────────────────────────────────
 
 def build_report_data(md: dict, narrative: dict) -> dict:
-    now_et = datetime.now(ZoneInfo("America/New_York"))
+    now_vancouver = datetime.now(ZoneInfo("America/Vancouver"))
     return {
-        "timestamp": now_et.strftime("%Y-%m-%d — %H:%M ET"),
-        "date": now_et.strftime("%Y-%m-%d"),
+        "timestamp": now_vancouver.strftime("%Y-%m-%d — %H:%M %Z"),
+        "generated_line": now_vancouver.strftime("Report Generated at %-I:%M %p %Z — %Y-%m-%d"),
+        "date": now_vancouver.strftime("%Y-%m-%d"),
+        "archive_href": "archive/",
         "macro_bar": build_macro_bar(md),
         "system_state": narrative.get("system_state", ""),
         "events": narrative.get("events", {"HIGH": [], "MEDIUM": [], "LOW": []}),
@@ -445,6 +484,8 @@ def render_html(report_data: dict) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
     template = env.get_template("morning_edge.html")
     html_content = template.render(**report_data)
+    archive_report_data = {**report_data, "archive_href": "index.html"}
+    archive_html_content = template.render(**archive_report_data)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / "morning_edge.html"
@@ -453,7 +494,7 @@ def render_html(report_data: dict) -> Path:
     # Archive copy
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
     archive_path = ARCHIVE_DIR / f"{report_data['date']}.html"
-    archive_path.write_text(html_content, encoding="utf-8")
+    archive_path.write_text(archive_html_content, encoding="utf-8")
 
     return out_path
 

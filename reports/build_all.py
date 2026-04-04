@@ -13,15 +13,22 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 SITE_DIR = ROOT_DIR / "_site"
 
 
-def _write_index(report_data: dict) -> Path:
+def _write_archive_index(report_data: dict) -> Path:
     SITE_DIR.mkdir(parents=True, exist_ok=True)
-    index_path = SITE_DIR / "index.html"
+    archive_dir = SITE_DIR / "archive"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    index_path = archive_dir / "index.html"
+    archive_files = sorted(morning_edge.ARCHIVE_DIR.glob("*.html"), reverse=True)
+    items = "\n".join(
+        f'      <li><a href="{path.name}">{path.stem}</a></li>'
+        for path in archive_files
+    )
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Signal Forge Reports</title>
+<title>Morning Macro Edge Archives</title>
 <style>
   :root {{
     --bg: #0B0B0F;
@@ -42,14 +49,9 @@ def _write_index(report_data: dict) -> Path:
     font: 500 16px/1.6 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }}
   .page {{
-    width: min(100%, var(--page-max));
+    width: min(100%, 840px);
     margin: 0 auto;
     padding: 40px 24px 56px;
-  }}
-  .hero {{
-    margin-bottom: 26px;
-    padding-bottom: 18px;
-    border-bottom: 1px solid var(--border);
   }}
   .eyebrow {{
     font-size: 12px;
@@ -60,74 +62,71 @@ def _write_index(report_data: dict) -> Path:
   }}
   h1 {{
     margin: 0 0 10px;
-    font-size: clamp(2rem, 1.7rem + 1vw, 2.8rem);
+    font-size: clamp(2rem, 1.7rem + 1vw, 2.4rem);
     line-height: 1.1;
   }}
   .subtitle {{
-    max-width: 760px;
     color: var(--text-muted);
     font-size: 1rem;
-  }}
-  .grid {{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 18px;
+    margin-bottom: 22px;
   }}
   .card {{
-    display: block;
-    text-decoration: none;
-    color: inherit;
     background: linear-gradient(180deg, var(--bg-card2), var(--bg-card));
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 20px;
+    padding: 22px;
   }}
-  .card:hover {{
+  .archive-list {{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }}
+  .archive-list a {{
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.01);
+  }}
+  .archive-list a:hover {{
     border-color: rgba(59, 130, 246, 0.45);
   }}
-  .card-kicker {{
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--accent-gold);
-    margin-bottom: 8px;
+  .archive-date {{
+    font-size: 1rem;
+    font-weight: 600;
   }}
-  .card-title {{
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }}
-  .card-copy {{
-    color: var(--text-muted);
-    font-size: 0.96rem;
-  }}
-  .meta {{
-    margin-top: 32px;
+  .archive-copy {{
     color: var(--text-muted);
     font-size: 0.9rem;
+    margin-top: 4px;
+  }}
+  .meta {{
+    margin-top: 24px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }}
+  .back-link {{
+    color: var(--accent);
+    text-decoration: none;
   }}
 </style>
 </head>
 <body>
   <main class="page">
-    <section class="hero">
-      <div class="eyebrow">Signal Forge</div>
-      <h1>Static report dashboard</h1>
-      <p class="subtitle">Published HTML entrypoints for the latest Morning Macro Edge report and its dated archive copy.</p>
+    <div class="eyebrow">Signal Forge</div>
+    <h1>Morning Macro Edge Archives</h1>
+    <p class="subtitle">Dated report snapshots.</p>
+    <section class="card">
+      <ul class="archive-list">
+{items}
+      </ul>
     </section>
-    <section class="grid">
-      <a class="card" href="morning_edge.html">
-        <div class="card-kicker">Latest report</div>
-        <div class="card-title">Morning Macro Edge</div>
-        <div class="card-copy">Open the current report build rendered from the shared dashboard template.</div>
-      </a>
-      <a class="card" href="archive/{report_data['date']}.html">
-        <div class="card-kicker">Archive</div>
-        <div class="card-title">{report_data['date']}</div>
-        <div class="card-copy">Open the dated archive snapshot for the same publish cycle.</div>
-      </a>
-    </section>
-    <div class="meta">Generated {report_data['timestamp']}. Static files live under <code>_site/</code>.</div>
+    <div class="meta"><a class="back-link" href="../">Back to latest report</a> · {report_data['generated_line']}</div>
   </main>
 </body>
 </html>
@@ -154,13 +153,15 @@ def build_site() -> Path:
     archive_src = morning_edge.ARCHIVE_DIR / f"{report_data['date']}.html"
     site_archive_dir = SITE_DIR / "archive"
     site_archive_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(html_path, SITE_DIR / "index.html")
     shutil.copy2(html_path, SITE_DIR / "morning_edge.html")
     shutil.copy2(archive_src, site_archive_dir / archive_src.name)
-    _write_index(report_data)
+    _write_archive_index(report_data)
 
     print(f"Site index: {SITE_DIR / 'index.html'}")
     print(f"Latest report: {SITE_DIR / 'morning_edge.html'}")
     print(f"Archive copy: {site_archive_dir / archive_src.name}")
+    print(f"Archive index: {site_archive_dir / 'index.html'}")
     return SITE_DIR
 
 

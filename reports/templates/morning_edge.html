@@ -432,6 +432,21 @@
     padding: 12px 0 18px;
     letter-spacing: 0.04em;
   }
+  .footer-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .footer-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 120ms ease;
+  }
+  .footer-link:hover {
+    color: var(--text);
+  }
 
   @media (max-width: 899px) {
     :root {
@@ -449,6 +464,10 @@
     .header {
       flex-direction: column;
       align-items: flex-start;
+    }
+
+    .footer-meta {
+      gap: 6px 10px;
     }
 
     .macro-bar {
@@ -504,7 +523,7 @@
   <!-- ── Header ── -->
   <header class="header">
     <h1>Morning <span>Macro</span> Edge</h1>
-    <span class="ts">{{ timestamp }}</span>
+    <span class="ts">{{ generated_line }}</span>
   </header>
 
   <!-- ── Macro Snapshot Bar ── -->
@@ -725,7 +744,15 @@
   </div>
 
   <div class="footer">
-    Signal Forge — Morning Macro Edge &nbsp;|&nbsp; {{ timestamp }} &nbsp;|&nbsp; For decision support only. Not financial advice.
+    <div class="footer-meta">
+      <span>{{ generated_line }}</span>
+      {% if archive_href %}
+      <span>&middot;</span>
+      <a class="footer-link" href="{{ archive_href }}">Archives</a>
+      {% endif %}
+      <span>&middot;</span>
+      <span>For decision support only. Not financial advice.</span>
+    </div>
   </div>
 
 </div>
