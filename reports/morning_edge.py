@@ -12,7 +12,6 @@ from zoneinfo import ZoneInfo
 import anthropic
 import yfinance as yf
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +46,36 @@ YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
 
 # ── Data layer ─────────────────────────────────────────────────────────────
 
+def build_stub_market_data() -> dict:
+    """Deterministic fallback market snapshot for offline/static builds."""
+    stub = {
+        "DXY": {"price": 104.82, "day_chg": 0.3, "week_chg": 0.9, "formatted": "104.82", "is_yield": False},
+        "US10Y": {"price": 4.21, "day_chg": 4.0, "week_chg": 11.0, "formatted": "4.21%", "is_yield": True},
+        "WTI": {"price": 81.44, "day_chg": 1.1, "week_chg": 2.7, "formatted": "$81.44", "is_yield": False},
+        "GOLD": {"price": 2318.20, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$2318.20", "is_yield": False},
+        "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+        "SPY": {"price": 518.47, "day_chg": 0.5, "week_chg": 1.1, "formatted": "$518.47", "is_yield": False},
+        "QQQ": {"price": 442.35, "day_chg": 0.7, "week_chg": 1.5, "formatted": "$442.35", "is_yield": False},
+        "BTC": {"price": 68350.0, "day_chg": 1.2, "week_chg": 4.9, "formatted": "$68,350", "is_yield": False},
+        "VIX": {"price": 14.8, "day_chg": -2.1, "week_chg": -5.0, "formatted": "14.8", "is_yield": False},
+        "XLE": {"price": 95.42, "day_chg": 0.9, "week_chg": 2.1, "formatted": "$95.42", "is_yield": False},
+        "OXY": {"price": 67.18, "day_chg": 1.0, "week_chg": 2.6, "formatted": "$67.18", "is_yield": False},
+        "GDX": {"price": 33.72, "day_chg": 0.5, "week_chg": 1.6, "formatted": "$33.72", "is_yield": False},
+        "NEM": {"price": 36.48, "day_chg": 0.4, "week_chg": 1.3, "formatted": "$36.48", "is_yield": False},
+        "WPM": {"price": 47.26, "day_chg": 0.7, "week_chg": 1.9, "formatted": "$47.26", "is_yield": False},
+        "TSLA": {"price": 171.63, "day_chg": -0.8, "week_chg": -1.4, "formatted": "$171.63", "is_yield": False},
+        "MU": {"price": 123.54, "day_chg": 1.4, "week_chg": 3.2, "formatted": "$123.54", "is_yield": False},
+    }
+    stub["REAL10Y"] = {
+        "price": 2.01,
+        "day_chg": 4.0,
+        "week_chg": 11.0,
+        "formatted": "2.01%",
+        "is_yield": True,
+        "estimated": True,
+    }
+    return stub
+
 def _format_price(value: float, ticker: str) -> str:
     if ticker in ("GOLD", "SILVER", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
         return f"${value:.2f}"
@@ -68,13 +97,29 @@ def fetch_market_data() -> dict:
     print("Fetching market data...")
 
     all_symbols = list(TICKERS.values())
-    raw = yf.download(
-        tickers=all_symbols,
-        period="10d",
-        interval="1d",
-        auto_adjust=True,
-        progress=False,
-    )
+    try:
+        raw = yf.download(
+            tickers=all_symbols,
+            period="10d",
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+        )
+    except Exception as exc:
+        print(f"  Warning: live market data fetch failed: {exc}")
+        print("  Falling back to deterministic stub market data for this build.")
+        return build_stub_market_data()
+
+    try:
+        closes = raw["Close"]
+        if closes.dropna(how="all").empty:
+            print("  Warning: live market data returned no usable close data.")
+            print("  Falling back to deterministic stub market data for this build.")
+            return build_stub_market_data()
+    except Exception as exc:
+        print(f"  Warning: malformed market data response: {exc}")
+        print("  Falling back to deterministic stub market data for this build.")
+        return build_stub_market_data()
 
     result: dict = {}
 
@@ -415,6 +460,8 @@ def render_html(report_data: dict) -> Path:
 
 def render_pdf(html_path: Path) -> Path:
     import shutil
+    from weasyprint import HTML
+
     pdf_path = OUTPUT_DIR / "morning_edge.pdf"
     HTML(filename=str(html_path)).write_pdf(str(pdf_path))
 

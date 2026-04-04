@@ -19,3 +19,4 @@
 - 2026-04-01: standardized dislocation output: schema, formatting, and console template
 - 2026-04-03: added a dedicated safeguards layer with JSONL logging, strict expression/volatility/catalyst rails, validated override codes, and pipeline wiring.
 - 2026-04-03: added a V1 pure-Python backtest engine that simulates credit/debit proxy trades on the underlying and reports win rate, expectancy, drawdown, profit factor, and no-trade frequency.
+- 2026-04-03: scaled up the Morning Macro Edge dashboard for better desktop readability, added a `_site/` static-site builder with a lightweight landing page, and added a GitHub Pages Actions workflow plus local preview notes.

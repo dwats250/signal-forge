@@ -71,3 +71,19 @@ The system then needs replay tools, validation datasets, and review workflows.
 
 5. Expansion + Automation
 Later work extends coverage, increases automation, and broadens the signal set without weakening explainability.
+
+## Static Site Preview
+
+Build the publishable static site:
+
+```bash
+python3 -m reports.build_all
+```
+
+Preview it locally:
+
+```bash
+cd _site && python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000`.

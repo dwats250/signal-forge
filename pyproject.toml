@@ -7,6 +7,16 @@ name = "signal-forge"
 version = "0.1.0"
 description = "Core v1 spine for Signal Forge"
 requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.52.0",
+    "Jinja2>=3.1.0",
+    "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+reports = [
+    "weasyprint>=62.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["signal_forge*"]
