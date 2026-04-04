@@ -135,27 +135,28 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 8px 9px;
+    padding: 7px 8px;
     background: var(--bg-card2);
     border-radius: 7px;
     border: 1px solid var(--border);
-    gap: 1px;
+    gap: 2px;
   }
   .macro-item .label {
-    font-size: 0.66rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 700;
     letter-spacing: 0.08em;
     color: var(--text-muted);
     text-transform: uppercase;
   }
   .macro-item .value {
-    font-size: 0.95rem;
+    font-size: 1.02rem;
     font-weight: 600;
     color: var(--text);
     font-variant-numeric: tabular-nums;
+    line-height: 1.12;
   }
   .macro-item .change {
-    font-size: 1.08rem;
+    font-size: 1.2rem;
     font-weight: 800;
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
@@ -226,27 +227,27 @@
   .plumbing-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
   .plumbing-card {
     background: var(--bg-card2);
     border: 1px solid var(--border);
     border-radius: 9px;
-    padding: 10px 12px;
-    min-height: 110px;
+    padding: 9px 10px;
+    min-height: 94px;
     display: grid;
     grid-template-rows: auto auto 1fr;
-    gap: 6px;
+    gap: 5px;
   }
   .plumbing-label {
-    font-size: 0.74rem;
+    font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
   .plumbing-value {
-    font-size: 1rem;
+    font-size: 0.94rem;
     font-weight: 600;
     color: var(--text);
     font-variant-numeric: tabular-nums;
@@ -262,7 +263,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-variant-numeric: tabular-nums;
   }
   .plumbing-abs::before,
@@ -402,18 +403,22 @@
     padding: 8px 10px;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
   }
   .eq-name, .s-label {
     color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.76rem;
+    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  .eq-val, .s-value { font-size: 0.94rem; font-weight: 600; color: var(--text); }
-  .eq-chg, .s-chg { font-size: 1.04rem; font-weight: 800; line-height: 1.05; }
+  .eq-val, .s-value { font-size: 1.02rem; font-weight: 600; color: var(--text); line-height: 1.12; }
+  .eq-chg, .s-chg { font-size: 1.16rem; font-weight: 800; line-height: 1.05; }
   .metals-card .sector-data { margin-bottom: 14px; }
+  .metals-divider {
+    margin: 2px 0 14px;
+    border-top: 1px solid rgba(168, 178, 195, 0.18);
+  }
   .metals-card .sector-interp {
     margin-top: 2px;
     line-height: 1.76;
@@ -534,21 +539,21 @@
     .thesis-label { font-size: 0.76rem; margin-bottom: 8px; }
     .thesis-text { font-size: clamp(1.36rem, 1.18rem + 1.04vw, 1.64rem); line-height: 1.34; }
     .macro-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; padding: 9px 10px; }
-    .macro-item { padding: 8px 9px; gap: 2px; border-radius: 8px; }
-    .macro-item .label { font-size: 0.64rem; }
-    .macro-item .value { font-size: 0.88rem; }
-    .macro-item .change { font-size: 1rem; }
+    .macro-item { padding: 7px 8px; gap: 2px; border-radius: 8px; }
+    .macro-item .label { font-size: 0.68rem; }
+    .macro-item .value { font-size: 0.98rem; }
+    .macro-item .change { font-size: 1.16rem; }
     .state-summary { grid-template-columns: 1fr; }
     .state-card { padding: 16px 16px 14px; }
     .state-metric { padding: 10px 11px; }
     .state-value { font-size: 0.98rem; }
     .system-state p { font-size: 0.96rem; line-height: 1.66; }
     .plumbing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .plumbing-card { min-height: 0; padding: 10px 11px; }
-    .plumbing-label { font-size: 0.7rem; }
-    .plumbing-value { font-size: 0.98rem; }
+    .plumbing-card { min-height: 0; padding: 9px 10px; }
+    .plumbing-label { font-size: 0.68rem; }
+    .plumbing-value { font-size: 0.92rem; }
     .plumbing-abs,
-    .plumbing-pct { font-size: 0.74rem; }
+    .plumbing-pct { font-size: 0.7rem; }
     .plumbing-abs::before,
     .plumbing-pct::before { font-size: 0.58rem; }
     .plumbing-note,
@@ -564,10 +569,10 @@
     .eq-data,
     .sector-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .eq-chip,
-    .sector-chip { padding: 9px 10px; }
-    .eq-name, .s-label { font-size: 0.72rem; }
-    .eq-val, .s-value { font-size: 0.9rem; }
-    .eq-chg, .s-chg { font-size: 1rem; }
+    .sector-chip { padding: 8px 9px; }
+    .eq-name, .s-label { font-size: 0.76rem; }
+    .eq-val, .s-value { font-size: 1rem; }
+    .eq-chg, .s-chg { font-size: 1.18rem; }
     .setup-block { padding: 14px; }
     .setup-header { gap: 8px; margin-bottom: 10px; }
     .setup-ticker { font-size: 1rem; }
@@ -601,10 +606,11 @@
     .header h1 { font-size: clamp(2.08rem, 1.7rem + 0.92vw, 2.9rem); }
     .card-title { font-size: 1.06rem; }
     .thesis-text { font-size: clamp(1.42rem, 1.2rem + 0.48vw, 1.76rem); }
-    .macro-item .label { font-size: 0.68rem; }
-    .macro-item .value { font-size: 0.94rem; }
-    .macro-item .change { font-size: 1.12rem; }
-    .state-value, .plumbing-value { font-size: 1.04rem; }
+    .macro-item .label { font-size: 0.72rem; }
+    .macro-item .value { font-size: 1rem; }
+    .macro-item .change { font-size: 1.18rem; }
+    .state-value { font-size: 1.04rem; }
+    .plumbing-value { font-size: 0.98rem; }
     .system-state p,
     .context-copy,
     .sector-interp,
@@ -613,8 +619,8 @@
     .miner-val { font-size: 1rem; }
     .plumbing-note { font-size: 0.98rem; }
     .context-copy { font-size: 1rem; }
-    .eq-val, .s-value { font-size: 0.96rem; }
-    .eq-chg, .s-chg { font-size: 1.08rem; }
+    .eq-val, .s-value { font-size: 1rem; }
+    .eq-chg, .s-chg { font-size: 1.14rem; }
   }
 
   @page { size: A3 landscape; margin: 10mm; }
@@ -785,43 +791,24 @@
     </div>
 
     <div class="card">
-      <div class="card-title">Metals</div>
-      <div class="sector-data">
-        {% set gold = metals.gold %}
-        <div class="sector-chip">
-          <span class="s-label">Gold</span>
-          <span class="s-value">{{ gold.formatted }}</span>
-          {% if gold.price is not none %}
-          <span class="s-chg dir-{% if gold.day_chg >= 0 %}up{% else %}down{% endif %}">
-            {{ '+' if gold.day_chg >= 0 else '' }}{{ "%.1f"|format(gold.day_chg) }}%
-          </span>
-          {% else %}
-          <span class="s-chg dir-flat">Unavailable</span>
-          {% endif %}
-        </div>
-        {% set silver = metals.silver %}
-        <div class="sector-chip">
-          <span class="s-label">Silver</span>
-          <span class="s-value">{{ silver.formatted }}</span>
-          {% if silver.price is not none %}
-          <span class="s-chg dir-{% if silver.day_chg >= 0 %}up{% else %}down{% endif %}">
-            {{ '+' if silver.day_chg >= 0 else '' }}{{ "%.1f"|format(silver.day_chg) }}%
-          </span>
-          {% else %}
-          <span class="s-chg dir-flat">Source unavailable</span>
-          {% endif %}
-        </div>
-        <div class="sector-chip">
-          <span class="s-label">AU/AG Ratio</span>
-          <span class="s-value">{{ metals.gold_silver_ratio }}</span>
-          <span class="s-chg dir-flat">Gold / Silver</span>
-        </div>
-        <div class="sector-chip">
-          <span class="s-label">COMEX Silver</span>
-          <span class="s-value">{{ metals.silver.formatted }}</span>
-          <span class="s-chg dir-flat">Existing source</span>
-        </div>
+    <div class="card-title">Metals</div>
+    <div class="sector-data">
+      {% for metal in metals.cards %}
+      {% set entry = metal.entry %}
+      <div class="sector-chip">
+        <span class="s-label">{{ metal.label }}</span>
+        <span class="s-value">{{ entry.formatted }}</span>
+        {% if entry.price is not none %}
+        <span class="s-chg dir-{% if entry.day_chg >= 0 %}up{% else %}down{% endif %}">
+          {{ '+' if entry.day_chg >= 0 else '' }}{{ "%.1f"|format(entry.day_chg) }}%
+        </span>
+        {% else %}
+        <span class="s-chg dir-flat">Unavailable</span>
+        {% endif %}
       </div>
+      {% endfor %}
+    </div>
+      <div class="metals-divider"></div>
       <div class="sector-interp">{{ metals.interpretation }}</div>
       <div class="inventory-list inventory-note" style="margin-top: 14px;">
         {% for line in metals.inventory_lines %}

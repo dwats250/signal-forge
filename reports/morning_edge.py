@@ -29,6 +29,9 @@ TICKERS: dict[str, str] = {
     "WTI": "CL=F",
     "GOLD": "GC=F",
     "SILVER": "SI=F",
+    "COPPER": "HG=F",
+    "PLATINUM": "PL=F",
+    "PALLADIUM": "PA=F",
     "SPY": "SPY",
     "QQQ": "QQQ",
     "BTC": "BTC-USD",
@@ -57,6 +60,9 @@ def build_stub_market_data() -> dict:
         "WTI": {"price": 81.44, "day_chg": 1.1, "week_chg": 2.7, "formatted": "$81.44", "is_yield": False},
         "GOLD": {"price": 2318.20, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$2318.20", "is_yield": False},
         "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+        "COPPER": {"price": 4.18, "day_chg": 0.9, "week_chg": 2.4, "formatted": "$4.18", "is_yield": False},
+        "PLATINUM": {"price": 968.40, "day_chg": -0.2, "week_chg": 1.1, "formatted": "$968.40", "is_yield": False},
+        "PALLADIUM": {"price": 1022.75, "day_chg": 0.3, "week_chg": 0.8, "formatted": "$1022.75", "is_yield": False},
         "SPY": {"price": 518.47, "day_chg": 0.5, "week_chg": 1.1, "formatted": "$518.47", "is_yield": False},
         "QQQ": {"price": 442.35, "day_chg": 0.7, "week_chg": 1.5, "formatted": "$442.35", "is_yield": False},
         "BTC": {"price": 68350.0, "day_chg": 1.2, "week_chg": 4.9, "formatted": "$68,350", "is_yield": False},
@@ -186,6 +192,9 @@ def _fetch_symbol_fallback(name: str, symbol: str) -> dict:
 def _build_metals_context(md: dict) -> dict:
     gold = md.get("GOLD", _missing_market_entry())
     silver = md.get("SILVER", _missing_market_entry())
+    copper = md.get("COPPER", _missing_market_entry())
+    platinum = md.get("PLATINUM", _missing_market_entry())
+    palladium = md.get("PALLADIUM", _missing_market_entry())
     real10y = md.get("REAL10Y", _missing_market_entry(is_yield=True, estimated=True))
 
     ratio = None
@@ -193,6 +202,7 @@ def _build_metals_context(md: dict) -> dict:
         ratio = round(gold["price"] / silver["price"], 2)
 
     inventory_lines = [
+        f"Gold / silver ratio: {ratio:.2f}" if ratio is not None else "Gold / silver ratio: Unavailable",
         f"COMEX silver front month: {silver.get('formatted', METALS_FALLBACK_TEXT)}"
         if silver.get("price") is not None
         else "COMEX silver front month: Source unavailable",
@@ -203,8 +213,18 @@ def _build_metals_context(md: dict) -> dict:
     return {
         "gold": gold,
         "silver": silver,
+        "copper": copper,
+        "platinum": platinum,
+        "palladium": palladium,
         "real10y": real10y,
         "gold_silver_ratio": f"{ratio:.2f}" if ratio is not None else "Unavailable",
+        "cards": [
+            {"label": "Gold", "entry": gold},
+            {"label": "Silver", "entry": silver},
+            {"label": "Copper", "entry": copper},
+            {"label": "Platinum", "entry": platinum},
+            {"label": "Palladium", "entry": palladium},
+        ],
         "inventory_lines": inventory_lines,
     }
 
@@ -294,7 +314,7 @@ def _build_state_summary(md: dict, narrative: dict) -> dict:
     }
 
 def _format_price(value: float, ticker: str) -> str:
-    if ticker in ("GOLD", "SILVER", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
+    if ticker in ("GOLD", "SILVER", "COPPER", "PLATINUM", "PALLADIUM", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
         return f"${value:.2f}"
     if ticker in ("SPY", "QQQ"):
         return f"${value:.2f}"
@@ -412,8 +432,8 @@ def build_macro_bar(md: dict) -> list[dict]:
             "direction": "up" if d.get("day_chg") is not None and d.get("day_chg") > 0 else "down" if d.get("day_chg") is not None and d.get("day_chg") < 0 else "flat",
         })
 
-    add("DXY", include_5d=True)
-    add("US10Y", include_5d=True)
+    add("DXY")
+    add("US10Y")
     add("REAL10Y", label="REAL10Y ~est")
     add("WTI")
     add("GOLD")
