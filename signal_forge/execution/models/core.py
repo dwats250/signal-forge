@@ -33,6 +33,13 @@ class TradeDirection(str, Enum):
     BEARISH = "bearish"
 
 
+class PolicyState(str, Enum):
+    AGGRESSIVE = "AGGRESSIVE"
+    SELECTIVE = "SELECTIVE"
+    DEFENSIVE = "DEFENSIVE"
+    NO_TRADE = "NO_TRADE"
+
+
 class ReviewDeviationType(str, Enum):
     NONE = "none"
     ENTRY = "entry"
@@ -100,6 +107,32 @@ class OptionStructure:
 
 
 @dataclass(slots=True)
+class TradePolicy:
+    policy_state: PolicyState
+    allowed_directions: list[str]
+    allowed_structures: list[str]
+    position_size_pct: float
+    max_concurrent_trades: int
+    confidence_threshold: float
+    notes: str
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= self.position_size_pct <= 1.0:
+            raise ValueError("position_size_pct must be between 0.0 and 1.0")
+        if self.max_concurrent_trades < 0:
+            raise ValueError("max_concurrent_trades cannot be negative")
+        if not 0.0 <= self.confidence_threshold <= 1.0:
+            raise ValueError("confidence_threshold must be between 0.0 and 1.0")
+        if not self.notes:
+            raise ValueError("notes is required")
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["policy_state"] = self.policy_state.value
+        return payload
+
+
+@dataclass(slots=True)
 class TradeCandidate:
     symbol: str
     strategy_type: StrategyType
@@ -108,6 +141,10 @@ class TradeCandidate:
     stop_level: float
     target_level: float
     option_structure: OptionStructure | None = None
+    score: float = 1.0
+    ema_aligned: bool = True
+    atr: float | None = None
+    averaging_down: bool = False
     trade_id: str = field(default_factory=lambda: str(uuid4()))
     created_at: str = field(default_factory=utc_now)
 
@@ -125,6 +162,10 @@ class TradeCandidate:
             raise ValueError("equity trades cannot include option_structure")
         if self.strategy_type == StrategyType.CASH_SECURED_PUT and self.direction != TradeDirection.BULLISH:
             raise ValueError("cash_secured_put trades must be bullish")
+        if not 0.0 <= self.score <= 1.0:
+            raise ValueError("score must be between 0.0 and 1.0")
+        if self.atr is not None and self.atr <= 0:
+            raise ValueError("atr must be positive when provided")
 
         entry_price = self.entry_trigger.price
         if self.direction == TradeDirection.BULLISH:
@@ -222,6 +263,7 @@ class TradeRecord:
     state: TradeState
     candidate: TradeCandidate
     market_result: dict[str, Any] | None = None
+    trade_policy: dict[str, Any] | None = None
     setup_result: dict[str, Any] | None = None
     ticket: TradeTicket | None = None
     review_result: ReviewResult | None = None
@@ -238,6 +280,8 @@ class TradeRecord:
             "candidate": self.candidate.to_dict(),
             "updated_at": self.updated_at,
         }
+        if self.trade_policy is not None:
+            payload["trade_policy"] = self.trade_policy
         if self.market_result is not None:
             payload["market_result"] = self.market_result
         if self.setup_result is not None:

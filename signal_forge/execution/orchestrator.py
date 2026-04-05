@@ -34,6 +34,7 @@ class ExecutionOrchestrator:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.trades_path = self.log_dir / "trades.jsonl"
         self.trade_policy_path = self.log_dir / "trade_policy_log.jsonl"
+        self.decision_log_path = self.log_dir / "decision_log.jsonl"
         self.policy_store = PolicyStore(self.log_dir / "policy_changes.jsonl", policy=policy)
         self.records = self._load_records()
 
@@ -48,17 +49,27 @@ class ExecutionOrchestrator:
     ) -> TradeRecord:
         self._enforce_reviews_complete()
         record = TradeRecord(trade_id=candidate.trade_id, state=TradeState.CREATED, candidate=candidate)
+        market_context = market_regime or {}
         self._persist(record)
 
-        market = evaluate_market_gate(market_regime)
+        market = evaluate_market_gate(market_context)
         if not bool(market["passed"]):
             record.market_result = market
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="block",
+                policy_reason=str(market["reason"]),
+                execution_status="blocked",
+                execution_reason=str(market["reason"]),
+                sized=False,
+            )
             self._reject_record(record, str(market["reason"]))
 
         active_trade_count = self._active_trade_count(exclude_trade_id=record.trade_id)
         self._transition(record, TradeState.MARKET_APPROVED)
         record.market_result = market
-        trade_policy = resolve_trade_policy(market_regime)
+        trade_policy = resolve_trade_policy(market_context)
         record.trade_policy = trade_policy.to_dict()
         self._persist(record)
 
@@ -68,12 +79,21 @@ class ExecutionOrchestrator:
         )
         if policy_gate_reason is not None:
             self._log_trade_policy(
-                market_regime=market_regime,
+                market_regime=market_context,
                 trade_policy=trade_policy.to_dict(),
                 trades_taken=0,
                 trades_blocked=1,
                 reason_blocked=policy_gate_reason,
                 rejection_stage="trade_policy",
+            )
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="block",
+                policy_reason=policy_gate_reason,
+                execution_status="blocked",
+                execution_reason=policy_gate_reason,
+                sized=False,
             )
             self._reject_record(record, policy_gate_reason)
 
@@ -84,30 +104,60 @@ class ExecutionOrchestrator:
         )
         if not policy_passed:
             self._log_trade_policy(
-                market_regime=market_regime,
+                market_regime=market_context,
                 trade_policy=trade_policy.to_dict(),
                 trades_taken=0,
                 trades_blocked=1,
                 reason_blocked=policy_reason,
                 rejection_stage="candidate_filter",
             )
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="block",
+                policy_reason=policy_reason,
+                execution_status="blocked",
+                execution_reason=policy_reason,
+                sized=False,
+            )
             self._reject_record(record, policy_reason)
 
         setup = evaluate_setup_gate(candidate, setup_result)
         if not bool(setup["valid"]):
             record.setup_result = setup
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="pass",
+                policy_reason=policy_reason,
+                execution_status="blocked",
+                execution_reason=str(setup["reason"]),
+                sized=False,
+            )
             self._reject_record(record, str(setup["reason"]))
 
         self._transition(record, TradeState.SETUP_APPROVED)
         record.setup_result = setup
         self._persist(record)
 
-        ticket = calculate_trade_ticket(
-            candidate,
-            account_size=account_size,
-            risk_percent=self._scaled_risk_percent(risk_percent, trade_policy.position_size_pct),
-            policy=self.policy_store.policy,
-        )
+        try:
+            ticket = calculate_trade_ticket(
+                candidate,
+                account_size=account_size,
+                risk_percent=self._scaled_risk_percent(risk_percent, trade_policy.position_size_pct),
+                policy=self.policy_store.policy,
+            )
+        except ValueError as exc:
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="pass",
+                policy_reason=policy_reason,
+                execution_status="failed",
+                execution_reason=str(exc),
+                sized=False,
+            )
+            self._reject_record(record, str(exc))
         self._transition(record, TradeState.RISK_APPROVED)
         record.ticket = ticket
         self._persist(record)
@@ -115,12 +165,22 @@ class ExecutionOrchestrator:
         self._transition(record, TradeState.READY)
         self._persist(record)
         self._log_trade_policy(
-            market_regime=market_regime,
+            market_regime=market_context,
             trade_policy=trade_policy.to_dict(),
             trades_taken=1,
             trades_blocked=0,
             reason_blocked=None,
             rejection_stage=None,
+        )
+        self._log_decision(
+            candidate=candidate,
+            market_regime=market_context,
+            policy_decision="pass",
+            policy_reason=policy_reason,
+            execution_status="ready",
+            execution_reason="ready",
+            sized=True,
+            risk=ticket.max_risk,
         )
         return copy.deepcopy(record)
 
@@ -300,6 +360,38 @@ class ExecutionOrchestrator:
             "reason_blocked": reason_blocked,
         }
         with self.trade_policy_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True))
+            handle.write("\n")
+
+    def _log_decision(
+        self,
+        *,
+        candidate: TradeCandidate,
+        market_regime: dict[str, object],
+        policy_decision: str,
+        policy_reason: str,
+        execution_status: str,
+        execution_reason: str,
+        sized: bool,
+        risk: float | None = None,
+    ) -> None:
+        payload: dict[str, object] = {
+            "timestamp": utc_now(),
+            "symbol": candidate.symbol,
+            "regime": str(market_regime.get("regime", "MIXED")),
+            "market_quality": str(market_regime.get("market_quality", "MIXED")),
+            "candidate_score": candidate.score,
+            "policy_decision": policy_decision,
+            "policy_reason": policy_reason,
+            "execution_status": execution_status,
+            "execution_reason": execution_reason,
+            "sized": sized,
+            "side": candidate.direction.value,
+            "stop_reference": candidate.stop_level,
+        }
+        if risk is not None:
+            payload["risk"] = risk
+        with self.decision_log_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, sort_keys=True))
             handle.write("\n")
 

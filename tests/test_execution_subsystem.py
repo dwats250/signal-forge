@@ -68,6 +68,17 @@ class ExecutionSubsystemTests(unittest.TestCase):
             self.assertEqual(len(policy_lines), 1)
             self.assertEqual(json.loads(policy_lines[0])["policy_state"], "AGGRESSIVE")
             self.assertFalse(json.loads(policy_lines[0])["rejected"])
+            decision_lines = (Path(tmpdir) / "decision_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(decision_lines), 1)
+            decision = json.loads(decision_lines[0])
+            self.assertEqual(decision["symbol"], "SPY")
+            self.assertEqual(decision["regime"], "RISK_ON")
+            self.assertEqual(decision["market_quality"], "CLEAN")
+            self.assertEqual(decision["policy_decision"], "pass")
+            self.assertEqual(decision["execution_status"], "ready")
+            self.assertEqual(decision["execution_reason"], "ready")
+            self.assertTrue(decision["sized"])
+            self.assertEqual(decision["risk"], 100.0)
 
     def test_rejected_trade_fails_early(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -123,6 +134,19 @@ class ExecutionSubsystemTests(unittest.TestCase):
             self.assertTrue(payload["rejected"])
             self.assertEqual(payload["rejection_stage"], "trade_policy")
 
+            record_lines = (Path(tmpdir) / "trades.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            record_payload = json.loads(record_lines[-1])
+            self.assertEqual(record_payload["state"], "MARKET_APPROVED")
+            self.assertIn("rejection_reason", record_payload)
+            self.assertNotIn("ticket", record_payload)
+            self.assertNotIn("execution_price", record_payload)
+            decision_lines = (Path(tmpdir) / "decision_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(decision_lines), 1)
+            decision = json.loads(decision_lines[0])
+            self.assertEqual(decision["policy_decision"], "block")
+            self.assertEqual(decision["execution_status"], "blocked")
+            self.assertFalse(decision["sized"])
+
     def test_max_concurrent_trade_policy_blocks_submission(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             orchestrator = ExecutionOrchestrator(Path(tmpdir))
@@ -176,6 +200,19 @@ class ExecutionSubsystemTests(unittest.TestCase):
             payload = json.loads(lines[-1])
             self.assertTrue(payload["rejected"])
             self.assertEqual(payload["rejection_stage"], "trade_policy")
+
+            record_lines = (Path(tmpdir) / "trades.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            record_payload = json.loads(record_lines[-1])
+            self.assertEqual(record_payload["state"], "MARKET_APPROVED")
+            self.assertIn("rejection_reason", record_payload)
+            self.assertNotIn("ticket", record_payload)
+            self.assertNotIn("execution_price", record_payload)
+            decision_lines = (Path(tmpdir) / "decision_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(decision_lines), 5)
+            decision = json.loads(decision_lines[-1])
+            self.assertEqual(decision["policy_decision"], "block")
+            self.assertEqual(decision["execution_status"], "blocked")
+            self.assertFalse(decision["sized"])
 
     def test_closed_and_rejected_trades_do_not_count_toward_concurrency(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -348,6 +385,41 @@ class ExecutionSubsystemTests(unittest.TestCase):
                     )
                     self.assertEqual(payload["rejection_stage"], "candidate_filter")
                     self.assertTrue(payload["rejected"])
+
+    def test_execution_stage_invalid_input_fails_cleanly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidate = TradeCandidate(
+                symbol="IWM",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "risk_percent must be positive"):
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"},
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0,
+                )
+
+            lines = (Path(tmpdir) / "trades.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            payload = json.loads(lines[-1])
+            self.assertEqual(payload["state"], "SETUP_APPROVED")
+            self.assertEqual(payload["rejection_reason"], "risk_percent must be positive")
+            self.assertNotIn("ticket", payload)
+            self.assertNotIn("execution_price", payload)
+            decision_lines = (Path(tmpdir) / "decision_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(decision_lines), 1)
+            decision = json.loads(decision_lines[0])
+            self.assertEqual(decision["policy_decision"], "pass")
+            self.assertEqual(decision["execution_status"], "failed")
+            self.assertEqual(decision["execution_reason"], "risk_percent must be positive")
+            self.assertFalse(decision["sized"])
 
     def test_risk_calculation_correctness_for_equity(self) -> None:
         candidate = TradeCandidate(

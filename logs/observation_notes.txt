@@ -1,0 +1,14 @@
+DATE: YYYY-MM-DD
+TIME: PRE / MID / CLOSE
+REGIME
+- <system output>
+- <your assessment: correct / incorrect>
+MARKET CONTEXT
+- <1-2 lines max: trend / chop / event>
+TRADES
+- READY: <count>
+- BLOCKED: <count>
+QUALITY
+- <good / mixed / poor>
+NOTES
+- <max 2 bullet points>

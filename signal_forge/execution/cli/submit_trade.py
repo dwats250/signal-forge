@@ -36,6 +36,10 @@ def candidate_from_payload(payload: dict[str, Any]) -> TradeCandidate:
         stop_level=payload["stop_level"],
         target_level=payload["target_level"],
         option_structure=option_structure,
+        score=payload.get("score", 1.0),
+        ema_aligned=payload.get("ema_aligned", True),
+        atr=payload.get("atr"),
+        averaging_down=payload.get("averaging_down", False),
         trade_id=payload.get("trade_id") or str(uuid4()),
         created_at=payload.get("created_at") or utc_now(),
     )
