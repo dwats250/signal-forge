@@ -33,7 +33,12 @@ class ExecutionSubsystemTests(unittest.TestCase):
 
             ready = orchestrator.submit_trade(
                 candidate,
-                market_regime={"approved": True, "reason": "trend aligned"},
+                market_regime={
+                    "approved": True,
+                    "reason": "trend aligned",
+                    "regime": "RISK_ON",
+                    "market_quality": "CLEAN",
+                },
                 setup_result={"valid": True, "direction": "bullish"},
                 account_size=10_000,
                 risk_percent=0.01,
@@ -41,6 +46,7 @@ class ExecutionSubsystemTests(unittest.TestCase):
             self.assertEqual(ready.state, TradeState.READY)
             self.assertEqual(ready.ticket.position_size, 50)
             self.assertEqual(ready.ticket.max_risk, 100.0)
+            self.assertEqual(ready.trade_policy["policy_state"], "AGGRESSIVE")
 
             executed = orchestrator.execute_trade(candidate.trade_id, fill_price=100.1)
             self.assertEqual(executed.state, TradeState.EXECUTED)
@@ -58,6 +64,10 @@ class ExecutionSubsystemTests(unittest.TestCase):
             self.assertIsNotNone(reviewed.review_result)
             log_lines = (Path(tmpdir) / "trades.jsonl").read_text(encoding="utf-8").strip().splitlines()
             self.assertGreaterEqual(len(log_lines), 6)
+            policy_lines = (Path(tmpdir) / "trade_policy_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            self.assertEqual(len(policy_lines), 1)
+            self.assertEqual(json.loads(policy_lines[0])["policy_state"], "AGGRESSIVE")
+            self.assertFalse(json.loads(policy_lines[0])["rejected"])
 
     def test_rejected_trade_fails_early(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -79,6 +89,265 @@ class ExecutionSubsystemTests(unittest.TestCase):
                     account_size=10_000,
                     risk_percent=1,
                 )
+
+    def test_no_trade_policy_blocks_submission_before_risk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidate = TradeCandidate(
+                symbol="SPY",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "trade policy NO_TRADE"):
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                        "event_risk": True,
+                        "event_window_minutes": 10,
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            lines = (Path(tmpdir) / "trade_policy_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            payload = json.loads(lines[0])
+            self.assertEqual(payload["policy_state"], "NO_TRADE")
+            self.assertTrue(payload["rejected"])
+            self.assertEqual(payload["rejection_stage"], "trade_policy")
+
+    def test_max_concurrent_trade_policy_blocks_submission(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidates = [
+                TradeCandidate(
+                    symbol=f"SYM{i}",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0 + i),
+                    stop_level=98.0 + i,
+                    target_level=106.0 + i,
+                )
+                for i in range(4)
+            ]
+            blocked = TradeCandidate(
+                symbol="QQQ",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=200.0),
+                stop_level=196.0,
+                target_level=212.0,
+            )
+
+            for candidate in candidates:
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            with self.assertRaisesRegex(ExecutionError, "max concurrent trades reached"):
+                orchestrator.submit_trade(
+                    blocked,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            lines = (Path(tmpdir) / "trade_policy_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            payload = json.loads(lines[-1])
+            self.assertTrue(payload["rejected"])
+            self.assertEqual(payload["rejection_stage"], "trade_policy")
+
+    def test_closed_and_rejected_trades_do_not_count_toward_concurrency(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            closed = TradeCandidate(
+                symbol="SPY",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+            )
+            rejected = TradeCandidate(
+                symbol="BAD",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=104.0,
+                score=0.5,
+            )
+            active_candidates = [
+                TradeCandidate(
+                    symbol=f"ACT{i}",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=110.0 + i),
+                    stop_level=108.0 + i,
+                    target_level=116.0 + i,
+                )
+                for i in range(3)
+            ]
+            allowed = TradeCandidate(
+                symbol="QQQ",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=200.0),
+                stop_level=196.0,
+                target_level=212.0,
+            )
+
+            orchestrator.submit_trade(
+                closed,
+                market_regime={"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"},
+                setup_result={"valid": True, "direction": "bullish"},
+                account_size=10_000,
+                risk_percent=0.01,
+            )
+            orchestrator.execute_trade(closed.trade_id, fill_price=100.0)
+            orchestrator.close_trade(closed.trade_id, exit_price=104.0)
+            orchestrator.review_trade(
+                closed.trade_id,
+                followed_entry=True,
+                followed_stop=True,
+                followed_exit=True,
+                result_R=2.0,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "candidate score below"):
+                orchestrator.submit_trade(
+                    rejected,
+                    market_regime={"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"},
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            for candidate in active_candidates:
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"},
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            ready = orchestrator.submit_trade(
+                allowed,
+                market_regime={"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"},
+                setup_result={"valid": True, "direction": "bullish"},
+                account_size=10_000,
+                risk_percent=0.01,
+            )
+            self.assertEqual(ready.state, TradeState.READY)
+
+    def test_invalid_candidate_is_blocked_at_candidate_stage(self) -> None:
+        base_context = {"approved": True, "regime": "RISK_ON", "market_quality": "CLEAN"}
+        scenarios = [
+            (
+                "score",
+                TradeCandidate(
+                    symbol="SCORE",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                    stop_level=98.0,
+                    target_level=104.0,
+                    score=0.5,
+                ),
+                "candidate score below",
+            ),
+            (
+                "ema",
+                TradeCandidate(
+                    symbol="EMA",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                    stop_level=98.0,
+                    target_level=104.0,
+                    ema_aligned=False,
+                ),
+                "EMA alignment",
+            ),
+            (
+                "rr",
+                TradeCandidate(
+                    symbol="RR",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                    stop_level=98.0,
+                    target_level=103.0,
+                ),
+                "2:1 reward-to-risk",
+            ),
+            (
+                "stop",
+                TradeCandidate(
+                    symbol="STOP",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                    stop_level=99.5,
+                    target_level=102.0,
+                    atr=2.0,
+                ),
+                "minimum stop distance",
+            ),
+            (
+                "averaging_down",
+                TradeCandidate(
+                    symbol="AVG",
+                    strategy_type=StrategyType.EQUITY,
+                    direction=TradeDirection.BULLISH,
+                    entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                    stop_level=98.0,
+                    target_level=104.0,
+                    averaging_down=True,
+                ),
+                "averaging down",
+            ),
+        ]
+
+        for name, candidate, error_pattern in scenarios:
+            with self.subTest(name=name):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    orchestrator = ExecutionOrchestrator(Path(tmpdir))
+                    with self.assertRaisesRegex(ExecutionError, error_pattern):
+                        orchestrator.submit_trade(
+                            candidate,
+                            market_regime=base_context,
+                            setup_result={"valid": True, "direction": "bullish"},
+                            account_size=10_000,
+                            risk_percent=0.01,
+                        )
+
+                    payload = json.loads(
+                        (Path(tmpdir) / "trade_policy_log.jsonl").read_text(encoding="utf-8").strip().splitlines()[-1]
+                    )
+                    self.assertEqual(payload["rejection_stage"], "candidate_filter")
+                    self.assertTrue(payload["rejected"])
 
     def test_risk_calculation_correctness_for_equity(self) -> None:
         candidate = TradeCandidate(
