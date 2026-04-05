@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: signal-forge
+Version: 0.1.0
+Summary: Core v1 spine for Signal Forge
+Requires-Python: >=3.11
+Requires-Dist: anthropic>=0.52.0
+Requires-Dist: Jinja2>=3.1.0
+Requires-Dist: yfinance>=0.2.40
+Provides-Extra: reports
+Requires-Dist: weasyprint>=62.0; extra == "reports"

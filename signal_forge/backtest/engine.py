@@ -1,3 +1,8 @@
+# NOT ACTIVE — reserved for post-v1 validation phase.
+# Do not wire into live execution. Build only after:
+#   - Live signals are stable
+#   - Trade Policy Layer is complete
+#   - Minimum 20–30 real trades logged
 from __future__ import annotations
 
 import json

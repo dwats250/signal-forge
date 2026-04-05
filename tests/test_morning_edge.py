@@ -6,12 +6,43 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import pandas as pd
-
 from reports import morning_edge
+from signal_forge.data.unified_data import FetchOutcome
 
 
 class MorningEdgeMarketDataTests(unittest.TestCase):
+    def test_get_macro_bundle_returns_dashboard_bundle(self) -> None:
+        market_data = {
+            "DXY": {"price": 100.0, "day_chg": 0.5, "week_chg": 1.0, "formatted": "100.00", "is_yield": False},
+            "US10Y": {"price": 4.25, "day_chg": 5.0, "week_chg": 10.0, "formatted": "4.25%", "is_yield": True},
+            "REAL10Y": {"price": 2.05, "day_chg": 5.0, "week_chg": 10.0, "formatted": "2.05%", "is_yield": True, "estimated": True},
+            "WTI": {"price": 80.0, "day_chg": 1.0, "week_chg": 2.0, "formatted": "$80.00", "is_yield": False},
+            "GOLD": {"price": 2400.0, "day_chg": 0.4, "week_chg": 1.2, "formatted": "$2400.00", "is_yield": False},
+            "SILVER": {"price": 30.0, "day_chg": 0.8, "week_chg": 1.6, "formatted": "$30.00", "is_yield": False},
+            "SPY": {"price": 510.0, "day_chg": 0.3, "week_chg": 0.9, "formatted": "$510.00", "is_yield": False},
+            "QQQ": {"price": 430.0, "day_chg": 0.5, "week_chg": 1.1, "formatted": "$430.00", "is_yield": False},
+            "BTC": {"price": 68000.0, "day_chg": 1.0, "week_chg": 4.0, "formatted": "$68,000", "is_yield": False},
+            "VIX": {"price": 15.0, "day_chg": -1.0, "week_chg": -3.0, "formatted": "15.0", "is_yield": False},
+            "XLE": {"price": 95.0, "day_chg": 0.2, "week_chg": 0.7, "formatted": "$95.00", "is_yield": False},
+            "OXY": {"price": 67.0, "day_chg": 0.4, "week_chg": 1.0, "formatted": "$67.00", "is_yield": False},
+            "GDX": {"price": 34.0, "day_chg": 0.6, "week_chg": 1.3, "formatted": "$34.00", "is_yield": False},
+            "NEM": {"price": 36.0, "day_chg": 0.5, "week_chg": 1.0, "formatted": "$36.00", "is_yield": False},
+            "WPM": {"price": 48.0, "day_chg": 0.7, "week_chg": 1.4, "formatted": "$48.00", "is_yield": False},
+            "TSLA": {"price": 170.0, "day_chg": -0.3, "week_chg": -1.0, "formatted": "$170.00", "is_yield": False},
+            "MU": {"price": 124.0, "day_chg": 0.9, "week_chg": 2.5, "formatted": "$124.00", "is_yield": False},
+        }
+        narrative = morning_edge._stub_narrative(market_data)
+
+        with patch("reports.morning_edge.fetch_market_data", return_value=market_data):
+            with patch("reports.morning_edge._stub_narrative", return_value=narrative):
+                bundle = morning_edge.get_macro_bundle(offline=True)
+
+        self.assertEqual(bundle["market_data"], market_data)
+        self.assertIn("macro_bar", bundle)
+        self.assertIn("financial_plumbing", bundle)
+        self.assertIn("metals", bundle)
+        self.assertIn("equities", bundle)
+
     def test_fetch_market_data_uses_cache_after_live_failure(self) -> None:
         cached = {"SPY": {"price": 123.45, "formatted": "$123.45"}}
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -21,7 +52,10 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with patch.object(morning_edge, "MARKET_CACHE_PATH", cache_path):
-                with patch("reports.morning_edge.yf.download", side_effect=RuntimeError("dns failed")):
+                with patch(
+                    "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+                    return_value=FetchOutcome(cached, "cache", True, "DATA_SOURCE_UNAVAILABLE"),
+                ):
                     data = morning_edge.fetch_market_data()
 
         self.assertEqual(data, cached)
@@ -31,7 +65,10 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "missing.json"
             with patch.object(morning_edge, "MARKET_CACHE_PATH", cache_path):
-                with patch("reports.morning_edge.yf.download", side_effect=RuntimeError("dns failed")):
+                with patch(
+                    "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+                    return_value=FetchOutcome(stub, "stub", True, "DATA_SOURCE_UNAVAILABLE"),
+                ):
                     data = morning_edge.fetch_market_data()
 
         self.assertEqual(data, stub)
@@ -50,27 +87,6 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
         self.assertEqual(payload["data"], sample)
         self.assertEqual(payload["source"], "yfinance")
         self.assertIn("cached_at", payload)
-
-    def test_fetch_market_data_recovers_missing_symbol_with_single_symbol_fallback(self) -> None:
-        closes = pd.DataFrame(
-            {
-                "GC=F": [2300.0, 2310.0, 2320.0],
-                "SI=F": [None, None, None],
-            }
-        )
-        fallback = pd.DataFrame({"Close": [28.0, 29.0, 30.0]})
-
-        def fake_download(*args, **kwargs):
-            ticker = kwargs.get("tickers")
-            if ticker == "SI=F":
-                return fallback
-            return {"Close": closes}
-
-        with patch("reports.morning_edge.yf.download", side_effect=fake_download):
-            data = morning_edge.fetch_market_data()
-
-        self.assertEqual(data["SILVER"]["formatted"], "$30.00")
-        self.assertFalse(data["SILVER"].get("source_unavailable", False))
 
     def test_build_metals_context_includes_ratio_and_explicit_inventory_fallbacks(self) -> None:
         md = {

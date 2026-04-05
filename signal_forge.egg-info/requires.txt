@@ -1,0 +1,6 @@
+anthropic>=0.52.0
+Jinja2>=3.1.0
+yfinance>=0.2.40
+
+[reports]
+weasyprint>=62.0

@@ -19,5 +19,6 @@
 - 2026-04-01: standardized dislocation output: schema, formatting, and console template
 - 2026-04-03: added a dedicated safeguards layer with JSONL logging, strict expression/volatility/catalyst rails, validated override codes, and pipeline wiring.
 - 2026-04-03: added a V1 pure-Python backtest engine that simulates credit/debit proxy trades on the underlying and reports win rate, expectancy, drawdown, profit factor, and no-trade frequency.
+- 2026-04-04: backtest engine annotated as NOT ACTIVE. Reserved for post-v1 validation. Will integrate only after live signals are stable, Trade Policy Layer is complete, and 20–30 real trades are logged.
 - 2026-04-03: scaled up the Morning Macro Edge dashboard for better desktop readability, added a `_site/` static-site builder with a lightweight landing page, and added a GitHub Pages Actions workflow plus local preview notes.
 - 2026-04-03: added the Morning Macro Edge architecture and UX reference PRD at `docs/PRDs/macro_morning_edge_architecture_ux_v1.md` to lock page flow, hierarchy, deferred-data placeholders, and implementation constraints for future UI passes.

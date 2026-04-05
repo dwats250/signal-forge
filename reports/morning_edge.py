@@ -11,9 +11,9 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import anthropic
-import yfinance as yf
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarketDataClient
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,6 @@ TICKERS: dict[str, str] = {
 YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
 METALS_FALLBACK_TEXT = "Source unavailable"
 INVENTORY_FALLBACK_TEXT = "Inventory data unavailable"
-
 # ── Ticker highlight filter ────────────────────────────────────────────────
 
 _TICKER_NAMES: frozenset[str] = frozenset(TICKERS) | {"REAL10Y"}
@@ -104,19 +103,19 @@ def build_stub_market_data() -> dict:
     return stub
 
 
-def _cache_payload(data: dict) -> dict:
+def _cache_payload(data: dict, source: str = "yfinance") -> dict:
     now_vancouver = datetime.now(ZoneInfo("America/Vancouver"))
     return {
         "cached_at": now_vancouver.isoformat(),
-        "source": "yfinance",
+        "source": source,
         "data": data,
     }
 
 
-def save_market_data_cache(data: dict) -> None:
+def save_market_data_cache(data: dict, source: str = "yfinance") -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     MARKET_CACHE_PATH.write_text(
-        json.dumps(_cache_payload(data), indent=2, sort_keys=True),
+        json.dumps(_cache_payload(data, source=source), indent=2, sort_keys=True),
         encoding="utf-8",
     )
 
@@ -148,63 +147,6 @@ def _missing_market_entry(*, is_yield: bool = False, estimated: bool = False, re
     if estimated:
         entry["estimated"] = True
     return entry
-
-
-def _extract_close_series(raw: object, symbol: str):
-    try:
-        close_frame = raw["Close"]
-    except Exception as exc:
-        raise KeyError(f"missing Close data: {exc}") from exc
-
-    try:
-        if hasattr(close_frame, "columns"):
-            if len(getattr(close_frame, "columns", [])) == 1:
-                return close_frame.iloc[:, 0].dropna()
-            if symbol in close_frame.columns:
-                return close_frame[symbol].dropna()
-        return close_frame.dropna()
-    except Exception as exc:
-        raise KeyError(f"unable to extract close series for {symbol}: {exc}") from exc
-
-
-def _build_market_entry(name: str, closes) -> dict:
-    if len(closes) < 2:
-        return _missing_market_entry(is_yield=name in YIELD_TICKERS)
-
-    current = float(closes.iloc[-1])
-    prev = float(closes.iloc[-2])
-    week_ago = float(closes.iloc[-6]) if len(closes) >= 6 else float(closes.iloc[0])
-
-    if name in YIELD_TICKERS:
-        day_chg = (current - prev) * 100
-        week_chg = (current - week_ago) * 100
-    else:
-        day_chg = (current - prev) / prev * 100
-        week_chg = (current - week_ago) / week_ago * 100
-
-    return {
-        "price": current,
-        "day_chg": round(day_chg, 2),
-        "week_chg": round(week_chg, 2),
-        "formatted": _format_price(current, name),
-        "is_yield": name in YIELD_TICKERS,
-    }
-
-
-def _fetch_symbol_fallback(name: str, symbol: str) -> dict:
-    try:
-        raw = yf.download(
-            tickers=symbol,
-            period="10d",
-            interval="1d",
-            auto_adjust=True,
-            progress=False,
-        )
-        closes = _extract_close_series(raw, symbol)
-        return _build_market_entry(name, closes)
-    except Exception as exc:
-        print(f"  Warning: single-symbol fallback failed for {name} ({symbol}): {exc}")
-        return _missing_market_entry(is_yield=name in YIELD_TICKERS)
 
 
 def _build_metals_context(md: dict) -> dict:
@@ -350,47 +292,24 @@ def _format_price(value: float, ticker: str) -> str:
 def fetch_market_data() -> dict:
     """Fetch live market data for all tracked tickers."""
     print("Fetching market data...")
+    client = UnifiedMarketDataClient()
+    outcome = client.fetch_entries(
+        list(TICKERS),
+        cache_path=MARKET_CACHE_PATH,
+        fallback_builder=build_stub_market_data,
+        formatter=_format_price,
+        yield_tickers=YIELD_TICKERS,
+    )
 
-    def fallback(reason: str) -> dict:
-        print(f"  Warning: {reason}")
-        cached = load_market_data_cache()
-        if cached is not None:
+    if outcome.fallback_used:
+        if outcome.source == "cache":
+            print(f"  Warning: {DATA_SOURCE_UNAVAILABLE}: provider data unavailable.")
             print(f"  Using cached market data from {MARKET_CACHE_PATH}.")
-            return cached
-        print("  Falling back to deterministic stub market data for this build.")
-        return build_stub_market_data()
+        else:
+            print(f"  Warning: {DATA_SOURCE_UNAVAILABLE}: provider data unavailable.")
+            print("  Falling back to deterministic stub market data for this build.")
 
-    all_symbols = list(TICKERS.values())
-    try:
-        raw = yf.download(
-            tickers=all_symbols,
-            period="10d",
-            interval="1d",
-            auto_adjust=True,
-            progress=False,
-        )
-    except Exception as exc:
-        return fallback(f"live market data fetch failed: {exc}")
-
-    try:
-        closes = raw["Close"]
-        if closes.dropna(how="all").empty:
-            return fallback("live market data returned no usable close data.")
-    except Exception as exc:
-        return fallback(f"malformed market data response: {exc}")
-
-    result: dict = {}
-
-    for name, symbol in TICKERS.items():
-        try:
-            closes = _extract_close_series(raw, symbol)
-            if len(closes) < 2:
-                result[name] = _fetch_symbol_fallback(name, symbol)
-            else:
-                result[name] = _build_market_entry(name, closes)
-        except Exception as e:
-            print(f"  Warning: failed to fetch {name} ({symbol}): {e}")
-            result[name] = _fetch_symbol_fallback(name, symbol)
+    result = outcome.data
 
     # Estimate REAL10Y: US10Y minus approximate 10Y breakeven inflation (~2.2%)
     us10y = result.get("US10Y", {}).get("price")
@@ -426,7 +345,8 @@ def fetch_market_data() -> dict:
     else:
         print("  Warning: GOLD price is unavailable after fetch. GC=F may have returned no data.")
 
-    save_market_data_cache(result)
+    if not outcome.fallback_used:
+        save_market_data_cache(result, source=outcome.source)
     return result
 
 
@@ -726,6 +646,15 @@ def build_report_data(md: dict, narrative: dict) -> dict:
     }
 
 
+def get_macro_bundle(*, offline: bool = False) -> dict:
+    """Fetch, normalize, and assemble the dashboard-ready macro bundle."""
+    market_data = fetch_market_data()
+    narrative = _stub_narrative(market_data) if offline else generate_narrative(market_data)
+    bundle = build_report_data(market_data, narrative)
+    bundle["market_data"] = market_data
+    return bundle
+
+
 # ── Rendering ───────────────────────────────────────────────────────────────
 
 def render_html(report_data: dict) -> Path:
@@ -775,14 +704,7 @@ def main(argv: list[str] | None = None) -> None:
     print("Morning Macro Edge — Report Generator")
     print("=" * 60)
 
-    market_data = fetch_market_data()
-
-    if args.offline:
-        narrative = _stub_narrative(market_data)
-    else:
-        narrative = generate_narrative(market_data)
-
-    report_data = build_report_data(market_data, narrative)
+    report_data = get_macro_bundle(offline=args.offline)
 
     html_path = render_html(report_data)
     print(f"HTML: {html_path}")

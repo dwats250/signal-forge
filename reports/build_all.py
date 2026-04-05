@@ -140,14 +140,10 @@ def build_site() -> Path:
     print("Signal Forge — Static Site Build")
     print("=" * 60)
 
-    market_data = morning_edge.fetch_market_data()
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        narrative = morning_edge.generate_narrative(market_data)
-    else:
+    offline = not bool(os.environ.get("ANTHROPIC_API_KEY"))
+    if offline:
         print("ANTHROPIC_API_KEY not set — using stub narrative.")
-        narrative = morning_edge._stub_narrative(market_data)
-
-    report_data = morning_edge.build_report_data(market_data, narrative)
+    report_data = morning_edge.get_macro_bundle(offline=offline)
     html_path = morning_edge.render_html(report_data)
 
     archive_src = morning_edge.ARCHIVE_DIR / f"{report_data['date']}.html"

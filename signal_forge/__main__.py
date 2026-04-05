@@ -7,6 +7,8 @@ from pathlib import Path
 
 from signal_forge.backtest import Trade, run_backtest
 from signal_forge.data import load_price_series
+from signal_forge.execution.cli import load_json_payload, submit_trade_from_payload
+from signal_forge.execution.orchestrator import ExecutionOrchestrator
 from signal_forge.gate import gate_trade
 from signal_forge.pipeline import SignalForgePipeline
 
@@ -69,6 +71,29 @@ def _run_backtest_demo() -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def _default_execution_log_dir() -> Path:
+    return Path(__file__).resolve().parent / "execution" / "logs"
+
+
+def _run_submit_trade(args: argparse.Namespace) -> None:
+    payload = load_json_payload(args.file)
+    result = submit_trade_from_payload(payload, log_dir=Path(args.log_dir))
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+def _run_review_trade(args: argparse.Namespace) -> None:
+    payload = load_json_payload(args.file)
+    orchestrator = ExecutionOrchestrator(Path(args.log_dir))
+    record = orchestrator.review_trade(
+        payload["trade_id"],
+        followed_entry=payload["followed_entry"],
+        followed_stop=payload["followed_stop"],
+        followed_exit=payload["followed_exit"],
+        result_R=payload["result_R"],
+    )
+    print(json.dumps(record.to_dict(), indent=2, sort_keys=True))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="signal_forge")
     subparsers = parser.add_subparsers(dest="command")
@@ -83,6 +108,26 @@ def main() -> None:
         help="Trade tag. Repeat for multiple tags.",
     )
     subparsers.add_parser("backtest-demo", help="Run the Phase 1 backtest example")
+    submit_trade_parser = subparsers.add_parser(
+        "submit-trade",
+        help="Submit a structured execution trade candidate",
+    )
+    submit_trade_parser.add_argument("--file", help="Path to JSON payload")
+    submit_trade_parser.add_argument(
+        "--log-dir",
+        default=str(_default_execution_log_dir()),
+        help="Directory for execution JSONL logs",
+    )
+    review_trade_parser = subparsers.add_parser(
+        "review-trade",
+        help="Record a review result for a closed trade",
+    )
+    review_trade_parser.add_argument("--file", help="Path to JSON payload")
+    review_trade_parser.add_argument(
+        "--log-dir",
+        default=str(_default_execution_log_dir()),
+        help="Directory for execution JSONL logs",
+    )
 
     args = parser.parse_args()
     if args.command == "gate":
@@ -91,6 +136,12 @@ def main() -> None:
         return
     if args.command == "backtest-demo":
         _run_backtest_demo()
+        return
+    if args.command == "submit-trade":
+        _run_submit_trade(args)
+        return
+    if args.command == "review-trade":
+        _run_review_trade(args)
         return
 
     _run_demo()

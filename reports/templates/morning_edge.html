@@ -240,16 +240,17 @@
     gap: 5px;
   }
   .plumbing-label {
-    font-size: 0.7rem;
+    font-size: 0.76rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
   .plumbing-value {
-    font-size: 0.94rem;
+    font-size: 1.02rem;
     font-weight: 600;
     color: var(--text);
+    line-height: 1.12;
     font-variant-numeric: tabular-nums;
   }
   .plumbing-moves {
@@ -263,7 +264,9 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    font-size: 0.74rem;
+    font-size: 1.16rem;
+    font-weight: 800;
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
   }
   .plumbing-abs::before,
@@ -556,10 +559,10 @@
     .system-state p { font-size: 0.96rem; line-height: 1.66; }
     .plumbing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .plumbing-card { min-height: 0; padding: 9px 10px; }
-    .plumbing-label { font-size: 0.68rem; }
-    .plumbing-value { font-size: 0.92rem; }
+    .plumbing-label { font-size: 0.76rem; }
+    .plumbing-value { font-size: 1rem; }
     .plumbing-abs,
-    .plumbing-pct { font-size: 0.7rem; }
+    .plumbing-pct { font-size: 1.18rem; }
     .plumbing-abs::before,
     .plumbing-pct::before { font-size: 0.58rem; }
     .plumbing-note,
@@ -616,7 +619,10 @@
     .macro-item .value { font-size: 1rem; }
     .macro-item .change { font-size: 1.18rem; }
     .state-value { font-size: 1.04rem; }
-    .plumbing-value { font-size: 0.98rem; }
+    .plumbing-label { font-size: 0.76rem; }
+    .plumbing-value { font-size: 1rem; }
+    .plumbing-abs,
+    .plumbing-pct { font-size: 1.14rem; }
     .system-state p,
     .context-copy,
     .sector-interp,
