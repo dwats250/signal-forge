@@ -5,31 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sunday Report — Week of April 6, 2026</title>
 <style>
+  
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
   :root {
-    --bg:           #0F1218;
-    --bg-card:      #171B23;
-    --bg-card2:     #1D2330;
-    --border:       #2A3140;
-    --accent:       #5B97E5;
-    --accent-gold:  #E6B44A;
+    --bg: #0F1218;
+    --bg-card: #171B23;
+    --bg-card2: #1D2330;
+    --border: #2A3140;
+    --accent: #5B97E5;
+    --accent-gold: #E6B44A;
     --accent-green: #3FD37A;
-    --accent-red:   #F06B6B;
-    --text:         #EDF1F7;
-    --text-muted:   #A8B2C3;
-    --text-dim:     #7C879A;
-    --tag-high:      #7F1D1D;
-    --tag-high-text: #FCA5A5;
-    --tag-med:       #78350F;
-    --tag-med-text:  #FCD34D;
-    --page-max:     1200px;
-    --page-pad-x:   24px;
-    --page-pad-y:   22px;
-    --card-radius:  12px;
-    --card-pad:     20px;
-    --gap:          18px;
+    --accent-red: #F06B6B;
+    --text: #EDF1F7;
+    --text-muted: #A8B2C3;
+    --text-dim: #7C879A;
+    --risk-on: var(--accent-green);
+    --risk-neutral: var(--accent-gold);
+    --risk-off: var(--accent-red);
+    --stable: #A8B2C3;
+    --emerging: var(--accent-gold);
+    --building: var(--accent-red);
+    --dir-up: var(--accent-green);
+    --dir-down: var(--accent-red);
+    --dir-flat: var(--text-muted);
+    --impact-high-bg: #7F1D1D;
+    --impact-high-fg: #FCA5A5;
+    --impact-medium-bg: #78350F;
+    --impact-medium-fg: #FCD34D;
+    --impact-low-bg: #14532D;
+    --impact-low-fg: #86EFAC;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 20px;
+    --space-xl: 24px;
+    --page-max: 1200px;
+    --page-pad-x: 24px;
+    --page-pad-y: 22px;
+    --page-pad-bottom: 48px;
+    --page-gap: 18px;
+    --card-radius: 12px;
+    --pill-radius: 999px;
+    --button-radius: 8px;
+    --shadow-card:
+      0 14px 34px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-positive:
+      var(--shadow-card),
+      0 0 0 1px rgba(63, 211, 122, 0.08),
+      0 0 22px rgba(63, 211, 122, 0.08);
+    --shadow-warning:
+      var(--shadow-card),
+      0 0 0 1px rgba(230, 180, 74, 0.08),
+      0 0 22px rgba(230, 180, 74, 0.08);
+    --shadow-negative:
+      var(--shadow-card),
+      0 0 0 1px rgba(240, 107, 107, 0.08),
+      0 0 22px rgba(240, 107, 107, 0.08);
   }
 
   html, body {
@@ -44,27 +78,76 @@
   .page {
     width: min(100%, var(--page-max));
     margin: 0 auto;
-    padding: var(--page-pad-y) var(--page-pad-x) 48px;
+    padding: var(--page-pad-y) var(--page-pad-x) var(--page-pad-bottom);
     display: flex;
     flex-direction: column;
-    gap: var(--gap);
+    gap: var(--page-gap);
   }
 
-  /* ── Card base ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+  }
+  .header h1 {
+    font-size: clamp(1.6rem, 1.28rem + 1vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    color: var(--text);
+    line-height: 1.12;
+  }
+  .header h1 span { color: var(--accent); }
+  .header .ts,
+  .header-ts {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    line-height: 1.65;
+  }
+  .header-week {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+
   .card {
-    background: var(--bg-card);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+      var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--card-radius);
-    padding: var(--card-pad);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow-card);
   }
+  .card-emphasis {
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.12), rgba(29, 35, 48, 0.96));
+  }
+  .card-alert {
+    border-color: rgba(240, 107, 107, 0.28);
+    background: linear-gradient(180deg, rgba(240, 107, 107, 0.08), rgba(29, 35, 48, 0.94));
+  }
+  .card-bias {
+    border-color: rgba(230, 180, 74, 0.24);
+    background: linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92));
+  }
+  .card-info {
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(29, 35, 48, 0.96));
+  }
+  .tone-positive { border-color: rgba(63, 211, 122, 0.42); box-shadow: var(--shadow-positive); }
+  .tone-warning { border-color: rgba(230, 180, 74, 0.42); box-shadow: var(--shadow-warning); }
+  .tone-negative { border-color: rgba(240, 107, 107, 0.42); box-shadow: var(--shadow-negative); }
+  .tone-neutral { border-color: var(--border); }
+
   .card-title {
     font-size: 0.74rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 16px;
+    margin-bottom: var(--space-md);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -76,37 +159,168 @@
     background: var(--border);
   }
 
-  /* ── Header ── */
-  .header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-    padding-bottom: 4px;
-    flex-wrap: wrap;
+  .label-caps {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
-  .header h1 {
-    font-size: clamp(1.6rem, 1.3rem + 1vw, 2.3rem);
+  .value-primary {
+    font-size: clamp(1rem, 0.94rem + 0.42vw, 1.18rem);
+    font-weight: 750;
+    letter-spacing: 0.01em;
+    line-height: 1.35;
+    color: var(--text);
+  }
+  .text-support {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .text-caution {
+    color: var(--accent-gold);
+    font-weight: 600;
+  }
+  .asset-strong,
+  .threshold {
+    font-weight: 800;
+    color: #F7FAFF;
+  }
+  .ticker-inline {
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 9px;
+    border-radius: var(--pill-radius);
+    border: 1px solid transparent;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .pill-positive { background: rgba(63, 211, 122, 0.12); border-color: rgba(63, 211, 122, 0.26); color: var(--risk-on); }
+  .pill-warning { background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--risk-neutral); }
+  .pill-negative { background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--risk-off); }
+  .pill-neutral { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--text-muted); }
+  .pill-stable { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--stable); }
+  .pill-emerging { background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--emerging); }
+  .pill-building { background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--building); }
+  .impact-HIGH { background: var(--impact-high-bg); color: var(--impact-high-fg); }
+  .impact-MEDIUM { background: var(--impact-medium-bg); color: var(--impact-medium-fg); }
+  .impact-LOW { background: var(--impact-low-bg); color: var(--impact-low-fg); }
+  .conf-HIGH { background: rgba(63, 211, 122, 0.12); border-color: rgba(63, 211, 122, 0.26); color: var(--risk-on); }
+  .conf-MEDIUM { background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--risk-neutral); }
+  .conf-LOW { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--stable); }
+  .bias-Bullish { background: rgba(63, 211, 122, 0.12); border-color: rgba(63, 211, 122, 0.26); color: var(--risk-on); }
+  .bias-Bearish { background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--risk-off); }
+  .bias-Neutral { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--stable); }
+
+  .dir-up,
+  .delta-up { color: var(--dir-up); }
+  .dir-down,
+  .delta-down { color: var(--dir-down); }
+  .dir-flat,
+  .delta-flat { color: var(--dir-flat); }
+
+  .report-card {
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(29, 35, 48, 0.96));
+    border: 1px solid rgba(91, 151, 229, 0.2);
+  }
+  .report-label {
+    font-size: 1.14rem;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: 0.01em;
-    line-height: 1.15;
+    margin-bottom: var(--space-xs);
   }
-  .header h1 span { color: var(--accent); }
-  .header-week {
-    font-size: 1.0rem;
-    font-weight: 600;
+  .report-copy {
+    color: var(--text-muted);
+    font-size: 0.96rem;
+    line-height: 1.62;
+    margin-bottom: 14px;
+  }
+  .report-meta {
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--accent-gold);
-    margin-top: 4px;
-    letter-spacing: 0.02em;
+    margin-bottom: 14px;
+  }
+  .report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .report-link,
+  .action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 112px;
+    padding: 10px 14px;
+    border-radius: var(--button-radius);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+  }
+  .report-link.primary,
+  .action-link.primary {
+    color: #08101C;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .report-link.secondary,
+  .action-link.secondary {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+  }
+  .report-link.ghost,
+  .action-link.ghost {
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px dashed rgba(168, 178, 195, 0.24);
+  }
+  .report-link:hover,
+  .action-link:hover { transform: translateY(-1px); }
+  .report-link.secondary:hover,
+  .action-link.secondary:hover {
+    border-color: rgba(91, 151, 229, 0.45);
+    color: var(--accent);
+  }
+
+  @media (max-width: 760px) {
+    :root {
+      --page-pad-x: 16px;
+      --page-pad-y: 16px;
+      --page-pad-bottom: 24px;
+      --page-gap: 14px;
+    }
+    .card { padding: var(--space-md); }
+    .report-link,
+    .action-link { min-width: 0; }
+  }
+
+
+  :root { --gap: 18px; }
+  .page { gap: var(--gap); }
+  .header {
+    align-items: flex-start;
+    padding-bottom: 4px;
   }
   .header-ts {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    letter-spacing: 0.04em;
     text-align: right;
     padding-top: 4px;
-    line-height: 1.7;
   }
 
   /* ── Regime + Quality grid ── */
@@ -134,16 +348,8 @@
   .regime-badge.risk-off { color: var(--accent-red); }
 
   .conf-badge {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     padding: 2px 8px;
-    border-radius: 4px;
   }
-  .conf-HIGH   { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
-  .conf-MEDIUM { background: rgba(230,180,74,0.15);  color: var(--accent-gold);  border: 1px solid rgba(230,180,74,0.3); }
-  .conf-LOW    { background: rgba(168,178,195,0.1);  color: var(--text-muted);   border: 1px solid rgba(168,178,195,0.2); }
 
   .driver-row {
     font-size: 0.75rem;
@@ -402,18 +608,11 @@
     grid-column: 2;
   }
   .impact-badge {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     padding: 2px 7px;
-    border-radius: 4px;
     grid-row: 1;
     grid-column: 3;
     align-self: center;
   }
-  .impact-HIGH   { background: var(--tag-high); color: var(--tag-high-text); }
-  .impact-MEDIUM { background: var(--tag-med);  color: var(--tag-med-text); }
   .ev-note {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -454,16 +653,8 @@
     flex: 1;
   }
   .bias-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     padding: 2px 9px;
-    border-radius: 4px;
   }
-  .bias-Bullish { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
-  .bias-Bearish { background: rgba(240,107,107,0.15); color: var(--accent-red);  border: 1px solid rgba(240,107,107,0.3); }
-  .bias-Neutral { background: rgba(168,178,195,0.08); color: var(--text-muted);  border: 1px solid var(--border); }
 
   .theme-logic {
     font-size: 0.86rem;
@@ -575,6 +766,7 @@
     color: var(--text-dim);
     min-width: 56px;
   }
+  .sum-k-offset { margin-left: var(--space-md); }
   .sum-v {
     font-size: 0.9rem;
     font-weight: 700;
@@ -639,12 +831,6 @@
     flex: 1;
   }
 
-  /* ── Ticker inline ── */
-  .ticker-inline {
-    color: var(--accent);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
 </style>
 </head>
 <body>
@@ -656,7 +842,7 @@
       <h1>Sunday <span>Report</span></h1>
       <div class="header-week">Week of Apr 6 – Apr 10, 2026</div>
     </div>
-    <div class="header-ts">Generated Sun Apr 5, 2026 at 8:10 PM PDT</div>
+    <div class="header-ts">Generated Sun Apr 5, 2026 at 8:32 PM PDT</div>
   </header>
 
   
@@ -668,7 +854,7 @@
       
       <div class="regime-badge mixed">
         MIXED
-        <span class="conf-badge conf-MEDIUM">MEDIUM</span>
+        <span class="conf-badge pill conf-MEDIUM">MEDIUM</span>
       </div>
       <div class="driver-row">Driver: <span>RATES-DRIVEN</span></div>
       <ul class="regime-bullets">
@@ -844,14 +1030,14 @@
       <div class="event-row">
         <span class="ev-date">TBD</span>
         <span class="ev-name">Fed Speakers</span>
-        <span class="impact-badge impact-HIGH">HIGH</span>
+        <span class="impact-badge pill impact-HIGH">HIGH</span>
         <span class="ev-note">Tone on rate path — significant DXY and yield mover.</span>
       </div>
       
       <div class="event-row">
         <span class="ev-date">TBD</span>
         <span class="ev-name">Oil Inventories (EIA)</span>
-        <span class="impact-badge impact-MEDIUM">MEDIUM</span>
+        <span class="impact-badge pill impact-MEDIUM">MEDIUM</span>
         <span class="ev-note">Surprise vs consensus drives WTI and XLE direction.</span>
       </div>
       
@@ -868,7 +1054,7 @@
         <div class="theme-head">
           <span class="theme-num">1</span>
           <span class="theme-title">Energy continuation on supply tightness</span>
-          <span class="bias-badge bias-Bullish">Bullish</span>
+          <span class="bias-badge pill bias-Bullish">Bullish</span>
         </div>
         <div class="theme-logic"><span class="ticker-inline">WTI</span> at $112.46 remains supported by OPEC discipline. <span class="ticker-inline">XLE</span> and <span class="ticker-inline">OXY</span> showing relative strength vs broader tape.</div>
         <div class="theme-invalid">WTI loses prior support level or DXY accelerates above 106.</div>
@@ -878,7 +1064,7 @@
         <div class="theme-head">
           <span class="theme-num">2</span>
           <span class="theme-title">Rates-driven equity multiple compression</span>
-          <span class="bias-badge bias-Bearish">Bearish</span>
+          <span class="bias-badge pill bias-Bearish">Bearish</span>
         </div>
         <div class="theme-logic"><span class="ticker-inline">US10Y</span> at 4.31% continues to cap growth multiples. <span class="ticker-inline">QQQ</span> underperforming on duration sensitivity.</div>
         <div class="theme-invalid">US10Y breaks below 4.0% on a macro catalyst or Fed pivot signal.</div>
@@ -888,7 +1074,7 @@
         <div class="theme-head">
           <span class="theme-num">3</span>
           <span class="theme-title">Metals consolidation under strong dollar</span>
-          <span class="bias-badge bias-Neutral">Neutral</span>
+          <span class="bias-badge pill bias-Neutral">Neutral</span>
         </div>
         <div class="theme-logic">Gold at $4642.10 and silver at $72.15 are range-bound. Dollar strength is suppressing the upside.</div>
         <div class="theme-invalid">DXY breaks below 103 or Fed signals a dovish shift.</div>
@@ -1017,9 +1203,9 @@
       <div class="sum-kv-row">
         <span class="sum-k">Regime</span>
         <span class="sum-v mixed">MIXED</span>
-        <span class="sum-k" style="margin-left:16px">Quality</span>
+        <span class="sum-k sum-k-offset">Quality</span>
         <span class="sum-v">MIXED</span>
-        <span class="sum-k" style="margin-left:16px">Posture</span>
+        <span class="sum-k sum-k-offset">Posture</span>
         <span class="sum-v posture-selective">TRADE SELECTIVELY</span>
       </div>
 

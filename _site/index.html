@@ -358,36 +358,6 @@
     background: linear-gradient(180deg, rgba(91, 151, 229, 0.045), rgba(23, 27, 35, 1));
     border-color: rgba(91, 151, 229, 0.14);
   }
-  .drift-block {
-    display: grid;
-    gap: 3px;
-  }
-  .drift-state {
-    font-size: clamp(1.12rem, 1rem + 0.36vw, 1.34rem);
-    line-height: 1.12;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .drift-state.stable {
-    color: #D8E1EC;
-  }
-  .drift-state.emerging {
-    color: #F59E0B;
-  }
-  .drift-state.building {
-    color: #EF4444;
-  }
-  .drift-copy {
-    font-size: 0.98rem;
-    color: rgba(237, 241, 247, 0.88);
-    line-height: 1.45;
-    font-weight: 540;
-  }
-  .drift-copy strong {
-    color: #F7FAFF;
-    font-weight: 800;
-  }
   .asset-strong {
     font-weight: 800;
     color: #F7FAFF;
@@ -467,7 +437,7 @@
   <main class="page">
     <header class="header">
       <h1>Signal <span>Forge</span></h1>
-      <span class="ts">Report Generated at 8:44 PM PDT — 2026-04-05</span>
+      <span class="ts">Report Generated at 8:53 PM PDT — 2026-04-05</span>
     </header>
 
     <section class="card card-emphasis prominent tone-warning">
@@ -509,10 +479,10 @@
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="drift-block">
-            <div class="drift-state stable">Stable</div>
-            <div class="drift-copy">regime <strong>drivers intact</strong>, but <strong>tape quality</strong> still needs respect</div>
-          </div>
+          <div class="command-value">Stable</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-value">regime drivers intact, but tape quality still needs respect</div>
         </div>
       </div>
     </section>
@@ -558,7 +528,7 @@
 
     <section class="card">
       <div class="card-title">Key Signals Strip</div>
-      <div class="signals-strip"><span class="signal-pill"><span class="signal-label">DXY</span> <span class="signal-arrow flat">→</span></span> <span class="signal-pill"><span class="signal-label">US10Y</span> <span class="signal-arrow down">↓</span></span> <span class="signal-pill"><span class="signal-label">VIX</span> <span class="signal-arrow down">↓</span></span> <span class="signal-pill"><span class="signal-label">Oil</span> <span class="signal-arrow down">↓</span></span> <span class="signal-pill"><span class="signal-label">Gold</span> <span class="signal-arrow up">↑</span></span> <span class="signal-pill"><span class="signal-label">BTC</span> <span class="signal-arrow up">↑</span></span></div>
+      <div class="signals-strip"><span class="signal-pill"><span class="signal-label">DXY</span> <span class="signal-arrow flat">→</span></span> <span class="signal-pill"><span class="signal-label">US10Y</span> <span class="signal-arrow down">↓</span></span> <span class="signal-pill"><span class="signal-label">VIX</span> <span class="signal-arrow down">↓</span></span> <span class="signal-pill"><span class="signal-label">Oil</span> <span class="signal-arrow up">↑</span></span> <span class="signal-pill"><span class="signal-label">Gold</span> <span class="signal-arrow up">↑</span></span> <span class="signal-pill"><span class="signal-label">BTC</span> <span class="signal-arrow up">↑</span></span></div>
     </section>
 
     <section class="card">

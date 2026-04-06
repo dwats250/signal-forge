@@ -529,36 +529,6 @@ def _render_dashboard_html(dashboard: dict) -> str:
     background: linear-gradient(180deg, rgba(91, 151, 229, 0.045), rgba(23, 27, 35, 1));
     border-color: rgba(91, 151, 229, 0.14);
   }}
-  .drift-block {{
-    display: grid;
-    gap: 3px;
-  }}
-  .drift-state {{
-    font-size: clamp(1.12rem, 1rem + 0.36vw, 1.34rem);
-    line-height: 1.12;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }}
-  .drift-state.stable {{
-    color: #D8E1EC;
-  }}
-  .drift-state.emerging {{
-    color: #F59E0B;
-  }}
-  .drift-state.building {{
-    color: #EF4444;
-  }}
-  .drift-copy {{
-    font-size: 0.98rem;
-    color: rgba(237, 241, 247, 0.88);
-    line-height: 1.45;
-    font-weight: 540;
-  }}
-  .drift-copy strong {{
-    color: #F7FAFF;
-    font-weight: 800;
-  }}
   .asset-strong {{
     font-weight: 800;
     color: #F7FAFF;
@@ -680,10 +650,10 @@ def _render_dashboard_html(dashboard: dict) -> str:
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="drift-block">
-            <div class="drift-state {escape(dashboard["drift_state"].lower())}">{escape(dashboard["drift_state"])}</div>
-            <div class="drift-copy">{_highlight_drift_reason(dashboard["drift_reason"])}</div>
-          </div>
+          <div class="command-value">{escape(dashboard["drift_state"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-value">{escape(dashboard["drift_reason"])}</div>
         </div>
       </div>
     </section>
