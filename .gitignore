@@ -6,7 +6,6 @@ outputs/*.jsonl
 .wolf/
 
 # Generated report artifacts
-reports/output/*.html
-reports/output/*.pdf
-_site/*.html
-_site/*.pdf
+reports/output/
+reports/archive/
+_site/
