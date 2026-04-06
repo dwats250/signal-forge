@@ -89,6 +89,9 @@ class BuildSiteTests(unittest.TestCase):
             self.assertIn("Invalidation</div>", index_html)
             self.assertIn("Posture</div>", index_html)
             self.assertIn("Focus</div>", index_html)
+            self.assertIn("Bias</div>", index_html)
+            self.assertIn("Expression</div>", index_html)
+            self.assertIn("Avoid</div>", index_html)
             self.assertIn("What Matters Now", index_html)
             self.assertIn("Key Signals Strip", index_html)
             self.assertIn('href="latest_sunday.html"', index_html)
@@ -97,6 +100,8 @@ class BuildSiteTests(unittest.TestCase):
             self.assertLess(index_html.index("Trigger</div>"), index_html.index("Posture</div>"))
             self.assertLess(index_html.index("Trigger</div>"), index_html.index("Invalidation</div>"))
             self.assertLess(index_html.index("Invalidation</div>"), index_html.index("Posture</div>"))
+            self.assertLess(index_html.index("Posture</div>"), index_html.index("Bias</div>"))
+            self.assertLess(index_html.index("Bias</div>"), index_html.index("What Matters Now"))
 
 
 if __name__ == "__main__":

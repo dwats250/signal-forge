@@ -213,6 +213,60 @@ def _invalidation_text(market_data: dict) -> str:
     return "Cross-asset strength without yield relief would mean the current regime read is wrong"
 
 
+def _position_bias(report_data: dict, market_data: dict) -> dict:
+    quality = report_data.get("state_summary", {}).get("market_quality", "Mixed")
+    no_setups = report_data.get("no_setups", True)
+    us10y = _price(market_data.get("US10Y"))
+    us10y_chg = _change(market_data.get("US10Y"))
+    dxy_chg = _change(market_data.get("DXY"))
+    wti_chg = _change(market_data.get("WTI"))
+    vix = _price(market_data.get("VIX"))
+    spy_chg = _change(market_data.get("SPY"))
+    qqq_chg = _change(market_data.get("QQQ"))
+
+    equity_strength = (
+        isinstance(spy_chg, (int, float)) and spy_chg > 0.4
+    ) or (
+        isinstance(qqq_chg, (int, float)) and qqq_chg > 0.5
+    )
+    yields_heavy = (
+        (isinstance(us10y, (int, float)) and us10y >= 4.3)
+        or (isinstance(us10y_chg, (int, float)) and us10y_chg > 0.4)
+    )
+    dollar_heavy = isinstance(dxy_chg, (int, float)) and dxy_chg > 0.2
+    vol_heavy = isinstance(vix, (int, float)) and vix >= 24
+
+    if equity_strength and isinstance(us10y_chg, (int, float)) and us10y_chg < -0.4 and not dollar_heavy:
+        return {
+            "bias": "Pro-risk",
+            "expression": "Buy dips and lean into momentum while rates stay supportive",
+            "avoid": "Fading strength too early",
+        }
+
+    if yields_heavy or vol_heavy or (quality == "Fragile" and no_setups):
+        expression = "Fade strength, keep trades short-term, and stay selective on entries"
+        if isinstance(wti_chg, (int, float)) and wti_chg > 0.3:
+            expression = "Trade short-term around strength and favor energy over broad beta"
+        return {
+            "bias": "Neutral -> slight defensive tilt",
+            "expression": expression,
+            "avoid": "High-conviction directional positioning",
+        }
+
+    if dollar_heavy:
+        return {
+            "bias": "Neutral",
+            "expression": "Lean into relative strength only and keep broad beta exposure tight",
+            "avoid": "Chasing weak macro follow-through",
+        }
+
+    return {
+        "bias": "Neutral",
+        "expression": "Trade ranges tactically until cross-asset confirmation improves",
+        "avoid": "Forcing breakout trades without driver alignment",
+    }
+
+
 def _what_matters_now(report_data: dict, market_data: dict, sunday_data: dict) -> list[str]:
     bullets: list[str] = []
     wti_chg = _change(market_data.get("WTI"))
@@ -276,6 +330,7 @@ def _build_dashboard_data(report_data: dict) -> dict:
     sunday_data = _load_cached_data(sunday_report.MARKET_CACHE_PATH)
     regime, regime_tone = _regime_state(report_data, market_data)
     posture, focus, posture_tone = _execution_posture(report_data, market_data)
+    position_bias = _position_bias(report_data, market_data)
     return {
         "generated_line": report_data.get("generated_line", ""),
         "risk_value": regime,
@@ -287,6 +342,9 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "posture_value": posture,
         "focus_value": focus,
         "posture_tone": posture_tone,
+        "bias_value": position_bias["bias"],
+        "expression_value": position_bias["expression"],
+        "avoid_value": position_bias["avoid"],
         "what_matters_now": _what_matters_now(report_data, market_data, sunday_data),
         "signals_line": _key_signals(market_data),
     }
@@ -551,6 +609,23 @@ def _render_dashboard_html(dashboard: dict) -> str:
         <div class="command-pair">
           <div class="command-label">Focus</div>
           <div class="command-value">{escape(dashboard["focus_value"])}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tone-{dashboard["posture_tone"]}">
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Bias</div>
+          <div class="command-value">{escape(dashboard["bias_value"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Expression</div>
+          <div class="command-value">{escape(dashboard["expression_value"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Avoid</div>
+          <div class="command-value">{escape(dashboard["avoid_value"])}</div>
         </div>
       </div>
     </section>
