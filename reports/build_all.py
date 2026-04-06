@@ -392,6 +392,36 @@ def _key_signals(market_data: dict) -> str:
     )
 
 
+def _highlight_assets(text: str) -> str:
+    highlighted = escape(text)
+    for asset in ("US10Y", "VIX", "DXY", "Oil", "Gold", "BTC", "Yields"):
+        highlighted = highlighted.replace(
+            asset,
+            f'<span class="asset-strong">{asset}</span>',
+        )
+    return highlighted
+
+
+def _render_signals_strip(market_data: dict) -> str:
+    parts = [
+        ("DXY", "DXY"),
+        ("US10Y", "US10Y"),
+        ("VIX", "VIX"),
+        ("WTI", "Oil"),
+        ("GOLD", "Gold"),
+        ("BTC", "BTC"),
+    ]
+    rendered: list[str] = []
+    for symbol, label in parts:
+        arrow = _arrow(_change(market_data.get(symbol)))
+        arrow_cls = "flat" if arrow == "→" else "up" if arrow == "↑" else "down"
+        rendered.append(
+            f'<span class="signal-pill"><span class="signal-label">{escape(label)}</span> '
+            f'<span class="signal-arrow {arrow_cls}">{arrow}</span></span>'
+        )
+    return " ".join(rendered)
+
+
 def _build_dashboard_data(report_data: dict) -> dict:
     market_data = _load_cached_data(morning_edge.MARKET_CACHE_PATH)
     sunday_data = _load_cached_data(sunday_report.MARKET_CACHE_PATH)
@@ -417,12 +447,13 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "avoid_value": position_bias["avoid"],
         "what_matters_now": _what_matters_now(report_data, market_data, sunday_data),
         "signals_line": _key_signals(market_data),
+        "signals_html": _render_signals_strip(market_data),
     }
 
 
 def _render_dashboard_html(dashboard: dict) -> str:
     what_matters_items = "\n".join(
-        f"        <li>{escape(item)}</li>"
+        f"        <li>{_highlight_assets(item)}</li>"
         for item in dashboard["what_matters_now"]
     )
     return f"""<!DOCTYPE html>
@@ -483,11 +514,15 @@ def _render_dashboard_html(dashboard: dict) -> str:
     letter-spacing: 0.04em;
   }}
   .card {{
-    background: var(--bg-card);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
+      var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 18px 20px;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }}
   .card-title {{
     font-size: 1.02rem;
@@ -509,12 +544,35 @@ def _render_dashboard_html(dashboard: dict) -> str:
   .prominent {{
     padding-top: 16px;
     padding-bottom: 16px;
-    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(29, 35, 48, 0.96));
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.12), rgba(29, 35, 48, 0.96));
   }}
-  .tone-positive {{ border-color: rgba(63, 211, 122, 0.35); }}
-  .tone-warning {{ border-color: rgba(230, 180, 74, 0.35); }}
-  .tone-negative {{ border-color: rgba(240, 107, 107, 0.35); }}
-  .tone-neutral {{ border-color: var(--border); }}
+  .tone-positive {{
+    border-color: rgba(63, 211, 122, 0.42);
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(63, 211, 122, 0.08),
+      0 0 22px rgba(63, 211, 122, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }}
+  .tone-warning {{
+    border-color: rgba(230, 180, 74, 0.42);
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(230, 180, 74, 0.08),
+      0 0 22px rgba(230, 180, 74, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }}
+  .tone-negative {{
+    border-color: rgba(240, 107, 107, 0.42);
+    box-shadow:
+      0 14px 34px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(240, 107, 107, 0.08),
+      0 0 22px rgba(240, 107, 107, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }}
+  .tone-neutral {{
+    border-color: var(--border);
+  }}
   .command-block {{
     display: grid;
     gap: 12px;
@@ -532,9 +590,52 @@ def _render_dashboard_html(dashboard: dict) -> str:
   }}
   .command-value {{
     font-size: clamp(1rem, 0.94rem + 0.42vw, 1.18rem);
-    font-weight: 700;
+    font-weight: 750;
+    letter-spacing: 0.01em;
     line-height: 1.35;
     color: var(--text);
+  }}
+  .prominent .command-value:first-of-type {{
+    text-shadow: 0 0 18px rgba(91, 151, 229, 0.12);
+  }}
+  .bias-card {{
+    background:
+      linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92)),
+      var(--bg-card);
+    border-color: rgba(230, 180, 74, 0.24);
+  }}
+  .drift-value {{
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }}
+  .drift-badge {{
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+  }}
+  .tone-neutral .drift-badge {{
+    color: var(--text-muted);
+    background: rgba(168, 178, 195, 0.08);
+  }}
+  .tone-warning .drift-badge {{
+    color: var(--accent-gold);
+    background: rgba(230, 180, 74, 0.1);
+  }}
+  .tone-negative .drift-badge {{
+    color: var(--accent-red);
+    background: rgba(240, 107, 107, 0.1);
+  }}
+  .asset-strong {{
+    font-weight: 800;
+    color: #F7FAFF;
   }}
   .what-matters {{
     list-style: none;
@@ -558,7 +659,41 @@ def _render_dashboard_html(dashboard: dict) -> str:
     font-size: 0.96rem;
     font-weight: 700;
     color: var(--text);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }}
+  .signal-pill {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+  }}
+  .signal-label {{
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }}
+  .signal-arrow {{
+    font-size: 0.98rem;
+    font-weight: 900;
+  }}
+  .signal-arrow.up {{
+    color: var(--accent-green);
+    text-shadow: 0 0 14px rgba(63, 211, 122, 0.2);
+  }}
+  .signal-arrow.down {{
+    color: var(--accent-red);
+    text-shadow: 0 0 14px rgba(240, 107, 107, 0.2);
+  }}
+  .signal-arrow.flat {{
+    color: var(--text-muted);
   }}
   .reports-grid {{
     display: grid;
@@ -674,7 +809,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="command-value">{escape(dashboard["drift_value"])}</div>
+          <div class="command-value drift-value"><span class="drift-badge">{escape(dashboard["drift_value"].split(" — ", 1)[0])}</span><span>{escape(dashboard["drift_value"].split(" — ", 1)[1])}</span></div>
         </div>
       </div>
     </section>
@@ -692,7 +827,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
       </div>
     </section>
 
-    <section class="card tone-{dashboard["posture_tone"]}">
+    <section class="card tone-{dashboard["posture_tone"]} bias-card">
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Bias</div>
@@ -718,7 +853,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
 
     <section class="card">
       <div class="card-title">Key Signals Strip</div>
-      <div class="signals-strip">{escape(dashboard["signals_line"])}</div>
+      <div class="signals-strip">{dashboard["signals_html"]}</div>
     </section>
 
     <section class="card">
