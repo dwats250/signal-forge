@@ -197,11 +197,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: var(--pill-radius);
     border: 1px solid transparent;
-    font-size: 0.68rem;
-    font-weight: 800;
+    font-size: 0.7rem;
+    font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     line-height: 1.1;
@@ -211,9 +211,9 @@
   .pill-warning { background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--risk-neutral); }
   .pill-negative { background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--risk-off); }
   .pill-neutral { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--text-muted); }
-  .pill-stable { background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--stable); }
-  .pill-emerging { background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--emerging); }
-  .pill-building { background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--building); }
+  .pill-stable { background: rgba(156, 163, 175, 0.2); border-color: transparent; color: #E5E7EB; }
+  .pill-emerging { background: rgba(245, 158, 11, 0.25); border-color: transparent; color: #F59E0B; }
+  .pill-building { background: rgba(239, 68, 68, 0.25); border-color: transparent; color: #EF4444; }
   .impact-HIGH { background: var(--impact-high-bg); color: var(--impact-high-fg); }
   .impact-MEDIUM { background: var(--impact-medium-bg); color: var(--impact-medium-fg); }
   .impact-LOW { background: var(--impact-low-bg); color: var(--impact-low-fg); }
@@ -354,15 +354,31 @@
   .bias-card {
     background: linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92));
   }
+  .drift-card {
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.045), rgba(23, 27, 35, 1));
+    border-color: rgba(91, 151, 229, 0.14);
+  }
   .drift-value {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    line-height: 1.28;
   }
   .drift-badge {
-    font-size: 0.74rem;
-    letter-spacing: 0.08em;
+    font-size: 0.76rem;
+    letter-spacing: 0.09em;
+    padding: 5px 12px;
+    flex-shrink: 0;
+  }
+  .drift-copy {
+    font-size: 1.04rem;
+    color: rgba(237, 241, 247, 0.92);
+    font-weight: 620;
+  }
+  .drift-copy strong {
+    color: #F7FAFF;
+    font-weight: 800;
   }
   .asset-strong {
     font-weight: 800;
@@ -443,7 +459,7 @@
   <main class="page">
     <header class="header">
       <h1>Signal <span>Forge</span></h1>
-      <span class="ts">Report Generated at 8:31 PM PDT — 2026-04-05</span>
+      <span class="ts">Report Generated at 8:40 PM PDT — 2026-04-05</span>
     </header>
 
     <section class="card card-emphasis prominent tone-warning">
@@ -481,11 +497,11 @@
       </div>
     </section>
 
-    <section class="card tone-neutral">
+    <section class="card drift-card tone-neutral">
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="command-value drift-value"><span class="drift-badge pill pill-stable">Stable</span><span>regime drivers intact, but tape quality still needs respect</span></div>
+          <div class="command-value drift-value"><span class="drift-badge pill pill-stable">Stable</span><span class="drift-copy">regime <strong>drivers intact</strong>, but <strong>tape quality</strong> still needs respect</span></div>
         </div>
       </div>
     </section>

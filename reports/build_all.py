@@ -403,6 +403,20 @@ def _highlight_assets(text: str) -> str:
     return highlighted
 
 
+def _highlight_drift_reason(text: str) -> str:
+    highlighted = escape(text)
+    for phrase in (
+        "drivers intact",
+        "tape quality",
+        "restrictive yields",
+        "broader risk expansion",
+        "market follow-through",
+        "broader risk tone",
+    ):
+        highlighted = highlighted.replace(phrase, f"<strong>{phrase}</strong>")
+    return highlighted
+
+
 def _render_signals_strip(market_data: dict) -> str:
     parts = [
         ("DXY", "DXY"),
@@ -512,15 +526,31 @@ def _render_dashboard_html(dashboard: dict) -> str:
   .bias-card {{
     background: linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92));
   }}
+  .drift-card {{
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.045), rgba(23, 27, 35, 1));
+    border-color: rgba(91, 151, 229, 0.14);
+  }}
   .drift-value {{
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    line-height: 1.28;
   }}
   .drift-badge {{
-    font-size: 0.74rem;
-    letter-spacing: 0.08em;
+    font-size: 0.76rem;
+    letter-spacing: 0.09em;
+    padding: 5px 12px;
+    flex-shrink: 0;
+  }}
+  .drift-copy {{
+    font-size: 1.04rem;
+    color: rgba(237, 241, 247, 0.92);
+    font-weight: 620;
+  }}
+  .drift-copy strong {{
+    color: #F7FAFF;
+    font-weight: 800;
   }}
   .asset-strong {{
     font-weight: 800;
@@ -639,11 +669,11 @@ def _render_dashboard_html(dashboard: dict) -> str:
       </div>
     </section>
 
-    <section class="card tone-{dashboard["drift_tone"]}">
+    <section class="card drift-card tone-{dashboard["drift_tone"]}">
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="command-value drift-value"><span class="drift-badge pill {drift_pill_cls}">{escape(dashboard["drift_state"])}</span><span>{escape(dashboard["drift_reason"])}</span></div>
+          <div class="command-value drift-value"><span class="drift-badge pill {drift_pill_cls}">{escape(dashboard["drift_state"])}</span><span class="drift-copy">{_highlight_drift_reason(dashboard["drift_reason"])}</span></div>
         </div>
       </div>
     </section>

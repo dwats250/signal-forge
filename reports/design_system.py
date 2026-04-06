@@ -203,11 +203,11 @@ def shared_design_system_css(
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 9px;
+    padding: 4px 10px;
     border-radius: var(--pill-radius);
     border: 1px solid transparent;
-    font-size: 0.68rem;
-    font-weight: 800;
+    font-size: 0.7rem;
+    font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     line-height: 1.1;
@@ -217,9 +217,9 @@ def shared_design_system_css(
   .pill-warning {{ background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--risk-neutral); }}
   .pill-negative {{ background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--risk-off); }}
   .pill-neutral {{ background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--text-muted); }}
-  .pill-stable {{ background: rgba(168, 178, 195, 0.08); border-color: rgba(168, 178, 195, 0.2); color: var(--stable); }}
-  .pill-emerging {{ background: rgba(230, 180, 74, 0.12); border-color: rgba(230, 180, 74, 0.26); color: var(--emerging); }}
-  .pill-building {{ background: rgba(240, 107, 107, 0.12); border-color: rgba(240, 107, 107, 0.26); color: var(--building); }}
+  .pill-stable {{ background: rgba(156, 163, 175, 0.2); border-color: transparent; color: #E5E7EB; }}
+  .pill-emerging {{ background: rgba(245, 158, 11, 0.25); border-color: transparent; color: #F59E0B; }}
+  .pill-building {{ background: rgba(239, 68, 68, 0.25); border-color: transparent; color: #EF4444; }}
   .impact-HIGH {{ background: var(--impact-high-bg); color: var(--impact-high-fg); }}
   .impact-MEDIUM {{ background: var(--impact-medium-bg); color: var(--impact-medium-fg); }}
   .impact-LOW {{ background: var(--impact-low-bg); color: var(--impact-low-fg); }}
