@@ -158,6 +158,29 @@ def _execution_posture(report_data: dict, market_data: dict) -> tuple[str, str, 
     return posture, focus, tone
 
 
+def _trigger_text(market_data: dict) -> str:
+    us10y = _price(market_data.get("US10Y"))
+    us10y_chg = _change(market_data.get("US10Y"))
+    dxy = _price(market_data.get("DXY"))
+    dxy_chg = _change(market_data.get("DXY"))
+    wti_chg = _change(market_data.get("WTI"))
+    vix_chg = _change(market_data.get("VIX"))
+
+    if isinstance(us10y, (int, float)) and us10y >= 4.3:
+        return "Sustained US10Y below 4.2% would reopen broader risk-on upside"
+    if isinstance(us10y_chg, (int, float)) and us10y_chg > 0.4:
+        return "A clear reversal lower in yields would ease the main pressure on risk"
+    if isinstance(dxy, (int, float)) and dxy >= 100.5:
+        return "A DXY breakdown would give equities and metals more room to expand"
+    if isinstance(dxy_chg, (int, float)) and dxy_chg > 0.2:
+        return "Dollar weakness would loosen the current cross-asset constraint"
+    if isinstance(wti_chg, (int, float)) and abs(wti_chg) >= 0.4:
+        return "Oil stability with contained yields would reset the sector leadership read"
+    if isinstance(vix_chg, (int, float)) and vix_chg > 1.0:
+        return "Falling VIX would be needed to relax the current defensive bias"
+    return "A clean break lower in yields would shift the current range-bound read"
+
+
 def _what_matters_now(report_data: dict, market_data: dict, sunday_data: dict) -> list[str]:
     bullets: list[str] = []
     wti_chg = _change(market_data.get("WTI"))
@@ -227,6 +250,7 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "driver_value": _driver_text(market_data),
         "confidence_value": _confidence_text(report_data, market_data),
         "regime_tone": regime_tone,
+        "trigger_value": _trigger_text(market_data),
         "posture_value": posture,
         "focus_value": focus,
         "posture_tone": posture_tone,
@@ -463,6 +487,15 @@ def _render_dashboard_html(dashboard: dict) -> str:
         <div class="command-pair">
           <div class="command-label">Confidence</div>
           <div class="command-value">{escape(dashboard["confidence_value"])}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tone-{dashboard["regime_tone"]}">
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Trigger</div>
+          <div class="command-value">{escape(dashboard["trigger_value"])}</div>
         </div>
       </div>
     </section>
