@@ -59,6 +59,30 @@ def _price(entry: dict | None) -> float | None:
     return value if isinstance(value, (int, float)) else None
 
 
+def _equity_strength(market_data: dict) -> bool:
+    spy_chg = _change(market_data.get("SPY"))
+    qqq_chg = _change(market_data.get("QQQ"))
+    return (
+        isinstance(spy_chg, (int, float))
+        and spy_chg > 0.5
+    ) or (
+        isinstance(qqq_chg, (int, float))
+        and qqq_chg > 0.7
+    )
+
+
+def _equity_weakness(market_data: dict) -> bool:
+    spy_chg = _change(market_data.get("SPY"))
+    qqq_chg = _change(market_data.get("QQQ"))
+    return (
+        isinstance(spy_chg, (int, float))
+        and spy_chg <= 0.1
+    ) and (
+        isinstance(qqq_chg, (int, float))
+        and qqq_chg <= 0.1
+    )
+
+
 def _regime_state(report_data: dict, market_data: dict) -> tuple[str, str]:
     state_summary = report_data.get("state_summary", {})
     posture = state_summary.get("market_posture", "Mixed")
@@ -213,6 +237,49 @@ def _invalidation_text(market_data: dict) -> str:
     return "Cross-asset strength without yield relief would mean the current regime read is wrong"
 
 
+def _drift_signal(report_data: dict, market_data: dict) -> tuple[str, str, str]:
+    quality = report_data.get("state_summary", {}).get("market_quality", "Mixed")
+    us10y = _price(market_data.get("US10Y"))
+    us10y_chg = _change(market_data.get("US10Y"))
+    dxy_chg = _change(market_data.get("DXY"))
+    wti_chg = _change(market_data.get("WTI"))
+    vix_chg = _change(market_data.get("VIX"))
+
+    equity_strength = _equity_strength(market_data)
+    equity_weakness = _equity_weakness(market_data)
+    divergences: list[str] = []
+
+    if (
+        (isinstance(us10y, (int, float)) and us10y >= 4.3)
+        or (isinstance(us10y_chg, (int, float)) and us10y_chg > 0.4)
+    ) and equity_strength:
+        divergences.append("equities holding up despite restrictive yields")
+
+    if isinstance(dxy_chg, (int, float)) and dxy_chg < -0.2 and equity_weakness:
+        divergences.append("dollar easing without broader risk expansion")
+
+    if (
+        isinstance(wti_chg, (int, float))
+        and abs(wti_chg) >= 0.4
+        and (
+            (wti_chg > 0 and equity_weakness)
+            or (wti_chg < 0 and equity_strength)
+        )
+    ):
+        divergences.append("oil leadership is diverging from broader risk tone")
+
+    if isinstance(vix_chg, (int, float)) and vix_chg < -1.0 and equity_weakness:
+        divergences.append("volatility is easing without market follow-through")
+
+    if len(divergences) >= 2:
+        return "Building", f"{divergences[0]}; {divergences[1]}", "negative"
+    if len(divergences) == 1:
+        return "Emerging", divergences[0], "warning"
+    if quality == "Fragile":
+        return "Stable", "regime drivers intact, but tape quality still needs respect", "neutral"
+    return "Stable", "regime drivers intact", "neutral"
+
+
 def _position_bias(report_data: dict, market_data: dict) -> dict:
     quality = report_data.get("state_summary", {}).get("market_quality", "Mixed")
     no_setups = report_data.get("no_setups", True)
@@ -329,6 +396,7 @@ def _build_dashboard_data(report_data: dict) -> dict:
     market_data = _load_cached_data(morning_edge.MARKET_CACHE_PATH)
     sunday_data = _load_cached_data(sunday_report.MARKET_CACHE_PATH)
     regime, regime_tone = _regime_state(report_data, market_data)
+    drift_state, drift_reason, drift_tone = _drift_signal(report_data, market_data)
     posture, focus, posture_tone = _execution_posture(report_data, market_data)
     position_bias = _position_bias(report_data, market_data)
     return {
@@ -339,6 +407,8 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "regime_tone": regime_tone,
         "trigger_value": _trigger_text(market_data),
         "invalidation_value": _invalidation_text(market_data),
+        "drift_value": f"{drift_state} — {drift_reason}",
+        "drift_tone": drift_tone,
         "posture_value": posture,
         "focus_value": focus,
         "posture_tone": posture_tone,
@@ -596,6 +666,15 @@ def _render_dashboard_html(dashboard: dict) -> str:
         <div class="command-pair">
           <div class="command-label">Invalidation</div>
           <div class="command-value">{escape(dashboard["invalidation_value"])}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tone-{dashboard["drift_tone"]}">
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Drift</div>
+          <div class="command-value">{escape(dashboard["drift_value"])}</div>
         </div>
       </div>
     </section>
