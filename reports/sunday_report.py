@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.unified_data import (
     DATA_SOURCE_UNAVAILABLE,
@@ -520,7 +521,10 @@ def render_html(report_data: dict, out_path: Path | None = None) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
     env.filters["highlight_tickers"] = _highlight_tickers_filter
     template = env.get_template("sunday_report.html")
-    html_content = template.render(**report_data)
+    html_content = template.render(
+        **report_data,
+        design_system_css=shared_design_system_css(page_max="1200px"),
+    )
 
     if out_path is None:
         out_path = LIVE_HTML_PATH

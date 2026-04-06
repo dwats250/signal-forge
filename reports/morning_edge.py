@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarketDataClient
 
@@ -667,7 +668,10 @@ def render_html(report_data: dict, out_path: Path | None = None, *, archive_mode
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
     env.filters["highlight_tickers"] = _highlight_tickers_filter
     template = env.get_template("morning_edge.html")
-    render_data = {**report_data}
+    render_data = {
+        **report_data,
+        "design_system_css": shared_design_system_css(page_max="1420px", page_pad_bottom="0"),
+    }
     if archive_mode:
         render_data["archive_href"] = "index.html"
     html_content = template.render(**render_data)

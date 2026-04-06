@@ -10,6 +10,7 @@ from html import escape
 from pathlib import Path
 
 from reports import morning_edge, sunday_report
+from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import vancouver_date_str
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -437,6 +438,8 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "regime_tone": regime_tone,
         "trigger_value": _trigger_text(market_data),
         "invalidation_value": _invalidation_text(market_data),
+        "drift_state": drift_state,
+        "drift_reason": drift_reason,
         "drift_value": f"{drift_state} — {drift_reason}",
         "drift_tone": drift_tone,
         "posture_value": posture,
@@ -456,6 +459,8 @@ def _render_dashboard_html(dashboard: dict) -> str:
         f"        <li>{_highlight_assets(item)}</li>"
         for item in dashboard["what_matters_now"]
     )
+    design_system_css = shared_design_system_css(page_max="1200px")
+    drift_pill_cls = f"pill-{dashboard['drift_state'].lower()}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -463,115 +468,21 @@ def _render_dashboard_html(dashboard: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Signal Forge Dashboard</title>
 <style>
-  *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-  :root {{
-    --bg: #0F1218;
-    --bg-card: #171B23;
-    --bg-card2: #1D2330;
-    --border: #2A3140;
-    --accent: #5B97E5;
-    --accent-gold: #E6B44A;
-    --accent-green: #3FD37A;
-    --accent-red: #F06B6B;
-    --text: #EDF1F7;
-    --text-muted: #A8B2C3;
-    --text-dim: #7C879A;
-    --page-max: 1200px;
-  }}
-  html, body {{
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.55;
-    min-height: 100vh;
-  }}
-  .page {{
-    width: min(100%, var(--page-max));
-    margin: 0 auto;
-    padding: 22px 24px 48px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }}
+  {design_system_css}
+  .page {{ gap: 14px; }}
   .header {{
-    display: flex;
-    justify-content: space-between;
     align-items: baseline;
     gap: 16px;
-    flex-wrap: wrap;
   }}
-  .header h1 {{
-    font-size: clamp(1.6rem, 1.25rem + 1vw, 2.2rem);
-    font-weight: 700;
-    letter-spacing: 0.01em;
-  }}
-  .header h1 span {{ color: var(--accent); }}
   .ts {{
     font-size: 0.88rem;
     color: var(--text-muted);
     letter-spacing: 0.04em;
   }}
-  .card {{
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)),
-      var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px 20px;
-    box-shadow:
-      0 14px 34px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }}
-  .card-title {{
-    font-size: 1.02rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }}
-  .card-title::after {{
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }}
   .prominent {{
     padding-top: 16px;
     padding-bottom: 16px;
     background: linear-gradient(180deg, rgba(91, 151, 229, 0.12), rgba(29, 35, 48, 0.96));
-  }}
-  .tone-positive {{
-    border-color: rgba(63, 211, 122, 0.42);
-    box-shadow:
-      0 14px 34px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(63, 211, 122, 0.08),
-      0 0 22px rgba(63, 211, 122, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }}
-  .tone-warning {{
-    border-color: rgba(230, 180, 74, 0.42);
-    box-shadow:
-      0 14px 34px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(230, 180, 74, 0.08),
-      0 0 22px rgba(230, 180, 74, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }}
-  .tone-negative {{
-    border-color: rgba(240, 107, 107, 0.42);
-    box-shadow:
-      0 14px 34px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(240, 107, 107, 0.08),
-      0 0 22px rgba(240, 107, 107, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  }}
-  .tone-neutral {{
-    border-color: var(--border);
   }}
   .command-block {{
     display: grid;
@@ -599,10 +510,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
     text-shadow: 0 0 18px rgba(91, 151, 229, 0.12);
   }}
   .bias-card {{
-    background:
-      linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92)),
-      var(--bg-card);
-    border-color: rgba(230, 180, 74, 0.24);
+    background: linear-gradient(180deg, rgba(230, 180, 74, 0.07), rgba(29, 35, 48, 0.92));
   }}
   .drift-value {{
     display: inline-flex;
@@ -611,27 +519,8 @@ def _render_dashboard_html(dashboard: dict) -> str:
     flex-wrap: wrap;
   }}
   .drift-badge {{
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 999px;
     font-size: 0.74rem;
-    font-weight: 800;
     letter-spacing: 0.08em;
-    text-transform: uppercase;
-    border: 1px solid currentColor;
-  }}
-  .tone-neutral .drift-badge {{
-    color: var(--text-muted);
-    background: rgba(168, 178, 195, 0.08);
-  }}
-  .tone-warning .drift-badge {{
-    color: var(--accent-gold);
-    background: rgba(230, 180, 74, 0.1);
-  }}
-  .tone-negative .drift-badge {{
-    color: var(--accent-red);
-    background: rgba(240, 107, 107, 0.1);
   }}
   .asset-strong {{
     font-weight: 800;
@@ -700,64 +589,9 @@ def _render_dashboard_html(dashboard: dict) -> str:
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }}
-  .report-card {{
-    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(29, 35, 48, 0.96));
-    border: 1px solid rgba(91, 151, 229, 0.2);
-  }}
-  .report-label {{
-    font-size: 1.14rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }}
-  .report-copy {{
-    color: var(--text-muted);
-    font-size: 0.96rem;
-    margin-bottom: 14px;
-  }}
-  .report-meta {{
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--accent-gold);
-    margin-bottom: 14px;
-  }}
-  .report-actions {{
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }}
-  .report-link {{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 112px;
-    padding: 10px 14px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    font-weight: 700;
-    transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
-  }}
-  .report-link.primary {{
-    color: #08101C;
-    background: var(--accent);
-    border: 1px solid var(--accent);
-  }}
-  .report-link.secondary {{
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border);
-  }}
-  .report-link:hover {{ transform: translateY(-1px); }}
-  .report-link.secondary:hover {{
-    border-color: rgba(91, 151, 229, 0.45);
-    color: var(--accent);
-  }}
   @media (max-width: 760px) {{
-    .page {{ padding-left: 16px; padding-right: 16px; gap: 12px; }}
+    .page {{ gap: 12px; }}
     .reports-grid {{ grid-template-columns: 1fr; }}
-    .card {{ padding: 16px; }}
     .command-block {{ gap: 10px; }}
     .command-value, .signals-strip {{ font-size: 0.94rem; }}
   }}
@@ -770,7 +604,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
       <span class="ts">{escape(dashboard["generated_line"])}</span>
     </header>
 
-    <section class="card prominent tone-{dashboard["regime_tone"]}">
+    <section class="card card-emphasis prominent tone-{dashboard["regime_tone"]}">
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Risk</div>
@@ -809,7 +643,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="command-value drift-value"><span class="drift-badge">{escape(dashboard["drift_value"].split(" — ", 1)[0])}</span><span>{escape(dashboard["drift_value"].split(" — ", 1)[1])}</span></div>
+          <div class="command-value drift-value"><span class="drift-badge pill {drift_pill_cls}">{escape(dashboard["drift_state"])}</span><span>{escape(dashboard["drift_reason"])}</span></div>
         </div>
       </div>
     </section>
@@ -827,7 +661,7 @@ def _render_dashboard_html(dashboard: dict) -> str:
       </div>
     </section>
 
-    <section class="card tone-{dashboard["posture_tone"]} bias-card">
+    <section class="card tone-{dashboard["posture_tone"]} bias-card card-bias">
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Bias</div>

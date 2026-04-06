@@ -5,108 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sunday Report — Week of {{ week_of }}</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  {{ design_system_css | safe }}
 
-  :root {
-    --bg:           #0F1218;
-    --bg-card:      #171B23;
-    --bg-card2:     #1D2330;
-    --border:       #2A3140;
-    --accent:       #5B97E5;
-    --accent-gold:  #E6B44A;
-    --accent-green: #3FD37A;
-    --accent-red:   #F06B6B;
-    --text:         #EDF1F7;
-    --text-muted:   #A8B2C3;
-    --text-dim:     #7C879A;
-    --tag-high:      #7F1D1D;
-    --tag-high-text: #FCA5A5;
-    --tag-med:       #78350F;
-    --tag-med-text:  #FCD34D;
-    --page-max:     1200px;
-    --page-pad-x:   24px;
-    --page-pad-y:   22px;
-    --card-radius:  12px;
-    --card-pad:     20px;
-    --gap:          18px;
-  }
-
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.62;
-    min-height: 100vh;
-  }
-
-  .page {
-    width: min(100%, var(--page-max));
-    margin: 0 auto;
-    padding: var(--page-pad-y) var(--page-pad-x) 48px;
-    display: flex;
-    flex-direction: column;
-    gap: var(--gap);
-  }
-
-  /* ── Card base ── */
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--card-radius);
-    padding: var(--card-pad);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
-  }
-  .card-title {
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .card-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* ── Header ── */
+  :root { --gap: 18px; }
+  .page { gap: var(--gap); }
   .header {
-    display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
     padding-bottom: 4px;
-    flex-wrap: wrap;
-  }
-  .header h1 {
-    font-size: clamp(1.6rem, 1.3rem + 1vw, 2.3rem);
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: 0.01em;
-    line-height: 1.15;
-  }
-  .header h1 span { color: var(--accent); }
-  .header-week {
-    font-size: 1.0rem;
-    font-weight: 600;
-    color: var(--accent-gold);
-    margin-top: 4px;
-    letter-spacing: 0.02em;
   }
   .header-ts {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    letter-spacing: 0.04em;
     text-align: right;
     padding-top: 4px;
-    line-height: 1.7;
   }
 
   /* ── Regime + Quality grid ── */
@@ -134,16 +43,8 @@
   .regime-badge.risk-off { color: var(--accent-red); }
 
   .conf-badge {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
     padding: 2px 8px;
-    border-radius: 4px;
   }
-  .conf-HIGH   { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
-  .conf-MEDIUM { background: rgba(230,180,74,0.15);  color: var(--accent-gold);  border: 1px solid rgba(230,180,74,0.3); }
-  .conf-LOW    { background: rgba(168,178,195,0.1);  color: var(--text-muted);   border: 1px solid rgba(168,178,195,0.2); }
 
   .driver-row {
     font-size: 0.75rem;
@@ -402,18 +303,11 @@
     grid-column: 2;
   }
   .impact-badge {
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     padding: 2px 7px;
-    border-radius: 4px;
     grid-row: 1;
     grid-column: 3;
     align-self: center;
   }
-  .impact-HIGH   { background: var(--tag-high); color: var(--tag-high-text); }
-  .impact-MEDIUM { background: var(--tag-med);  color: var(--tag-med-text); }
   .ev-note {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -454,16 +348,8 @@
     flex: 1;
   }
   .bias-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
     padding: 2px 9px;
-    border-radius: 4px;
   }
-  .bias-Bullish { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
-  .bias-Bearish { background: rgba(240,107,107,0.15); color: var(--accent-red);  border: 1px solid rgba(240,107,107,0.3); }
-  .bias-Neutral { background: rgba(168,178,195,0.08); color: var(--text-muted);  border: 1px solid var(--border); }
 
   .theme-logic {
     font-size: 0.86rem;
@@ -575,6 +461,7 @@
     color: var(--text-dim);
     min-width: 56px;
   }
+  .sum-k-offset { margin-left: var(--space-md); }
   .sum-v {
     font-size: 0.9rem;
     font-weight: 700;
@@ -639,12 +526,6 @@
     flex: 1;
   }
 
-  /* ── Ticker inline ── */
-  .ticker-inline {
-    color: var(--accent);
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
 </style>
 </head>
 <body>
@@ -668,7 +549,7 @@
       {% set regime_cls = 'risk-on' if regime == 'RISK_ON' else 'risk-off' if regime == 'RISK_OFF' else 'mixed' %}
       <div class="regime-badge {{ regime_cls }}">
         {{ regime }}
-        <span class="conf-badge conf-{{ regime_confidence }}">{{ regime_confidence }}</span>
+        <span class="conf-badge pill conf-{{ regime_confidence }}">{{ regime_confidence }}</span>
       </div>
       <div class="driver-row">Driver: <span>{{ regime_driver }}</span></div>
       <ul class="regime-bullets">
@@ -749,7 +630,7 @@
       <div class="event-row">
         <span class="ev-date">{{ ev.date }}</span>
         <span class="ev-name">{{ ev.event }}</span>
-        <span class="impact-badge impact-{{ ev.impact }}">{{ ev.impact }}</span>
+        <span class="impact-badge pill impact-{{ ev.impact }}">{{ ev.impact }}</span>
         <span class="ev-note">{{ ev.note }}</span>
       </div>
       {% endfor %}
@@ -766,7 +647,7 @@
         <div class="theme-head">
           <span class="theme-num">{{ loop.index }}</span>
           <span class="theme-title">{{ theme.title }}</span>
-          <span class="bias-badge bias-{{ theme.bias }}">{{ theme.bias }}</span>
+          <span class="bias-badge pill bias-{{ theme.bias }}">{{ theme.bias }}</span>
         </div>
         <div class="theme-logic">{{ theme.logic | highlight_tickers }}</div>
         <div class="theme-invalid">{{ theme.invalidates_if }}</div>
@@ -841,9 +722,9 @@
       <div class="sum-kv-row">
         <span class="sum-k">Regime</span>
         <span class="sum-v {{ regime_sum_cls }}">{{ regime }}</span>
-        <span class="sum-k" style="margin-left:16px">Quality</span>
+        <span class="sum-k sum-k-offset">Quality</span>
         <span class="sum-v">{{ quality }}</span>
-        <span class="sum-k" style="margin-left:16px">Posture</span>
+        <span class="sum-k sum-k-offset">Posture</span>
         <span class="sum-v {{ posture_sum_cls }}">{{ posture }}</span>
       </div>
 
