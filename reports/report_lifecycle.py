@@ -79,7 +79,12 @@ def promote_report_artifact(
         shutil.copy2(live_path, archive_path)
         logger(f"[OK] Archived prior {report_label} -> {archive_path}")
 
-    os.replace(temp_path, live_path)
+    staged_path = live_path.parent / f".{live_path.name}.promote"
+    if staged_path.exists():
+        staged_path.unlink()
+    shutil.copy2(temp_path, staged_path)
+    os.replace(staged_path, live_path)
+    temp_path.unlink()
     logger(f"[OK] Promoted new {report_label} -> {live_path}")
     if latest_pointer_path is not None:
         latest_pointer_path.parent.mkdir(parents=True, exist_ok=True)
