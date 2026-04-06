@@ -86,6 +86,7 @@ class BuildSiteTests(unittest.TestCase):
             self.assertIn("Driver</div>", index_html)
             self.assertIn("Confidence</div>", index_html)
             self.assertIn("Trigger</div>", index_html)
+            self.assertIn("Invalidation</div>", index_html)
             self.assertIn("Posture</div>", index_html)
             self.assertIn("Focus</div>", index_html)
             self.assertIn("What Matters Now", index_html)
@@ -94,6 +95,8 @@ class BuildSiteTests(unittest.TestCase):
             self.assertIn('href="latest_premarket.pdf"', index_html)
             self.assertLess(index_html.index("Risk</div>"), index_html.index("Latest Reports"))
             self.assertLess(index_html.index("Trigger</div>"), index_html.index("Posture</div>"))
+            self.assertLess(index_html.index("Trigger</div>"), index_html.index("Invalidation</div>"))
+            self.assertLess(index_html.index("Invalidation</div>"), index_html.index("Posture</div>"))
 
 
 if __name__ == "__main__":

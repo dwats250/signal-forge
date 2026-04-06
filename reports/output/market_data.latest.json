@@ -1,19 +1,19 @@
 {
-  "cached_at": "2026-04-05T19:45:49.716673-07:00",
+  "cached_at": "2026-04-05T19:51:22.307174-07:00",
   "data": {
     "BTC": {
-      "day_chg": 2.82,
-      "formatted": "$69,189",
+      "day_chg": 2.92,
+      "formatted": "$69,257",
       "is_yield": false,
-      "price": 69188.5546875,
-      "week_chg": 1.4
+      "price": 69256.6328125,
+      "week_chg": 1.5
     },
     "COPPER": {
-      "day_chg": 1.37,
-      "formatted": "$5.64",
+      "day_chg": 1.28,
+      "formatted": "$5.63",
       "is_yield": false,
-      "price": 5.638999938964844,
-      "week_chg": 3.15
+      "price": 5.633999824523926,
+      "week_chg": 3.05
     },
     "DXY": {
       "day_chg": -0.0,
@@ -30,11 +30,11 @@
       "week_chg": 14.81
     },
     "GOLD": {
-      "day_chg": 0.6,
-      "formatted": "$4679.20",
+      "day_chg": 0.55,
+      "formatted": "$4676.90",
       "is_yield": false,
-      "price": 4679.2001953125,
-      "week_chg": 4.17
+      "price": 4676.89990234375,
+      "week_chg": 4.12
     },
     "MU": {
       "day_chg": -0.44,
@@ -58,18 +58,18 @@
       "week_chg": -2.16
     },
     "PALLADIUM": {
-      "day_chg": 1.78,
-      "formatted": "$1518.00",
+      "day_chg": 1.68,
+      "formatted": "$1516.50",
       "is_yield": false,
-      "price": 1518.0,
-      "week_chg": 9.14
+      "price": 1516.5,
+      "week_chg": 9.03
     },
     "PLATINUM": {
-      "day_chg": 1.06,
-      "formatted": "$1984.60",
+      "day_chg": 0.98,
+      "formatted": "$1983.00",
       "is_yield": false,
-      "price": 1984.5999755859375,
-      "week_chg": 6.09
+      "price": 1983.0,
+      "week_chg": 6.01
     },
     "QQQ": {
       "day_chg": 0.11,
@@ -87,11 +87,11 @@
       "week_chg": -10.3
     },
     "SILVER": {
-      "day_chg": -0.04,
-      "formatted": "$72.71",
+      "day_chg": 0.03,
+      "formatted": "$72.75",
       "is_yield": false,
-      "price": 72.70500183105469,
-      "week_chg": 4.54
+      "price": 72.75499725341797,
+      "week_chg": 4.62
     },
     "SPY": {
       "day_chg": 0.09,
@@ -129,11 +129,11 @@
       "week_chg": 14.14
     },
     "WTI": {
-      "day_chg": -0.5,
-      "formatted": "$110.98",
+      "day_chg": 0.07,
+      "formatted": "$111.62",
       "is_yield": false,
-      "price": 110.9800033569336,
-      "week_chg": 11.38
+      "price": 111.62000274658203,
+      "week_chg": 12.02
     },
     "XLE": {
       "day_chg": 0.47,

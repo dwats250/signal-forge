@@ -181,6 +181,38 @@ def _trigger_text(market_data: dict) -> str:
     return "A clean break lower in yields would shift the current range-bound read"
 
 
+def _invalidation_text(market_data: dict) -> str:
+    us10y = _price(market_data.get("US10Y"))
+    us10y_chg = _change(market_data.get("US10Y"))
+    dxy_chg = _change(market_data.get("DXY"))
+    wti_chg = _change(market_data.get("WTI"))
+    vix_chg = _change(market_data.get("VIX"))
+    spy_chg = _change(market_data.get("SPY"))
+    qqq_chg = _change(market_data.get("QQQ"))
+
+    equity_strength = (
+        isinstance(spy_chg, (int, float))
+        and spy_chg > 0.5
+    ) or (
+        isinstance(qqq_chg, (int, float))
+        and qqq_chg > 0.7
+    )
+
+    if isinstance(us10y, (int, float)) and us10y >= 4.3:
+        return "Equities breaking higher despite firm yields would invalidate the current range-bound read"
+    if isinstance(us10y_chg, (int, float)) and us10y_chg > 0.4:
+        return "Risk assets rallying through higher yields would prove the current constraint is weaker than assumed"
+    if isinstance(dxy_chg, (int, float)) and dxy_chg > 0.2:
+        return "Dollar weakness without equity expansion would signal a more fragile tape than assumed"
+    if isinstance(wti_chg, (int, float)) and abs(wti_chg) >= 0.4:
+        return "Oil moving hard without confirming sector follow-through would contradict the current leadership read"
+    if isinstance(vix_chg, (int, float)) and vix_chg < -1.0:
+        return "Falling VIX with no equity follow-through would show risk appetite is still impaired"
+    if equity_strength:
+        return "A strong equity rally without cleaner cross-asset alignment would force a reassessment of the current regime logic"
+    return "Cross-asset strength without yield relief would mean the current regime read is wrong"
+
+
 def _what_matters_now(report_data: dict, market_data: dict, sunday_data: dict) -> list[str]:
     bullets: list[str] = []
     wti_chg = _change(market_data.get("WTI"))
@@ -251,6 +283,7 @@ def _build_dashboard_data(report_data: dict) -> dict:
         "confidence_value": _confidence_text(report_data, market_data),
         "regime_tone": regime_tone,
         "trigger_value": _trigger_text(market_data),
+        "invalidation_value": _invalidation_text(market_data),
         "posture_value": posture,
         "focus_value": focus,
         "posture_tone": posture_tone,
@@ -496,6 +529,15 @@ def _render_dashboard_html(dashboard: dict) -> str:
         <div class="command-pair">
           <div class="command-label">Trigger</div>
           <div class="command-value">{escape(dashboard["trigger_value"])}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tone-{dashboard["regime_tone"]}">
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Invalidation</div>
+          <div class="command-value">{escape(dashboard["invalidation_value"])}</div>
         </div>
       </div>
     </section>
