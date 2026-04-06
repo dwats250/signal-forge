@@ -474,7 +474,6 @@ def _render_dashboard_html(dashboard: dict) -> str:
         for item in dashboard["what_matters_now"]
     )
     design_system_css = shared_design_system_css(page_max="1200px")
-    drift_pill_cls = f"pill-{dashboard['drift_state'].lower()}"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -530,23 +529,31 @@ def _render_dashboard_html(dashboard: dict) -> str:
     background: linear-gradient(180deg, rgba(91, 151, 229, 0.045), rgba(23, 27, 35, 1));
     border-color: rgba(91, 151, 229, 0.14);
   }}
-  .drift-value {{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    line-height: 1.28;
+  .drift-block {{
+    display: grid;
+    gap: 3px;
   }}
-  .drift-badge {{
-    font-size: 0.76rem;
-    letter-spacing: 0.09em;
-    padding: 5px 12px;
-    flex-shrink: 0;
+  .drift-state {{
+    font-size: clamp(1.12rem, 1rem + 0.36vw, 1.34rem);
+    line-height: 1.12;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }}
+  .drift-state.stable {{
+    color: #D8E1EC;
+  }}
+  .drift-state.emerging {{
+    color: #F59E0B;
+  }}
+  .drift-state.building {{
+    color: #EF4444;
   }}
   .drift-copy {{
-    font-size: 1.04rem;
-    color: rgba(237, 241, 247, 0.92);
-    font-weight: 620;
+    font-size: 0.98rem;
+    color: rgba(237, 241, 247, 0.88);
+    line-height: 1.45;
+    font-weight: 540;
   }}
   .drift-copy strong {{
     color: #F7FAFF;
@@ -673,7 +680,10 @@ def _render_dashboard_html(dashboard: dict) -> str:
       <div class="command-block">
         <div class="command-pair">
           <div class="command-label">Drift</div>
-          <div class="command-value drift-value"><span class="drift-badge pill {drift_pill_cls}">{escape(dashboard["drift_state"])}</span><span class="drift-copy">{_highlight_drift_reason(dashboard["drift_reason"])}</span></div>
+          <div class="drift-block">
+            <div class="drift-state {escape(dashboard["drift_state"].lower())}">{escape(dashboard["drift_state"])}</div>
+            <div class="drift-copy">{_highlight_drift_reason(dashboard["drift_reason"])}</div>
+          </div>
         </div>
       </div>
     </section>

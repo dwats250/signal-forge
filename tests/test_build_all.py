@@ -97,7 +97,7 @@ class BuildSiteTests(unittest.TestCase):
             self.assertIn("Key Signals Strip", index_html)
             self.assertIn('href="latest_sunday.html"', index_html)
             self.assertIn('href="latest_premarket.pdf"', index_html)
-            self.assertRegex(index_html, r'<span class="drift-badge pill pill-(stable|emerging|building)">(Stable|Emerging|Building)</span>')
+            self.assertRegex(index_html, r'<div class="drift-state (stable|emerging|building)">(Stable|Emerging|Building)</div>')
             self.assertLess(index_html.index("Risk</div>"), index_html.index("Latest Reports"))
             self.assertLess(index_html.index("Trigger</div>"), index_html.index("Posture</div>"))
             self.assertLess(index_html.index("Trigger</div>"), index_html.index("Invalidation</div>"))
