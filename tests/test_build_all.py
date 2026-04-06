@@ -13,6 +13,11 @@ class BuildSiteTests(unittest.TestCase):
         report_data = {
             "date": "2026-04-04",
             "generated_line": "Report Generated at 9:00 AM PDT — 2026-04-04",
+            "state_summary": {
+                "market_posture": "Mixed",
+                "market_quality": "Fragile",
+            },
+            "no_setups": True,
         }
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -34,23 +39,56 @@ class BuildSiteTests(unittest.TestCase):
             latest_premarket_pdf.write_bytes(b"%PDF-premarket")
             latest_sunday_html.write_text("<html>sunday</html>", encoding="utf-8")
             latest_sunday_pdf.write_bytes(b"%PDF-sunday")
+            market_cache = Path(tmpdir) / "market_data.latest.json"
+            sunday_cache = Path(tmpdir) / "sunday_market.latest.json"
+            market_cache.write_text(
+                """{
+  "data": {
+    "SPY": {"day_chg": 0.2, "price": 1},
+    "QQQ": {"day_chg": 0.4, "price": 1},
+    "DXY": {"day_chg": 0.0, "price": 100.0},
+    "US10Y": {"day_chg": -0.6, "price": 4.3},
+    "VIX": {"day_chg": -2.0, "price": 24.0},
+    "WTI": {"day_chg": 0.8, "price": 112.0},
+    "GOLD": {"day_chg": -0.4, "price": 4600.0},
+    "BTC": {"day_chg": 1.8, "price": 69000.0}
+  }
+}""",
+                encoding="utf-8",
+            )
+            sunday_cache.write_text(
+                """{
+  "data": {
+    "WTI": {"week_chg": 10.0}
+  }
+}""",
+                encoding="utf-8",
+            )
 
             with patch.object(build_all, "SITE_DIR", site_dir):
                 with patch.object(build_all.morning_edge, "ARCHIVE_DIR", archive_dir):
                     with patch.object(build_all.morning_edge, "LIVE_HTML_PATH", rendered):
-                        with patch.object(build_all.morning_edge, "LATEST_HTML_PATH", latest_premarket_html):
-                            with patch.object(build_all.morning_edge, "LATEST_PDF_PATH", latest_premarket_pdf):
-                                with patch.object(build_all.sunday_report, "LATEST_HTML_PATH", latest_sunday_html):
-                                    with patch.object(build_all.sunday_report, "LATEST_PDF_PATH", latest_sunday_pdf):
-                                        with patch("reports.build_all.morning_edge.run_report", return_value=report_data) as run_mock:
-                                            build_all.build_site()
+                        with patch.object(build_all.morning_edge, "MARKET_CACHE_PATH", market_cache):
+                            with patch.object(build_all.morning_edge, "LATEST_HTML_PATH", latest_premarket_html):
+                                with patch.object(build_all.morning_edge, "LATEST_PDF_PATH", latest_premarket_pdf):
+                                    with patch.object(build_all.sunday_report, "MARKET_CACHE_PATH", sunday_cache):
+                                        with patch.object(build_all.sunday_report, "LATEST_HTML_PATH", latest_sunday_html):
+                                            with patch.object(build_all.sunday_report, "LATEST_PDF_PATH", latest_sunday_pdf):
+                                                with patch("reports.build_all.morning_edge.run_report", return_value=report_data) as run_mock:
+                                                    build_all.build_site()
             run_mock.assert_called_once()
             self.assertTrue((site_dir / "latest_premarket.html").exists())
             self.assertTrue((site_dir / "latest_premarket.pdf").exists())
             self.assertTrue((site_dir / "latest_sunday.html").exists())
             self.assertTrue((site_dir / "latest_sunday.pdf").exists())
-            self.assertIn('href="latest_sunday.html"', (site_dir / "index.html").read_text(encoding="utf-8"))
-            self.assertIn('href="latest_premarket.pdf"', (site_dir / "index.html").read_text(encoding="utf-8"))
+            index_html = (site_dir / "index.html").read_text(encoding="utf-8")
+            self.assertIn("RISK:", index_html)
+            self.assertIn("POSTURE:", index_html)
+            self.assertIn("What Matters Now", index_html)
+            self.assertIn("Key Signals Strip", index_html)
+            self.assertIn('href="latest_sunday.html"', index_html)
+            self.assertIn('href="latest_premarket.pdf"', index_html)
+            self.assertLess(index_html.index("RISK:"), index_html.index("Latest Reports"))
 
 
 if __name__ == "__main__":

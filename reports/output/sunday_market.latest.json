@@ -1,12 +1,12 @@
 {
-  "cached_at": "2026-04-05T17:05:56.211099-07:00",
+  "cached_at": "2026-04-05T17:35:28.374584-07:00",
   "source": "yfinance",
   "data": {
     "DXY": {
-      "price": 100.25299835205078,
-      "day_chg": 0.22,
-      "week_chg": 0.1,
-      "formatted": "100.25",
+      "price": 100.02799987792969,
+      "day_chg": -0.0,
+      "week_chg": -0.12,
+      "formatted": "100.03",
       "is_yield": false
     },
     "US10Y": {
@@ -31,38 +31,38 @@
       "is_yield": false
     },
     "USDJPY": {
-      "price": 159.76199340820312,
-      "day_chg": 0.17,
-      "week_chg": -0.29,
-      "formatted": "\u00a5159.76",
+      "price": 159.73500061035156,
+      "day_chg": 0.15,
+      "week_chg": -0.31,
+      "formatted": "\u00a5159.74",
       "is_yield": false
     },
     "WTI": {
-      "price": 114.22000122070312,
-      "day_chg": 2.4,
-      "week_chg": 14.63,
-      "formatted": "$114.22",
+      "price": 112.45999908447266,
+      "day_chg": 0.82,
+      "week_chg": 12.87,
+      "formatted": "$112.46",
       "is_yield": false
     },
     "BRENT": {
-      "price": 111.68000030517578,
-      "day_chg": 2.43,
-      "week_chg": -0.79,
-      "formatted": "$111.68",
+      "price": 110.69999694824219,
+      "day_chg": 1.53,
+      "week_chg": -1.66,
+      "formatted": "$110.70",
       "is_yield": false
     },
     "GOLD": {
-      "price": 4640.10009765625,
-      "day_chg": -0.25,
-      "week_chg": 3.3,
-      "formatted": "$4640.10",
+      "price": 4642.10009765625,
+      "day_chg": -0.2,
+      "week_chg": 3.34,
+      "formatted": "$4642.10",
       "is_yield": false
     },
     "SILVER": {
-      "price": 71.80000305175781,
-      "day_chg": -1.29,
-      "week_chg": 3.24,
-      "formatted": "$71.80",
+      "price": 72.15499877929688,
+      "day_chg": -0.8,
+      "week_chg": 3.75,
+      "formatted": "$72.15",
       "is_yield": false
     },
     "SPY": {
@@ -87,10 +87,10 @@
       "is_yield": false
     },
     "BTC": {
-      "price": 69288.609375,
-      "day_chg": 2.97,
-      "week_chg": 1.55,
-      "formatted": "$69,289",
+      "price": 69254.5,
+      "day_chg": 2.92,
+      "week_chg": 1.5,
+      "formatted": "$69,254",
       "is_yield": false
     },
     "XLE": {
