@@ -52,22 +52,29 @@ def _arrow(change: float | None) -> str:
     return "→"
 
 
+def _price(entry: dict | None) -> float | None:
+    if not entry:
+        return None
+    value = entry.get("price")
+    return value if isinstance(value, (int, float)) else None
+
+
 def _regime_state(report_data: dict, market_data: dict) -> tuple[str, str]:
     state_summary = report_data.get("state_summary", {})
     posture = state_summary.get("market_posture", "Mixed")
     quality = state_summary.get("market_quality", "Mixed")
-    vix = market_data.get("VIX", {}).get("price")
+    us10y = _price(market_data.get("US10Y"))
     spy_chg = _change(market_data.get("SPY"))
 
     if posture == "Bullish" and quality == "Calm":
         return "Risk On", "positive"
     if posture == "Bearish":
         return "Risk Off", "negative"
-    if quality == "Fragile" or (isinstance(vix, (int, float)) and vix >= 22):
-        return "Mixed -> Defensive tilt", "warning"
+    if quality == "Fragile" or (isinstance(us10y, (int, float)) and us10y >= 4.2):
+        return "Range-bound -> Defensive bias", "warning"
     if isinstance(spy_chg, (int, float)) and spy_chg > 0:
-        return "Mixed -> Constructive tilt", "neutral"
-    return "Mixed", "neutral"
+        return "Range-bound -> Constructive bias", "neutral"
+    return "Range-bound", "neutral"
 
 
 def _driver_text(market_data: dict) -> str:
@@ -75,22 +82,26 @@ def _driver_text(market_data: dict) -> str:
     us10y_chg = _change(market_data.get("US10Y"))
     dxy_chg = _change(market_data.get("DXY"))
     vix_chg = _change(market_data.get("VIX"))
+    us10y = _price(market_data.get("US10Y"))
+    dxy = _price(market_data.get("DXY"))
 
-    if isinstance(wti_chg, (int, float)) and abs(wti_chg) >= 0.4 and isinstance(us10y_chg, (int, float)) and abs(us10y_chg) >= 0.4:
-        oil = "Oil strength" if wti_chg > 0 else "Oil weakness"
-        yields = "rising yields" if us10y_chg > 0 else "falling yields"
-        return f"{oil} vs {yields}"
-    if isinstance(dxy_chg, (int, float)) and abs(dxy_chg) >= 0.2 and isinstance(us10y_chg, (int, float)) and abs(us10y_chg) >= 0.4:
-        dollar = "Dollar strength" if dxy_chg > 0 else "Dollar weakness"
-        yields = "rising yields" if us10y_chg > 0 else "falling yields"
-        return f"{dollar} with {yields}"
+    if isinstance(us10y, (int, float)) and us10y >= 4.3:
+        return "US10Y holding above 4.3% keeps risk pinned"
+    if isinstance(us10y_chg, (int, float)) and us10y_chg > 0.4:
+        return "Rising yields are capping risk appetite"
+    if isinstance(dxy, (int, float)) and dxy >= 100.5:
+        return "Firm dollar is leaning against cyclicals and metals"
+    if isinstance(dxy_chg, (int, float)) and dxy_chg > 0.2:
+        return "Dollar strength is tightening financial conditions"
+    if isinstance(wti_chg, (int, float)) and wti_chg > 0.4:
+        return "Oil strength is carrying energy leadership"
+    if isinstance(wti_chg, (int, float)) and wti_chg < -0.4:
+        return "Oil pullback is weakening energy leadership"
     if isinstance(vix_chg, (int, float)) and abs(vix_chg) >= 1.0:
-        return "Volatility easing" if vix_chg < 0 else "Volatility expansion"
-    if isinstance(wti_chg, (int, float)) and abs(wti_chg) >= 0.4:
-        return "Oil strength" if wti_chg > 0 else "Oil weakness"
-    if isinstance(us10y_chg, (int, float)) and abs(us10y_chg) >= 0.4:
-        return "Rising yields" if us10y_chg > 0 else "Falling yields"
-    return "Cross-asset mixed signals"
+        return "Falling VIX is easing stress, not confirming momentum" if vix_chg < 0 else "Rising VIX is lifting execution risk"
+    if isinstance(us10y_chg, (int, float)) and us10y_chg < -0.4:
+        return "Yields are easing, but risk has not broken free"
+    return "Rates remain the primary trading constraint"
 
 
 def _confidence_text(report_data: dict, market_data: dict) -> str:
@@ -109,26 +120,42 @@ def _execution_posture(report_data: dict, market_data: dict) -> tuple[str, str, 
     wti_chg = _change(market_data.get("WTI"))
     gold_chg = _change(market_data.get("GOLD"))
     qqq_chg = _change(market_data.get("QQQ"))
+    us10y = _price(market_data.get("US10Y"))
+    vix = _price(market_data.get("VIX"))
 
-    if quality == "Fragile" and no_setups:
+    if quality == "Fragile" and no_setups and isinstance(vix, (int, float)) and vix >= 24:
+        posture = "No trade"
+    elif quality == "Fragile" and no_setups:
         posture = "Defensive"
     elif not no_setups and quality == "Calm":
         posture = "Aggressive"
     else:
         posture = "Selective"
 
-    focus_parts: list[str] = []
-    if isinstance(wti_chg, (int, float)) and wti_chg > 0.3:
-        focus_parts.append("Energy continuation")
-    if isinstance(qqq_chg, (int, float)) and qqq_chg > 0.2:
-        focus_parts.append("watch growth follow-through")
-    if isinstance(gold_chg, (int, float)) and gold_chg < 0:
-        focus_parts.append("avoid metals weakness")
-    if not focus_parts:
-        focus_parts.append("wait for cleaner cross-asset alignment")
+    if posture == "No trade":
+        focus = "Stand down until yields or volatility break the current choke point"
+    elif posture == "Defensive":
+        if isinstance(us10y, (int, float)) and us10y >= 4.3:
+            focus = "Trade smaller and shorter-term until yields roll over"
+        else:
+            focus = "Protect capital and avoid conviction while cross-asset signals stay noisy"
+    elif posture == "Aggressive":
+        focus = "Press confirmed setups while volatility stays contained"
+    elif isinstance(us10y, (int, float)) and us10y >= 4.3:
+        focus = "Short-term trades only until yields break trend"
+    elif isinstance(wti_chg, (int, float)) and wti_chg > 0.3:
+        focus = "Lean into energy strength and avoid weak metals"
+    elif isinstance(qqq_chg, (int, float)) and qqq_chg > 0.2:
+        focus = "Favor growth follow-through only if rates stay contained"
+    elif isinstance(gold_chg, (int, float)) and gold_chg < 0:
+        focus = "Avoid fading metals weakness until dollar and yields soften"
+    else:
+        focus = "Wait for clearer alignment before adding index beta"
 
     tone = "negative" if posture == "Defensive" else "positive" if posture == "Aggressive" else "neutral"
-    return posture, ", ".join(focus_parts[:2]), tone
+    if posture == "No trade":
+        tone = "negative"
+    return posture, focus, tone
 
 
 def _what_matters_now(report_data: dict, market_data: dict, sunday_data: dict) -> list[str]:
@@ -138,27 +165,38 @@ def _what_matters_now(report_data: dict, market_data: dict, sunday_data: dict) -
     vix_chg = _change(market_data.get("VIX"))
     gold_chg = _change(market_data.get("GOLD"))
     btc_chg = _change(market_data.get("BTC"))
+    dxy_chg = _change(market_data.get("DXY"))
     sunday_wti = sunday_data.get("WTI", {}).get("week_chg")
+    us10y = _price(market_data.get("US10Y"))
 
-    if isinstance(wti_chg, (int, float)) and wti_chg > 0.3:
+    if isinstance(us10y, (int, float)) and us10y >= 4.3:
+        bullets.append("US10Y holding above 4.3% -> keeps pressure on risk assets")
+    elif isinstance(us10y_chg, (int, float)):
+        if us10y_chg > 0.4:
+            bullets.append("Yields pressing higher -> caps duration-sensitive upside")
+        elif us10y_chg < -0.4:
+            bullets.append("Yields easing -> relieves some pressure on growth, but does not confirm a clean breakout")
+
+    if len(bullets) < 3 and isinstance(dxy_chg, (int, float)) and dxy_chg > 0.2:
+        bullets.append("DXY firming -> keeps a headwind on metals and broad risk")
+
+    if len(bullets) < 3 and isinstance(wti_chg, (int, float)) and wti_chg > 0.3:
         if isinstance(sunday_wti, (int, float)) and sunday_wti > 5:
             bullets.append("Oil holding weekly momentum -> keeps energy leadership in play")
         else:
             bullets.append("Oil pushing higher -> supporting energy equities")
-    if isinstance(us10y_chg, (int, float)):
-        if us10y_chg > 0.4:
-            bullets.append("Yields pressing higher -> capping duration-sensitive upside")
-        elif us10y_chg < -0.4:
-            bullets.append("Yields easing -> reducing pressure on growth and broad index beta")
-    if isinstance(vix_chg, (int, float)):
+    elif len(bullets) < 3 and isinstance(wti_chg, (int, float)) and wti_chg < -0.3:
+        bullets.append("Oil pullback -> weakens energy leadership")
+
+    if len(bullets) < 3 and isinstance(vix_chg, (int, float)):
         if vix_chg < -1.0:
-            bullets.append("Volatility easing -> keeps downside urgency contained")
+            bullets.append("VIX falling -> no panic, but no momentum confirmation either")
         elif vix_chg > 1.0:
-            bullets.append("Volatility re-expanding -> argues for smaller size and tighter entries")
+            bullets.append("VIX rising -> argues for smaller size and tighter entries")
     if len(bullets) < 3 and isinstance(gold_chg, (int, float)) and gold_chg < 0:
-        bullets.append("Gold fading while oil firms -> inflation hedges are not moving in sync")
+        bullets.append("Gold slipping -> safe-haven demand is not bailing out weak risk tone")
     if len(bullets) < 3 and isinstance(btc_chg, (int, float)) and btc_chg > 1.0:
-        bullets.append("BTC firming with calmer vol -> speculative risk appetite is stabilizing")
+        bullets.append("BTC firming -> speculative appetite is stabilizing at the margin")
 
     return bullets[:3]
 
@@ -185,9 +223,12 @@ def _build_dashboard_data(report_data: dict) -> dict:
     posture, focus, posture_tone = _execution_posture(report_data, market_data)
     return {
         "generated_line": report_data.get("generated_line", ""),
-        "regime_line": f"RISK: {regime} | DRIVER: {_driver_text(market_data)} | CONFIDENCE: {_confidence_text(report_data, market_data)}",
+        "risk_value": regime,
+        "driver_value": _driver_text(market_data),
+        "confidence_value": _confidence_text(report_data, market_data),
         "regime_tone": regime_tone,
-        "posture_line": f"POSTURE: {posture} | Focus: {focus}",
+        "posture_value": posture,
+        "focus_value": focus,
         "posture_tone": posture_tone,
         "what_matters_now": _what_matters_now(report_data, market_data, sunday_data),
         "signals_line": _key_signals(market_data),
@@ -280,11 +321,6 @@ def _render_dashboard_html(dashboard: dict) -> str:
     height: 1px;
     background: var(--border);
   }}
-  .command-line {{
-    font-size: clamp(1rem, 0.94rem + 0.45vw, 1.24rem);
-    font-weight: 700;
-    line-height: 1.45;
-  }}
   .prominent {{
     padding-top: 16px;
     padding-bottom: 16px;
@@ -294,6 +330,27 @@ def _render_dashboard_html(dashboard: dict) -> str:
   .tone-warning {{ border-color: rgba(230, 180, 74, 0.35); }}
   .tone-negative {{ border-color: rgba(240, 107, 107, 0.35); }}
   .tone-neutral {{ border-color: var(--border); }}
+  .command-block {{
+    display: grid;
+    gap: 12px;
+  }}
+  .command-pair {{
+    display: grid;
+    gap: 2px;
+  }}
+  .command-label {{
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }}
+  .command-value {{
+    font-size: clamp(1rem, 0.94rem + 0.42vw, 1.18rem);
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text);
+  }}
   .what-matters {{
     list-style: none;
     display: flex;
@@ -381,7 +438,8 @@ def _render_dashboard_html(dashboard: dict) -> str:
     .page {{ padding-left: 16px; padding-right: 16px; gap: 12px; }}
     .reports-grid {{ grid-template-columns: 1fr; }}
     .card {{ padding: 16px; }}
-    .command-line, .signals-strip {{ font-size: 0.94rem; }}
+    .command-block {{ gap: 10px; }}
+    .command-value, .signals-strip {{ font-size: 0.94rem; }}
   }}
 </style>
 </head>
@@ -393,11 +451,33 @@ def _render_dashboard_html(dashboard: dict) -> str:
     </header>
 
     <section class="card prominent tone-{dashboard["regime_tone"]}">
-      <div class="command-line">{escape(dashboard["regime_line"])}</div>
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Risk</div>
+          <div class="command-value">{escape(dashboard["risk_value"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Driver</div>
+          <div class="command-value">{escape(dashboard["driver_value"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Confidence</div>
+          <div class="command-value">{escape(dashboard["confidence_value"])}</div>
+        </div>
+      </div>
     </section>
 
     <section class="card tone-{dashboard["posture_tone"]}">
-      <div class="command-line">{escape(dashboard["posture_line"])}</div>
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Posture</div>
+          <div class="command-value">{escape(dashboard["posture_value"])}</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Focus</div>
+          <div class="command-value">{escape(dashboard["focus_value"])}</div>
+        </div>
+      </div>
     </section>
 
     <section class="card">

@@ -82,13 +82,16 @@ class BuildSiteTests(unittest.TestCase):
             self.assertTrue((site_dir / "latest_sunday.html").exists())
             self.assertTrue((site_dir / "latest_sunday.pdf").exists())
             index_html = (site_dir / "index.html").read_text(encoding="utf-8")
-            self.assertIn("RISK:", index_html)
-            self.assertIn("POSTURE:", index_html)
+            self.assertIn("Risk</div>", index_html)
+            self.assertIn("Driver</div>", index_html)
+            self.assertIn("Confidence</div>", index_html)
+            self.assertIn("Posture</div>", index_html)
+            self.assertIn("Focus</div>", index_html)
             self.assertIn("What Matters Now", index_html)
             self.assertIn("Key Signals Strip", index_html)
             self.assertIn('href="latest_sunday.html"', index_html)
             self.assertIn('href="latest_premarket.pdf"', index_html)
-            self.assertLess(index_html.index("RISK:"), index_html.index("Latest Reports"))
+            self.assertLess(index_html.index("Risk</div>"), index_html.index("Latest Reports"))
 
 
 if __name__ == "__main__":

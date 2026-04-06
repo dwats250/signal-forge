@@ -79,11 +79,6 @@
     height: 1px;
     background: var(--border);
   }
-  .command-line {
-    font-size: clamp(1rem, 0.94rem + 0.45vw, 1.24rem);
-    font-weight: 700;
-    line-height: 1.45;
-  }
   .prominent {
     padding-top: 16px;
     padding-bottom: 16px;
@@ -93,6 +88,27 @@
   .tone-warning { border-color: rgba(230, 180, 74, 0.35); }
   .tone-negative { border-color: rgba(240, 107, 107, 0.35); }
   .tone-neutral { border-color: var(--border); }
+  .command-block {
+    display: grid;
+    gap: 12px;
+  }
+  .command-pair {
+    display: grid;
+    gap: 2px;
+  }
+  .command-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .command-value {
+    font-size: clamp(1rem, 0.94rem + 0.42vw, 1.18rem);
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text);
+  }
   .what-matters {
     list-style: none;
     display: flex;
@@ -180,7 +196,8 @@
     .page { padding-left: 16px; padding-right: 16px; gap: 12px; }
     .reports-grid { grid-template-columns: 1fr; }
     .card { padding: 16px; }
-    .command-line, .signals-strip { font-size: 0.94rem; }
+    .command-block { gap: 10px; }
+    .command-value, .signals-strip { font-size: 0.94rem; }
   }
 </style>
 </head>
@@ -188,29 +205,51 @@
   <main class="page">
     <header class="header">
       <h1>Signal <span>Forge</span></h1>
-      <span class="ts">Report Generated at 7:27 PM PDT — 2026-04-05</span>
+      <span class="ts">Report Generated at 7:38 PM PDT — 2026-04-05</span>
     </header>
 
     <section class="card prominent tone-warning">
-      <div class="command-line">RISK: Mixed -&gt; Defensive tilt | DRIVER: Volatility easing | CONFIDENCE: Medium</div>
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Risk</div>
+          <div class="command-value">Range-bound -&gt; Defensive bias</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Driver</div>
+          <div class="command-value">US10Y holding above 4.3% keeps risk pinned</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Confidence</div>
+          <div class="command-value">Medium</div>
+        </div>
+      </div>
     </section>
 
     <section class="card tone-negative">
-      <div class="command-line">POSTURE: Defensive | Focus: wait for cleaner cross-asset alignment</div>
+      <div class="command-block">
+        <div class="command-pair">
+          <div class="command-label">Posture</div>
+          <div class="command-value">Defensive</div>
+        </div>
+        <div class="command-pair">
+          <div class="command-label">Focus</div>
+          <div class="command-value">Trade smaller and shorter-term until yields roll over</div>
+        </div>
+      </div>
     </section>
 
     <section class="card">
       <div class="card-title">What Matters Now</div>
       <ul class="what-matters">
-        <li>Yields easing -&gt; reducing pressure on growth and broad index beta</li>
-        <li>Volatility easing -&gt; keeps downside urgency contained</li>
-        <li>BTC firming with calmer vol -&gt; speculative risk appetite is stabilizing</li>
+        <li>US10Y holding above 4.3% -&gt; keeps pressure on risk assets</li>
+        <li>Oil pullback -&gt; weakens energy leadership</li>
+        <li>VIX falling -&gt; no panic, but no momentum confirmation either</li>
       </ul>
     </section>
 
     <section class="card">
       <div class="card-title">Key Signals Strip</div>
-      <div class="signals-strip">DXY → | US10Y ↓ | VIX ↓ | Oil ↑ | Gold ↑ | BTC ↑</div>
+      <div class="signals-strip">DXY → | US10Y ↓ | VIX ↓ | Oil ↓ | Gold ↑ | BTC ↑</div>
     </section>
 
     <section class="card">
