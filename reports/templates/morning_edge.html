@@ -101,6 +101,71 @@
     background: var(--border);
   }
 
+  /* ── Report center ── */
+  .reports-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .report-card {
+    background: linear-gradient(180deg, rgba(91, 151, 229, 0.08), rgba(29, 35, 48, 0.96));
+    border: 1px solid rgba(91, 151, 229, 0.2);
+  }
+  .report-label {
+    font-size: 1.14rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .report-copy {
+    color: var(--text-muted);
+    font-size: 0.96rem;
+    line-height: 1.62;
+    margin-bottom: 14px;
+  }
+  .report-meta {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+    margin-bottom: 14px;
+  }
+  .report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .report-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 112px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, color 120ms ease;
+  }
+  .report-link.primary {
+    color: #08101C;
+    background: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .report-link.secondary {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+  }
+  .report-link:hover {
+    transform: translateY(-1px);
+  }
+  .report-link.secondary:hover {
+    border-color: rgba(91, 151, 229, 0.45);
+    color: var(--accent);
+  }
+
   /* ── TIER 1: Thesis ── */
   .thesis-card {
     padding-top: 18px;
@@ -571,6 +636,12 @@
     .inventory-note,
     .appendix-note,
     .miner-val { font-size: 0.94rem; line-height: 1.64; }
+    .reports-grid { grid-template-columns: 1fr; gap: 12px; }
+    .report-label { font-size: 1.04rem; }
+    .report-copy { font-size: 0.94rem; margin-bottom: 12px; }
+    .report-meta { font-size: 0.76rem; margin-bottom: 12px; }
+    .report-actions { gap: 8px; }
+    .report-link { flex: 1 1 0; min-width: 0; }
     .plumbing-note { padding: 11px 0 0; }
     .context-copy { padding: 12px 13px; margin-top: 4px; }
     .directive-line { font-size: 0.9rem; }
@@ -649,6 +720,30 @@
     <h1>Morning <span>Macro</span> Edge</h1>
     <span class="ts">{{ generated_line }}</span>
   </header>
+
+  <section class="card">
+    <div class="card-title">Latest Reports</div>
+    <div class="reports-grid">
+      <article class="card report-card">
+        <div class="report-label">Sunday Report</div>
+        <div class="report-copy">Weekly macro regime, themes, risks, and execution posture</div>
+        <div class="report-meta">Latest stable output</div>
+        <div class="report-actions">
+          <a class="report-link primary" href="latest_sunday.html">Open HTML</a>
+          <a class="report-link secondary" href="latest_sunday.pdf">Open PDF</a>
+        </div>
+      </article>
+      <article class="card report-card">
+        <div class="report-label">Premarket Report</div>
+        <div class="report-copy">Daily market posture, what matters today, and execution context</div>
+        <div class="report-meta">Latest stable output</div>
+        <div class="report-actions">
+          <a class="report-link primary" href="latest_premarket.html">Open HTML</a>
+          <a class="report-link secondary" href="latest_premarket.pdf">Open PDF</a>
+        </div>
+      </article>
+    </div>
+  </section>
 
   <!-- TIER 1: Decision Strip -->
   <section class="card thesis-card">

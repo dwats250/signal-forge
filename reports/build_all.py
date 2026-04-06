@@ -7,11 +7,19 @@ import os
 import shutil
 from pathlib import Path
 
-from reports import morning_edge
+from reports import morning_edge, sunday_report
 from reports.report_lifecycle import vancouver_date_str
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 SITE_DIR = ROOT_DIR / "_site"
+
+
+def _copy_if_exists(src: Path, dst: Path) -> bool:
+    if not src.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+    return True
 
 
 def _write_archive_index(report_data: dict) -> Path:
@@ -144,7 +152,7 @@ def build_site() -> Path:
     offline = not bool(os.environ.get("ANTHROPIC_API_KEY"))
     if offline:
         print("ANTHROPIC_API_KEY not set — using stub narrative.")
-    report_data = morning_edge.run_report(offline=offline, with_pdf=False)
+    report_data = morning_edge.run_report(offline=offline, with_pdf=True)
     html_path = morning_edge.LIVE_HTML_PATH
 
     archive_matches = sorted(morning_edge.ARCHIVE_DIR.glob(f"premarket_{vancouver_date_str()}" + "*.html"))
@@ -153,6 +161,10 @@ def build_site() -> Path:
     site_archive_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(html_path, SITE_DIR / "index.html")
     shutil.copy2(html_path, SITE_DIR / "morning_edge.html")
+    _copy_if_exists(morning_edge.LATEST_HTML_PATH, SITE_DIR / "latest_premarket.html")
+    _copy_if_exists(morning_edge.LATEST_PDF_PATH, SITE_DIR / "latest_premarket.pdf")
+    _copy_if_exists(sunday_report.LATEST_HTML_PATH, SITE_DIR / "latest_sunday.html")
+    _copy_if_exists(sunday_report.LATEST_PDF_PATH, SITE_DIR / "latest_sunday.pdf")
     if archive_src is not None:
         shutil.copy2(archive_src, site_archive_dir / archive_src.name)
     _write_archive_index(report_data)
