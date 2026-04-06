@@ -1,6 +1,8 @@
 # DEV LOG
 
 - Workflow initialized.
+- 2026-04-05: tightened report operations by adding US market holiday-aware premarket scheduling, portable `latest_*` output pointers, and docs that prefer cron/systemd one-shot scheduling over a Python daemon loop.
+- 2026-04-05: added safe report lifecycle helpers plus thin Sunday/Daily scheduling wrappers so live report outputs promote atomically, prior successful HTML/PDF artifacts rotate into dated archives, and manual CLI entrypoints stay intact.
 - 2026-04-01: Completed NEXT_STEPS Phase 1 only by adding the `DislocatonReading`
   contract and a `DislocationFetcher` stub that returns hardcoded futures/ETF percent
   moves following the existing stub pattern. No Phase 2+ engine, tests, pipeline, or

@@ -91,3 +91,32 @@ cd _site && python3 -m http.server 8000
 ```
 
 Then open `http://localhost:8000`.
+
+## Report Operations
+
+Preferred stable report references:
+
+- `reports/output/latest_premarket.html`
+- `reports/output/latest_premarket.pdf`
+- `reports/output/latest_sunday.html`
+- `reports/output/latest_sunday.pdf`
+
+Canonical live outputs remain:
+
+- `reports/output/premarket.html`
+- `reports/output/premarket.pdf`
+- `reports/output/sunday_report.html`
+- `reports/output/sunday_report.pdf`
+
+Operational notes:
+
+- Daily premarket generation respects US market holidays and skips non-trading weekdays.
+- Production scheduling should use external one-shot invocations via `cron` or `systemd` timers.
+- `--schedule` remains available for local use, but is not the preferred production pattern.
+
+Example cron entries:
+
+```bash
+0 17 * * 0 cd ~/trading-system && python3 -m reports.run_sunday
+30 6 * * 1-5 cd ~/trading-system && python3 -m reports.run_premarket
+```

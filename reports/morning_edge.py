@@ -8,11 +8,13 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from zoneinfo import ZoneInfo
 
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarketDataClient
 
 # ── Paths ──────────────────────────────────────────────────────────────────
@@ -20,8 +22,12 @@ from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarke
 REPORTS_DIR = Path(__file__).parent
 TEMPLATE_DIR = REPORTS_DIR / "templates"
 OUTPUT_DIR = REPORTS_DIR / "output"
-ARCHIVE_DIR = REPORTS_DIR / "archive"
+ARCHIVE_DIR = REPORTS_DIR / "archive" / "daily"
 MARKET_CACHE_PATH = OUTPUT_DIR / "market_data.latest.json"
+LIVE_HTML_PATH = OUTPUT_DIR / "premarket.html"
+LIVE_PDF_PATH = OUTPUT_DIR / "premarket.pdf"
+LATEST_HTML_PATH = OUTPUT_DIR / "latest_premarket.html"
+LATEST_PDF_PATH = OUTPUT_DIR / "latest_premarket.pdf"
 
 # ── Ticker map ─────────────────────────────────────────────────────────────
 
@@ -657,38 +663,83 @@ def get_macro_bundle(*, offline: bool = False) -> dict:
 
 # ── Rendering ───────────────────────────────────────────────────────────────
 
-def render_html(report_data: dict) -> Path:
+def render_html(report_data: dict, out_path: Path | None = None, *, archive_mode: bool = False) -> Path:
     env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=True)
     env.filters["highlight_tickers"] = _highlight_tickers_filter
     template = env.get_template("morning_edge.html")
-    html_content = template.render(**report_data)
-    archive_report_data = {**report_data, "archive_href": "index.html"}
-    archive_html_content = template.render(**archive_report_data)
+    render_data = {**report_data}
+    if archive_mode:
+        render_data["archive_href"] = "index.html"
+    html_content = template.render(**render_data)
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = OUTPUT_DIR / "morning_edge.html"
+    if out_path is None:
+        out_path = LIVE_HTML_PATH
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html_content, encoding="utf-8")
-
-    # Archive copy
-    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    archive_path = ARCHIVE_DIR / f"{report_data['date']}.html"
-    archive_path.write_text(archive_html_content, encoding="utf-8")
 
     return out_path
 
 
-def render_pdf(html_path: Path) -> Path:
-    import shutil
+def render_pdf(html_path: Path, out_path: Path | None = None) -> Path:
     from weasyprint import HTML
 
-    pdf_path = OUTPUT_DIR / "morning_edge.pdf"
+    pdf_path = LIVE_PDF_PATH if out_path is None else out_path
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
     HTML(filename=str(html_path)).write_pdf(str(pdf_path))
-
-    # Archive copy
-    ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy(str(pdf_path), str(ARCHIVE_DIR / f"{datetime.now().strftime('%Y-%m-%d')}.pdf"))
-
     return pdf_path
+
+
+def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
+    print("=" * 60)
+    print("Morning Macro Edge — Report Generator")
+    print("=" * 60)
+
+    report_data = get_macro_bundle(offline=offline)
+
+    with TemporaryDirectory(prefix="premarket-report-") as tmpdir:
+        temp_dir = Path(tmpdir)
+        html_temp_path = temp_dir / LIVE_HTML_PATH.name
+        pdf_temp_path = temp_dir / LIVE_PDF_PATH.name
+
+        try:
+            render_html(report_data, out_path=html_temp_path)
+        except Exception as exc:
+            print(f"[FAIL] Daily Premarket Report generation failed: {exc}")
+            raise
+        print(f"[OK] Generated Daily Premarket Report HTML -> {html_temp_path}")
+
+        pdf_generated = False
+        if with_pdf:
+            try:
+                render_pdf(html_temp_path, out_path=pdf_temp_path)
+            except Exception as exc:
+                print(f"[FAIL] Daily Premarket Report PDF generation failed: {exc}")
+            else:
+                pdf_generated = True
+                print(f"[OK] Generated Daily Premarket Report PDF -> {pdf_temp_path}")
+
+        promote_report_artifact(
+            report_label="Daily Premarket Report HTML",
+            live_path=LIVE_HTML_PATH,
+            archive_dir=ARCHIVE_DIR,
+            archive_prefix="premarket",
+            temp_path=html_temp_path,
+            latest_pointer_path=LATEST_HTML_PATH,
+        )
+
+        if pdf_generated:
+            promote_report_artifact(
+                report_label="Daily Premarket Report PDF",
+                live_path=LIVE_PDF_PATH,
+                archive_dir=ARCHIVE_DIR,
+                archive_prefix="premarket",
+                temp_path=pdf_temp_path,
+                latest_pointer_path=LATEST_PDF_PATH,
+            )
+
+    print("=" * 60)
+    print(f"Done. Thesis: {report_data['thesis']}")
+    return report_data
 
 
 # ── Main ────────────────────────────────────────────────────────────────────
@@ -699,22 +750,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--offline", action="store_true", help="Skip Claude API, use stub narrative")
     parser.add_argument("--no-pdf", action="store_true", help="Skip PDF rendering")
     args = parser.parse_args(argv)
-
-    print("=" * 60)
-    print("Morning Macro Edge — Report Generator")
-    print("=" * 60)
-
-    report_data = get_macro_bundle(offline=args.offline)
-
-    html_path = render_html(report_data)
-    print(f"HTML: {html_path}")
-
-    if not args.no_pdf:
-        pdf_path = render_pdf(html_path)
-        print(f"PDF:  {pdf_path}")
-
-    print("=" * 60)
-    print(f"Done. Thesis: {report_data['thesis']}")
+    run_report(offline=args.offline, with_pdf=not args.no_pdf)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sunday Report — Week of {{ week_of }}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:           #0F1218;
+    --bg-card:      #171B23;
+    --bg-card2:     #1D2330;
+    --border:       #2A3140;
+    --accent:       #5B97E5;
+    --accent-gold:  #E6B44A;
+    --accent-green: #3FD37A;
+    --accent-red:   #F06B6B;
+    --text:         #EDF1F7;
+    --text-muted:   #A8B2C3;
+    --text-dim:     #7C879A;
+    --tag-high:      #7F1D1D;
+    --tag-high-text: #FCA5A5;
+    --tag-med:       #78350F;
+    --tag-med-text:  #FCD34D;
+    --page-max:     1200px;
+    --page-pad-x:   24px;
+    --page-pad-y:   22px;
+    --card-radius:  12px;
+    --card-pad:     20px;
+    --gap:          18px;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.62;
+    min-height: 100vh;
+  }
+
+  .page {
+    width: min(100%, var(--page-max));
+    margin: 0 auto;
+    padding: var(--page-pad-y) var(--page-pad-x) 48px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+  }
+
+  /* ── Card base ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: var(--card-pad);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+  }
+  .card-title {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .header h1 {
+    font-size: clamp(1.6rem, 1.3rem + 1vw, 2.3rem);
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+  }
+  .header h1 span { color: var(--accent); }
+  .header-week {
+    font-size: 1.0rem;
+    font-weight: 600;
+    color: var(--accent-gold);
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+  .header-ts {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-align: right;
+    padding-top: 4px;
+    line-height: 1.7;
+  }
+
+  /* ── Regime + Quality grid ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap);
+  }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  /* Regime card */
+  .regime-badge {
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .regime-badge.risk-on  { color: var(--accent-green); }
+  .regime-badge.mixed    { color: var(--accent-gold); }
+  .regime-badge.risk-off { color: var(--accent-red); }
+
+  .conf-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .conf-HIGH   { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
+  .conf-MEDIUM { background: rgba(230,180,74,0.15);  color: var(--accent-gold);  border: 1px solid rgba(230,180,74,0.3); }
+  .conf-LOW    { background: rgba(168,178,195,0.1);  color: var(--text-muted);   border: 1px solid rgba(168,178,195,0.2); }
+
+  .driver-row {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .driver-row span { color: var(--accent); }
+
+  .regime-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .regime-bullets li {
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .regime-bullets li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--text-dim);
+  }
+
+  /* Quality card */
+  .quality-badge {
+    font-size: 1.42rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .quality-CLEAN   { color: var(--accent-green); }
+  .quality-MIXED   { color: var(--accent-gold); }
+  .quality-CHAOTIC { color: var(--accent-red); }
+
+  .posture-row {
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 14px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    display: inline-block;
+  }
+  .posture-aggressive { background: rgba(63,211,122,0.1);  color: var(--accent-green); border: 1px solid rgba(63,211,122,0.25); }
+  .posture-selective  { background: rgba(91,151,229,0.1);  color: var(--accent);       border: 1px solid rgba(91,151,229,0.25); }
+  .posture-reduce     { background: rgba(230,180,74,0.1);  color: var(--accent-gold);  border: 1px solid rgba(230,180,74,0.25); }
+  .posture-notrade    { background: rgba(240,107,107,0.1); color: var(--accent-red);   border: 1px solid rgba(240,107,107,0.25); }
+
+  .quality-signals {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .qs-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 10px;
+    background: var(--bg-card2);
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    font-size: 0.82rem;
+  }
+  .qs-label {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    min-width: 130px;
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .qs-signal { color: var(--text); flex: 1; line-height: 1.4; }
+  .qs-positive { border-left: 3px solid var(--accent-green); }
+  .qs-negative { border-left: 3px solid var(--accent-red); }
+  .qs-neutral  { border-left: 3px solid rgba(168,178,195,0.3); }
+
+  /* ── Macro Snapshot ── */
+  .snapshot-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 880px) { .snapshot-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 500px) { .snapshot-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .snap-item {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 11px;
+  }
+  .snap-label {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .snap-value {
+    font-size: 1.0rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    margin-top: 3px;
+  }
+  .snap-chg {
+    font-size: 0.76rem;
+    font-weight: 700;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .snap-chg.up   { color: var(--accent-green); }
+  .snap-chg.down { color: var(--accent-red); }
+  .snap-chg.flat { color: var(--text-dim); }
+
+  .yc-band {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+    padding: 9px 13px;
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-wrap: wrap;
+  }
+  .yc-key {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .yc-spread {
+    font-size: 1.08rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .yc-spread.positive { color: var(--accent-green); }
+  .yc-spread.negative { color: var(--accent-red); }
+  .yc-spread.neutral  { color: var(--text); }
+  .yc-shape {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(168,178,195,0.08);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .yc-note {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  /* ── Cross-Asset ── */
+  .bullet-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bullet-list li {
+    font-size: 0.89rem;
+    color: var(--text-muted);
+    padding-left: 18px;
+    position: relative;
+    line-height: 1.55;
+  }
+  .bullet-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-size: 0.78rem;
+    top: 3px;
+  }
+
+  /* ── What Matters ── */
+  .wm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .wm-item {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 9px;
+    padding: 12px 14px;
+  }
+  .wm-title {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+  .wm-why {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    line-height: 1.5;
+  }
+  .wm-impl {
+    font-size: 0.83rem;
+    color: var(--accent-gold);
+    font-weight: 500;
+  }
+  .wm-impl::before { content: '→ '; }
+
+  /* ── Events ── */
+  .event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .event-row {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 12px;
+    row-gap: 4px;
+    align-items: baseline;
+    padding: 9px 12px;
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .ev-date {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .ev-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    grid-row: 1;
+    grid-column: 2;
+  }
+  .impact-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    grid-row: 1;
+    grid-column: 3;
+    align-self: center;
+  }
+  .impact-HIGH   { background: var(--tag-high); color: var(--tag-high-text); }
+  .impact-MEDIUM { background: var(--tag-med);  color: var(--tag-med-text); }
+  .ev-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    grid-row: 2;
+    grid-column: 1 / -1;
+    padding-left: 2px;
+  }
+
+  /* ── Themes ── */
+  .themes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .theme-card {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .theme-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 9px;
+    flex-wrap: wrap;
+  }
+  .theme-num {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-dim);
+    min-width: 18px;
+  }
+  .theme-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+  .bias-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 4px;
+  }
+  .bias-Bullish { background: rgba(63,211,122,0.15); color: var(--accent-green); border: 1px solid rgba(63,211,122,0.3); }
+  .bias-Bearish { background: rgba(240,107,107,0.15); color: var(--accent-red);  border: 1px solid rgba(240,107,107,0.3); }
+  .bias-Neutral { background: rgba(168,178,195,0.08); color: var(--text-muted);  border: 1px solid var(--border); }
+
+  .theme-logic {
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    margin-bottom: 9px;
+    line-height: 1.55;
+  }
+  .theme-invalid {
+    font-size: 0.79rem;
+    color: var(--accent-red);
+    font-weight: 500;
+    opacity: 0.85;
+  }
+  .theme-invalid::before { content: '✕  Invalidates if: '; }
+
+  /* ── Sector Focus ── */
+  .sector-tickers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 13px;
+  }
+  .sec-tick {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 62px;
+  }
+  .sec-tick-name  { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); }
+  .sec-tick-val   { font-size: 0.92rem; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .sec-tick-chg   { font-size: 0.72rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sec-tick-chg.up   { color: var(--accent-green); }
+  .sec-tick-chg.down { color: var(--accent-red); }
+  .sec-tick-chg.flat { color: var(--text-dim); }
+
+  .sec-paragraph {
+    font-size: 0.87rem;
+    color: var(--text-muted);
+    line-height: 1.62;
+    margin-bottom: 12px;
+  }
+  .sec-action {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    padding: 8px 12px;
+    background: rgba(230,180,74,0.07);
+    border: 1px solid rgba(230,180,74,0.2);
+    border-radius: 7px;
+  }
+  .sec-action::before { content: '→ '; }
+
+  /* ── Execution Playbook ── */
+  .playbook-list {
+    list-style: none;
+    counter-reset: playbook;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .playbook-list li {
+    counter-increment: playbook;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    padding: 10px 14px 10px 38px;
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .playbook-list li::before {
+    content: counter(playbook);
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Summary block ── */
+  .summary-inner {
+    background: var(--bg-card2);
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 18px 20px;
+  }
+  .sum-kv-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    align-items: baseline;
+  }
+  .sum-k {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    min-width: 56px;
+  }
+  .sum-v {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .sum-v.risk-on  { color: var(--accent-green); }
+  .sum-v.mixed    { color: var(--accent-gold); }
+  .sum-v.risk-off { color: var(--accent-red); }
+  .sum-v.posture-aggressive { color: var(--accent-green); }
+  .sum-v.posture-selective  { color: var(--accent); }
+  .sum-v.posture-reduce     { color: var(--accent-gold); }
+  .sum-v.posture-notrade    { color: var(--accent-red); }
+  .sum-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 12px 0;
+  }
+  .sum-section {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .sum-section-k {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    min-width: 110px;
+    padding-top: 2px;
+    flex-shrink: 0;
+  }
+  .sum-ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .sum-ul li {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .sum-ul li::before {
+    content: '·';
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1rem;
+    top: -1px;
+  }
+  .sum-risk {
+    font-size: 0.86rem;
+    color: var(--accent-red);
+    font-weight: 600;
+    flex: 1;
+  }
+
+  /* ── Ticker inline ── */
+  .ticker-inline {
+    color: var(--accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  {# ── HEADER ─────────────────────────────────────────────────────── #}
+  <header class="header">
+    <div>
+      <h1>Sunday <span>Report</span></h1>
+      <div class="header-week">Week of {{ date_range }}</div>
+    </div>
+    <div class="header-ts">{{ generated_line }}</div>
+  </header>
+
+  {# ── REGIME + QUALITY ────────────────────────────────────────────── #}
+  <div class="two-col">
+
+    {# Regime #}
+    <div class="card">
+      <div class="card-title">Market Regime</div>
+      {% set regime_cls = 'risk-on' if regime == 'RISK_ON' else 'risk-off' if regime == 'RISK_OFF' else 'mixed' %}
+      <div class="regime-badge {{ regime_cls }}">
+        {{ regime }}
+        <span class="conf-badge conf-{{ regime_confidence }}">{{ regime_confidence }}</span>
+      </div>
+      <div class="driver-row">Driver: <span>{{ regime_driver }}</span></div>
+      <ul class="regime-bullets">
+        {% for b in regime_bullets %}
+        <li>{{ b | highlight_tickers }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {# Quality #}
+    <div class="card">
+      <div class="card-title">Market Quality</div>
+      <div class="quality-badge quality-{{ quality }}">{{ quality }}</div>
+      {% set posture_cls = 'aggressive' if 'AGGRESSIVELY' in posture else 'selective' if 'SELECTIVELY' in posture else 'reduce' if 'REDUCE' in posture else 'notrade' %}
+      <div class="posture-row posture-{{ posture_cls }}">{{ posture }}</div>
+      <div class="quality-signals">
+        {% for qs in quality_signals %}
+        <div class="qs-row qs-{{ qs.tone }}">
+          <span class="qs-label">{{ qs.label }}</span>
+          <span class="qs-signal">{{ qs.signal }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ── MACRO SNAPSHOT ──────────────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Macro Snapshot — Weekly Change</div>
+    <div class="snapshot-grid">
+      {% for row in macro_snapshot %}
+      <div class="snap-item">
+        <div class="snap-label">{{ row.label }}</div>
+        <div class="snap-value">{{ row.value }}</div>
+        <div class="snap-chg {{ row.direction }}">{{ row.weekly_chg }} WoW</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="yc-band">
+      <span class="yc-key">2s / 10s</span>
+      <span class="yc-spread {{ yield_curve.color }}">{{ yield_curve.label }}</span>
+      <span class="yc-shape">{{ yield_curve.shape }}</span>
+      <span class="yc-note">US2Y is 13-week T-bill proxy</span>
+    </div>
+  </div>
+
+  {# ── CROSS-ASSET INTERPRETATION ──────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Cross-Asset Interpretation</div>
+    <ul class="bullet-list">
+      {% for b in cross_asset_bullets %}
+      <li>{{ b | highlight_tickers }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {# ── WHAT MATTERS THIS WEEK ──────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">What Matters This Week</div>
+    <div class="wm-list">
+      {% for item in what_matters %}
+      <div class="wm-item">
+        <div class="wm-title">{{ item.title }}</div>
+        <div class="wm-why">{{ item.why }}</div>
+        <div class="wm-impl">{{ item.implication }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── EVENT CALENDAR ──────────────────────────────────────────────── #}
+  {% if events %}
+  <div class="card">
+    <div class="card-title">Event Calendar — High Impact Only</div>
+    <div class="event-list">
+      {% for ev in events %}
+      <div class="event-row">
+        <span class="ev-date">{{ ev.date }}</span>
+        <span class="ev-name">{{ ev.event }}</span>
+        <span class="impact-badge impact-{{ ev.impact }}">{{ ev.impact }}</span>
+        <span class="ev-note">{{ ev.note }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── WEEKLY TRADE THEMES ─────────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Weekly Trade Themes</div>
+    <div class="themes-list">
+      {% for theme in themes %}
+      <div class="theme-card">
+        <div class="theme-head">
+          <span class="theme-num">{{ loop.index }}</span>
+          <span class="theme-title">{{ theme.title }}</span>
+          <span class="bias-badge bias-{{ theme.bias }}">{{ theme.bias }}</span>
+        </div>
+        <div class="theme-logic">{{ theme.logic | highlight_tickers }}</div>
+        <div class="theme-invalid">{{ theme.invalidates_if }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── SECTOR FOCUS ────────────────────────────────────────────────── #}
+  <div class="two-col">
+
+    {# Energy #}
+    <div class="card">
+      <div class="card-title">Energy Sector</div>
+      <div class="sector-tickers">
+        {% for key, label in [('xle','XLE'),('oxy','OXY'),('xom','XOM'),('wti','WTI')] %}
+        {% set d = energy[key] %}
+        {% set wchg = d.week_chg %}
+        <div class="sec-tick">
+          <span class="sec-tick-name">{{ label }}</span>
+          <span class="sec-tick-val">{{ d.formatted | default('N/A') }}</span>
+          <span class="sec-tick-chg {% if wchg is not none %}{{ 'up' if wchg > 0 else 'down' if wchg < 0 else 'flat' }}{% else %}flat{% endif %}">
+            {%- if wchg is not none -%}{{ '+' if wchg > 0 else '' }}{{ "%.1f"|format(wchg) }}%{%- else -%}—{%- endif -%}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="sec-paragraph">{{ energy.paragraph | highlight_tickers }}</div>
+      <div class="sec-action">{{ energy.action }}</div>
+    </div>
+
+    {# Metals #}
+    <div class="card">
+      <div class="card-title">Metals Sector</div>
+      <div class="sector-tickers">
+        {% for key, label in [('gold','XAU'),('silver','XAG'),('gdx','GDX'),('slv','SLV')] %}
+        {% set d = metals[key] %}
+        {% set wchg = d.week_chg %}
+        <div class="sec-tick">
+          <span class="sec-tick-name">{{ label }}</span>
+          <span class="sec-tick-val">{{ d.formatted | default('N/A') }}</span>
+          <span class="sec-tick-chg {% if wchg is not none %}{{ 'up' if wchg > 0 else 'down' if wchg < 0 else 'flat' }}{% else %}flat{% endif %}">
+            {%- if wchg is not none -%}{{ '+' if wchg > 0 else '' }}{{ "%.1f"|format(wchg) }}%{%- else -%}—{%- endif -%}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="sec-paragraph">{{ metals.paragraph | highlight_tickers }}</div>
+      <div class="sec-action">{{ metals.action }}</div>
+    </div>
+
+  </div>
+
+  {# ── EXECUTION PLAYBOOK ──────────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Execution Playbook for the Week</div>
+    <ul class="playbook-list">
+      {% for item in playbook %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {# ── SUMMARY ─────────────────────────────────────────────────────── #}
+  <div class="card">
+    <div class="card-title">Summary</div>
+    <div class="summary-inner">
+
+      {# Regime / Quality / Posture row #}
+      {% set regime_sum_cls = 'risk-on' if regime == 'RISK_ON' else 'risk-off' if regime == 'RISK_OFF' else 'mixed' %}
+      {% set posture_sum_cls = 'posture-aggressive' if 'AGGRESSIVELY' in posture else 'posture-selective' if 'SELECTIVELY' in posture else 'posture-reduce' if 'REDUCE' in posture else 'posture-notrade' %}
+      <div class="sum-kv-row">
+        <span class="sum-k">Regime</span>
+        <span class="sum-v {{ regime_sum_cls }}">{{ regime }}</span>
+        <span class="sum-k" style="margin-left:16px">Quality</span>
+        <span class="sum-v">{{ quality }}</span>
+        <span class="sum-k" style="margin-left:16px">Posture</span>
+        <span class="sum-v {{ posture_sum_cls }}">{{ posture }}</span>
+      </div>
+
+      <hr class="sum-divider">
+
+      <div class="sum-section">
+        <span class="sum-section-k">Primary Drivers</span>
+        <ul class="sum-ul">
+          {% for d in primary_drivers %}
+          <li>{{ d }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="sum-section">
+        <span class="sum-section-k">Top Themes</span>
+        <ul class="sum-ul">
+          {% for t in themes[:3] %}
+          <li>{{ t.title }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <hr class="sum-divider">
+
+      <div class="sum-section">
+        <span class="sum-section-k">Key Risk</span>
+        <span class="sum-risk">{{ key_risk }}</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
