@@ -11,6 +11,7 @@ DATA_SOURCE_UNAVAILABLE = "DATA_SOURCE_UNAVAILABLE"
 
 DEFAULT_PROVIDER_SYMBOLS: dict[str, dict[str, str]] = {
     "fmp": {
+        "GOLD": "GLD",
         "SPY": "SPY",
         "QQQ": "QQQ",
         "TSLA": "TSLA",
@@ -22,6 +23,7 @@ DEFAULT_PROVIDER_SYMBOLS: dict[str, dict[str, str]] = {
         "WPM": "WPM",
     },
     "stooq": {
+        "GOLD": "gld.us",
         "SPY": "spy.us",
         "QQQ": "qqq.us",
         "TSLA": "tsla.us",
@@ -60,7 +62,7 @@ class HistoryProvider(Protocol):
     @property
     def name(self) -> str: ...
 
-    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], str | None]: ...
+    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], object]: ...
 
 
 @dataclass
@@ -104,7 +106,7 @@ class UnifiedMarketDataClient:
                     data=self._build_entries(tickers, histories, formatter, yield_tickers),
                     source=provider.name,
                     fallback_used=False,
-                    reason=reason,
+                    reason=self._stringify_reason(reason),
                 )
 
         cached = self.cache.load(cache_path)
@@ -129,6 +131,21 @@ class UnifiedMarketDataClient:
             if series:
                 return series
         return fallback_builder(symbol)
+
+    def _stringify_reason(self, reason: object) -> str | None:
+        if reason is None:
+            return None
+        if isinstance(reason, str):
+            return reason
+        if isinstance(reason, list):
+            failures = [item for item in reason if isinstance(item, dict) and item.get("status") != "ok"]
+            if not failures:
+                return None
+            first = failures[0]
+            error = first.get("error") or "provider data unavailable"
+            symbol = first.get("symbol")
+            return f"{symbol}: {error}" if symbol else str(error)
+        return str(reason)
 
     def _symbol_map_for(self, provider_name: str, tickers: list[str]) -> dict[str, str]:
         symbol_lookup = self.provider_symbols.get(provider_name, {})

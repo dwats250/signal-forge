@@ -16,6 +16,8 @@ from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
 from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
+from signal_forge.data.commodity_resolver import LAST_GOOD, resolve_commodity, validate_price
+from signal_forge.data.providers import FMPProvider
 from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarketDataClient
 
 # ── Paths ──────────────────────────────────────────────────────────────────
@@ -57,6 +59,17 @@ TICKERS: dict[str, str] = {
 YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
 METALS_FALLBACK_TEXT = "Source unavailable"
 INVENTORY_FALLBACK_TEXT = "Inventory data unavailable"
+MARKET_VALIDATION_RANGES: dict[str, tuple[float, float]] = {
+    "GOLD": (1000.0, 5500.0),
+    "SILVER": (10.0, 100.0),
+    "COPPER": (2.0, 8.0),
+    "PLATINUM": (500.0, 2000.0),
+    "PALLADIUM": (500.0, 2500.0),
+    "WTI": (20.0, 200.0),
+}
+GOLD_SOURCE_UNAVAILABLE = "Gold: unavailable"
+WTI_SOURCE_UNAVAILABLE = "WTI: unavailable"
+NARRATIVE_RETRY_ATTEMPTS = 2
 # ── Ticker highlight filter ────────────────────────────────────────────────
 
 _TICKER_NAMES: frozenset[str] = frozenset(TICKERS) | {"REAL10Y"}
@@ -154,6 +167,131 @@ def _missing_market_entry(*, is_yield: bool = False, estimated: bool = False, re
     if estimated:
         entry["estimated"] = True
     return entry
+
+
+def _invalidate_market_entry(name: str, entry: dict, *, reason: str) -> dict:
+    invalid = _missing_market_entry(
+        is_yield=entry.get("is_yield", False),
+        estimated=entry.get("estimated", False),
+        reason=reason,
+    )
+    invalid["validation_failed"] = True
+    invalid["validation_reason"] = f"{name}: {reason}"
+    return invalid
+
+
+def _entry_price(entry: dict | None) -> float | None:
+    if not isinstance(entry, dict):
+        return None
+    price = entry.get("price")
+    return float(price) if isinstance(price, (int, float)) else None
+
+
+def _build_market_entry_from_closes(closes: list[float], ticker: str) -> dict:
+    current = float(closes[-1])
+    prev = float(closes[-2])
+    week_ago = float(closes[-6]) if len(closes) >= 6 else float(closes[0])
+    day_chg = (current - prev) / prev * 100
+    week_chg = (current - week_ago) / week_ago * 100
+    return {
+        "price": current,
+        "day_chg": round(day_chg, 2),
+        "week_chg": round(week_chg, 2),
+        "formatted": _format_price(current, ticker),
+        "is_yield": False,
+    }
+
+
+def _build_last_good_entry(symbol: str, price: float) -> dict:
+    return {
+        "price": price,
+        "day_chg": None,
+        "week_chg": None,
+        "formatted": _format_price(price, symbol),
+        "is_yield": False,
+        "source": "last_good",
+        "last_known_good": True,
+    }
+
+
+def _commodity_unavailable_entry(symbol: str, fallback_text: str) -> dict:
+    invalid = _missing_market_entry(reason=fallback_text)
+    invalid["validation_failed"] = True
+    invalid["validation_reason"] = f"{symbol}: {fallback_text}"
+    return invalid
+
+
+def _resolve_commodity_entry(
+    symbol: str,
+    *,
+    primary_entry: dict | None,
+    secondary_entry: dict | None,
+    fallback_text: str,
+) -> dict:
+    resolved_price = resolve_commodity(
+        symbol,
+        fetch_primary=lambda: _entry_price(primary_entry),
+        fetch_secondary=(lambda: _entry_price(secondary_entry)) if secondary_entry is not None else None,
+    )
+    if resolved_price is None:
+        return _commodity_unavailable_entry(symbol, fallback_text)
+
+    if validate_price(symbol, _entry_price(primary_entry)) and isinstance(primary_entry, dict):
+        return dict(primary_entry)
+    if validate_price(symbol, _entry_price(secondary_entry)) and isinstance(secondary_entry, dict):
+        resolved = dict(secondary_entry)
+        resolved["source"] = resolved.get("source", "cache")
+        return resolved
+    if LAST_GOOD.get(symbol) == resolved_price:
+        return _build_last_good_entry(symbol, resolved_price)
+    return _commodity_unavailable_entry(symbol, fallback_text)
+
+
+def _fetch_fmp_entry(symbol: str) -> dict | None:
+    gold_client = UnifiedMarketDataClient(providers=[FMPProvider()])
+    series = gold_client.fetch_series(symbol, fallback_builder=lambda _symbol: [])
+    if len(series) < 2:
+        return None
+    entry = _build_market_entry_from_closes(series, symbol)
+    entry["source"] = "fmp"
+    return entry
+
+
+def _cache_preserving_commodities(result: dict) -> dict:
+    cache_ready = dict(result)
+    cached = load_market_data_cache() or {}
+    for symbol in ("GOLD", "WTI"):
+        current = cache_ready.get(symbol)
+        cached_entry = cached.get(symbol)
+        current_price = _entry_price(current)
+        if validate_price(symbol, current_price) and isinstance(current, dict) and not current.get("last_known_good", False):
+            continue
+        cached_price = _entry_price(cached_entry)
+        if validate_price(symbol, cached_price):
+            cache_ready[symbol] = dict(cached_entry)
+    return cache_ready
+
+
+def _sanitize_market_data(result: dict) -> dict:
+    for ticker, (low, high) in MARKET_VALIDATION_RANGES.items():
+        entry = result.get(ticker)
+        if not isinstance(entry, dict):
+            continue
+        price = entry.get("price")
+        if price is None:
+            continue
+        if low <= price <= high:
+            continue
+        print(
+            f"  Warning: {ticker} price {price:.2f} is outside expected range [{low:.0f}, {high:.0f}]. "
+            "Marking entry unavailable."
+        )
+        result[ticker] = _invalidate_market_entry(
+            ticker,
+            entry,
+            reason=f"Validation failed: price outside expected range [{low:.0f}, {high:.0f}]",
+        )
+    return result
 
 
 def _build_metals_context(md: dict) -> dict:
@@ -316,7 +454,23 @@ def fetch_market_data() -> dict:
             print(f"  Warning: {DATA_SOURCE_UNAVAILABLE}: provider data unavailable.")
             print("  Falling back to deterministic stub market data for this build.")
 
-    result = outcome.data
+    result = _sanitize_market_data(outcome.data)
+    cached_market_data = load_market_data_cache() or {}
+    gold_secondary_entry = cached_market_data.get("GOLD")
+    if outcome.fallback_used and gold_secondary_entry is None:
+        gold_secondary_entry = result.get("GOLD")
+    result["GOLD"] = _resolve_commodity_entry(
+        "GOLD",
+        primary_entry=_fetch_fmp_entry("GOLD"),
+        secondary_entry=gold_secondary_entry,
+        fallback_text=GOLD_SOURCE_UNAVAILABLE,
+    )
+    result["WTI"] = _resolve_commodity_entry(
+        "WTI",
+        primary_entry=result.get("WTI"),
+        secondary_entry=cached_market_data.get("WTI"),
+        fallback_text=WTI_SOURCE_UNAVAILABLE,
+    )
 
     # Estimate REAL10Y: US10Y minus approximate 10Y breakeven inflation (~2.2%)
     us10y = result.get("US10Y", {}).get("price")
@@ -334,26 +488,34 @@ def fetch_market_data() -> dict:
     else:
         result["REAL10Y"] = _missing_market_entry(is_yield=True, estimated=True)
 
-    # ── Gold price audit ───────────────────────────────────────────────────
+    # ── Commodity audit ────────────────────────────────────────────────────
+    wti_entry = result.get("WTI", {})
+    wti_price = wti_entry.get("price")
+    if wti_price is not None:
+        print(f"  [audit] WTI   price: {wti_price:.2f} USD  (source: {wti_entry.get('source', 'unknown')})")
+    else:
+        print("  Warning: WTI price is unavailable after validation. No live oil value will be rendered.")
+
     gold_entry = result.get("GOLD", {})
     silver_entry = result.get("SILVER", {})
     gold_price = gold_entry.get("price")
     silver_price = silver_entry.get("price")
     if gold_price is not None:
-        print(f"  [audit] GOLD  price: {gold_price:.2f} USD  (symbol: GC=F, source: yfinance)")
+        print(
+            f"  [audit] GOLD  price: {gold_price:.2f} USD  "
+            f"(source: {gold_entry.get('source', 'unknown')})"
+        )
         print(f"  [audit] SILVER price: {silver_price:.2f} USD  (symbol: SI=F, source: yfinance)" if silver_price else "  [audit] SILVER price: unavailable")
-        if not (1000.0 <= gold_price <= 5500.0):
-            print(f"  Warning: GOLD price {gold_price:.2f} is outside expected range [1000, 5500]. Possible data error in GC=F.")
         if silver_price and silver_price > 0:
             ratio = gold_price / silver_price
             print(f"  [audit] Gold/Silver ratio: {ratio:.1f}")
             if not (25.0 <= ratio <= 150.0):
                 print(f"  Warning: Gold/Silver ratio {ratio:.1f} is anomalous — check GC=F vs SI=F data integrity.")
     else:
-        print("  Warning: GOLD price is unavailable after fetch. GC=F may have returned no data.")
+        print("  Warning: GOLD price is unavailable after FMP-backed validation. No live gold value will be rendered.")
 
     if not outcome.fallback_used:
-        save_market_data_cache(result, source=outcome.source)
+        save_market_data_cache(_cache_preserving_commodities(result), source=outcome.source)
     return result
 
 
@@ -588,21 +750,28 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
         return _stub_narrative(md)
 
     client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    for attempt in range(1, NARRATIVE_RETRY_ATTEMPTS + 1):
+        try:
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = response.content[0].text.strip()
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            raw = raw.strip()
+            return json.loads(raw)
+        except Exception as exc:
+            print(
+                f"  Warning: narrative generation attempt {attempt}/{NARRATIVE_RETRY_ATTEMPTS} "
+                f"failed ({type(exc).__name__})."
+            )
 
-    raw = response.content[0].text.strip()
-    # Strip markdown code fences if present
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip()
-
-    return json.loads(raw)
+    print("  Warning: narrative generation exhausted retries — using stub narrative.")
+    return _stub_narrative(md)
 
 
 # ── Report assembly ─────────────────────────────────────────────────────────

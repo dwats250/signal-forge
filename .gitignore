@@ -4,6 +4,7 @@ __pycache__/
 external/
 outputs/*.jsonl
 .wolf/
+.env
 
 # Generated report artifacts
 reports/output/

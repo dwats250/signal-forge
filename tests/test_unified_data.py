@@ -18,7 +18,7 @@ class FakeProvider:
     def name(self) -> str:
         return self._name
 
-    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], str | None]:
+    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], object]:
         filtered = {ticker: self.histories[ticker] for ticker in symbol_map if ticker in self.histories}
         return filtered, self.reason
 

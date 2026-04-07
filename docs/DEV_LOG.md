@@ -1,6 +1,7 @@
 # DEV LOG
 
 - Workflow initialized.
+- 2026-04-07: archived DuckDNS out of active automation, moved Morning Edge report generation to 6:00 AM weekdays, kept live observation at 6:30 AM, and hardened gold rendering so invalid values fall back to unavailable instead of polluting the report.
 - 2026-04-05: tightened report operations by adding US market holiday-aware premarket scheduling, portable `latest_*` output pointers, and docs that prefer cron/systemd one-shot scheduling over a Python daemon loop.
 - 2026-04-05: added safe report lifecycle helpers plus thin Sunday/Daily scheduling wrappers so live report outputs promote atomically, prior successful HTML/PDF artifacts rotate into dated archives, and manual CLI entrypoints stay intact.
 - 2026-04-01: Completed NEXT_STEPS Phase 1 only by adding the `DislocatonReading`

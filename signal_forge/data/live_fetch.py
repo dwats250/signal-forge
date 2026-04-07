@@ -1,12 +1,29 @@
 from __future__ import annotations
 
+import os
+from dataclasses import dataclass
 from typing import Protocol
+
+try:
+    from signal_forge.config import FMP_API_KEY
+except ImportError:
+    FMP_API_KEY = None
 
 from signal_forge.execution.models.core import utc_now
 from signal_forge.data.providers import FMPProvider, StooqProvider
 
 REQUIRED_TICKERS = ["SPY", "QQQ", "IWM", "DXY", "VIX", "US10Y", "GOLD", "OIL", "XLE"]
 YIELD_TICKERS = {"US10Y"}
+TICKER_GROUPS = {
+    "equities": ["SPY", "QQQ", "IWM"],
+    "volatility": ["VIX"],
+    "fx": ["DXY"],
+    "rates": ["US10Y"],
+    "metals": ["GOLD"],
+    "energy": ["OIL", "XLE"],
+}
+CRITICAL_GROUPS = {"equities", "volatility"}
+CRITICAL_MINIMUMS = {"equities": 2, "volatility": 1}
 PROVIDER_SYMBOLS = {
     "fmp": {
         "SPY": "SPY",
@@ -37,50 +54,129 @@ class HistoryProvider(Protocol):
     @property
     def name(self) -> str: ...
 
-    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], str | None]: ...
+    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], object]: ...
 
 
 class LiveDataUnavailableError(RuntimeError):
     pass
 
 
+@dataclass
+class SnapshotFetchResult:
+    snapshot: dict[str, dict[str, object]]
+    diagnostics: list[dict[str, object]]
+    missing_tickers: list[str]
+    missing_groups: list[str]
+    partial_groups: list[str]
+    critical_missing_groups: list[str]
+    sources: list[str]
+    mode: str
+    decision: str
+    fatal: bool
+
+
+def get_api_key():
+    return os.getenv("FMP_API_KEY") or FMP_API_KEY
+
+
+def debug_fetch() -> None:
+    import requests
+
+    api_key = get_api_key()
+
+    print("ENV CHECK:", api_key)
+    print("DEBUG - API KEY PRESENT:", bool(api_key))
+
+    if not api_key:
+        print("ERROR - Missing FMP_API_KEY")
+        return
+
+    url = f"https://financialmodelingprep.com/api/v3/quote/SPY?apikey={api_key}"
+
+    try:
+        r = requests.get(url, timeout=5)
+        print("DEBUG - STATUS CODE:", r.status_code)
+
+        if r.status_code != 200:
+            print("ERROR - Bad response:", r.text[:200])
+            return
+
+        data = r.json()
+
+        if not data:
+            print("ERROR - Empty response")
+            return
+
+        print("SUCCESS - SAMPLE DATA:", data[0])
+    except Exception as e:
+        print("ERROR - Exception:", str(e))
+
+
 def fetch_market_snapshot(providers: list[HistoryProvider] | None = None) -> dict[str, dict[str, object]]:
+    result = collect_market_snapshot(providers=providers)
+    if result.fatal:
+        summary = ", ".join(result.critical_missing_groups) or "minimum live dataset unavailable"
+        raise LiveDataUnavailableError(summary)
+    return result.snapshot
+
+
+def collect_market_snapshot(providers: list[HistoryProvider] | None = None) -> SnapshotFetchResult:
     providers = providers or [FMPProvider(), StooqProvider()]
     snapshot = {ticker: _missing_entry(ticker) for ticker in REQUIRED_TICKERS}
     pending = set(REQUIRED_TICKERS)
     sources: list[str] = []
-    errors: list[str] = []
+    diagnostics: list[dict[str, object]] = []
 
     for provider in providers[:2]:
+        requested = sorted(pending)
         symbol_map = {
             ticker: PROVIDER_SYMBOLS.get(provider.name, {}).get(ticker, ticker)
             for ticker in pending
         }
-        histories, reason = provider.fetch_histories(symbol_map)
-        if reason:
-            errors.append(f"{provider.name}: {reason}")
-        if not histories:
-            continue
+        histories, provider_details = provider.fetch_histories(symbol_map)
+        provider_diagnostics = _normalize_provider_diagnostics(provider.name, requested, provider_details)
 
-        sources.append(provider.name)
+        if histories:
+            sources.append(provider.name)
         for ticker, closes in histories.items():
             if len(closes) < 2:
                 continue
             snapshot[ticker] = _build_entry(ticker, closes, provider.name)
             pending.discard(ticker)
+
+        diagnostics.extend(_summarize_provider_groups(provider.name, requested, histories, provider_diagnostics))
         if not pending:
             break
 
-    if pending:
-        raise LiveDataUnavailableError("; ".join(errors) or "live data unavailable")
+    missing_tickers = sorted(pending)
+    missing_groups, partial_groups, critical_missing_groups = _classify_group_health(snapshot)
+    fatal = bool(critical_missing_groups)
+    mode = "unavailable" if fatal else "degraded" if missing_tickers else "full"
+    decision = "skip" if fatal else "proceed"
 
     snapshot["_meta"] = {
         "fetched_at": utc_now(),
         "sources": sources or ["unavailable"],
-        "errors": errors,
-        "missing_tickers": sorted(pending),
+        "missing_tickers": missing_tickers,
+        "missing_groups": missing_groups,
+        "partial_groups": partial_groups,
+        "critical_missing_groups": critical_missing_groups,
+        "mode": mode,
+        "decision": decision,
+        "diagnostics": diagnostics,
     }
-    return snapshot
+    return SnapshotFetchResult(
+        snapshot=snapshot,
+        diagnostics=diagnostics,
+        missing_tickers=missing_tickers,
+        missing_groups=missing_groups,
+        partial_groups=partial_groups,
+        critical_missing_groups=critical_missing_groups,
+        sources=sources or ["unavailable"],
+        mode=mode,
+        decision=decision,
+        fatal=fatal,
+    )
 
 
 def build_live_context(snapshot: dict[str, dict[str, object]]) -> dict[str, object]:
@@ -198,3 +294,103 @@ def _average_change(snapshot: dict[str, dict[str, object]], tickers: list[str]) 
     if not present:
         return None
     return round(sum(present) / len(present), 2)
+
+
+def _normalize_provider_diagnostics(
+    provider_name: str,
+    requested: list[str],
+    provider_details: object,
+) -> list[dict[str, object]]:
+    if provider_details is None:
+        return []
+    if isinstance(provider_details, str):
+        return [
+            {
+                "provider": provider_name,
+                "symbol": symbol,
+                "status": "failed",
+                "error_type": "ProviderError",
+                "error": provider_details,
+            }
+            for symbol in requested
+        ]
+    if isinstance(provider_details, list):
+        normalized: list[dict[str, object]] = []
+        for item in provider_details:
+            if not isinstance(item, dict):
+                continue
+            normalized.append(
+                {
+                    "provider": item.get("provider", provider_name),
+                    "symbol": item.get("symbol"),
+                    "status": item.get("status", "failed"),
+                    "error_type": item.get("error_type"),
+                    "error": item.get("error"),
+                    "count": item.get("count"),
+                }
+            )
+        return normalized
+    return [
+        {
+            "provider": provider_name,
+            "symbol": symbol,
+            "status": "failed",
+            "error_type": "ProviderError",
+            "error": str(provider_details),
+        }
+        for symbol in requested
+    ]
+
+
+def _summarize_provider_groups(
+    provider_name: str,
+    requested: list[str],
+    histories: dict[str, list[float]],
+    provider_diagnostics: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    summaries: list[dict[str, object]] = []
+    diag_by_symbol = {
+        item.get("symbol"): item for item in provider_diagnostics if isinstance(item.get("symbol"), str)
+    }
+    for group, group_tickers in TICKER_GROUPS.items():
+        requested_group = [ticker for ticker in group_tickers if ticker in requested]
+        if not requested_group:
+            continue
+        success_symbols = [ticker for ticker in requested_group if ticker in histories]
+        failure_items = [
+            diag_by_symbol.get(ticker)
+            for ticker in requested_group
+            if ticker not in success_symbols and diag_by_symbol.get(ticker)
+        ]
+        status = "ok" if len(success_symbols) == len(requested_group) else "partial" if success_symbols else "failed"
+        summary: dict[str, object] = {
+            "provider": provider_name,
+            "group": group,
+            "status": status,
+            "count": len(success_symbols),
+            "symbols": requested_group,
+        }
+        if failure_items:
+            first = failure_items[0]
+            summary["error_type"] = first.get("error_type")
+            summary["error"] = first.get("error")
+        summaries.append(summary)
+    return summaries
+
+
+def _classify_group_health(
+    snapshot: dict[str, dict[str, object]]
+) -> tuple[list[str], list[str], list[str]]:
+    missing_groups: list[str] = []
+    partial_groups: list[str] = []
+    critical_missing_groups: list[str] = []
+    for group, tickers in TICKER_GROUPS.items():
+        available = sum(1 for ticker in tickers if _change(snapshot, ticker) is not None)
+        required = CRITICAL_MINIMUMS.get(group, len(tickers))
+        if available == 0:
+            missing_groups.append(group)
+        elif available < len(tickers):
+            partial_groups.append(group)
+        if group in CRITICAL_GROUPS and available < required:
+            critical_missing_groups.append(group)
+    return missing_groups, partial_groups, critical_missing_groups

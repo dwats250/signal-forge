@@ -1,0 +1,211 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// © signal-forge
+
+//@version=5
+indicator("0DTE Momentum Setup [SMB]", overlay=true, max_lines_count=500, max_labels_count=200)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  INPUTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Bollinger Band Squeeze ───────────────────────────────────────────────────
+var g_sq = "Bollinger Band Squeeze"
+bb_len      = input.int(20,   "BB Length",            group=g_sq)
+bb_mult     = input.float(2.0,"BB Std Dev Multiplier", group=g_sq, step=0.1)
+kc_len      = input.int(20,   "KC Length",            group=g_sq)
+kc_mult     = input.float(1.5,"KC ATR Multiplier",    group=g_sq, step=0.1)
+sq_min_bars = input.int(5,    "Min Bars in Squeeze",  group=g_sq, minval=1,
+     tooltip="Minimum consecutive bars inside the squeeze before a signal fires.")
+
+// ── NYSE TICK ────────────────────────────────────────────────────────────────
+var g_tk = "NYSE TICK"
+tick_sym    = input.symbol("USI:TICK", "TICK Symbol",    group=g_tk,
+     tooltip="TradingView symbol for the NYSE TICK. Common: USI:TICK, TVC:TICK")
+tick_tf     = input.timeframe("", "TICK Timeframe",     group=g_tk,
+     tooltip="Leave blank to match chart timeframe.")
+
+// ── ATR Trailing Stop ────────────────────────────────────────────────────────
+var g_ts = "ATR Trailing Stop"
+ts_len      = input.int(3,    "ATR Period",            group=g_ts)
+ts_mult     = input.float(1.0,"ATR Multiplier",        group=g_ts, step=0.1)
+
+// ── Display ──────────────────────────────────────────────────────────────────
+var g_ui = "Display"
+show_bb     = input.bool(true,  "Show Bollinger Bands",  group=g_ui)
+show_kc     = input.bool(true,  "Show Keltner Channel",  group=g_ui)
+show_labels = input.bool(true,  "Show Entry Labels",     group=g_ui)
+show_table  = input.bool(true,  "Show Status Table",     group=g_ui)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BOLLINGER BAND SQUEEZE
+//  Squeeze = BB bands trading entirely INSIDE the Keltner Channel
+// ══════════════════════════════════════════════════════════════════════════════
+bb_basis    = ta.sma(close, bb_len)
+bb_dev      = ta.stdev(close, bb_len) * bb_mult
+bb_upper    = bb_basis + bb_dev
+bb_lower    = bb_basis - bb_dev
+
+kc_basis    = ta.sma(close, kc_len)
+kc_atr      = ta.atr(kc_len)
+kc_upper    = kc_basis + kc_mult * kc_atr
+kc_lower    = kc_basis - kc_mult * kc_atr
+
+in_squeeze  = bb_upper < kc_upper and bb_lower > kc_lower
+
+// Track consecutive bars inside the squeeze
+var int sq_count = 0
+sq_count       := in_squeeze ? sq_count + 1 : 0
+sq_ready        = sq_count >= sq_min_bars   // has compressed long enough to matter
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  NYSE TICK  — broad market internals
+//  Bullish: TICK holds above 0    Bearish: TICK holds below 0
+// ══════════════════════════════════════════════════════════════════════════════
+_tick_tf    = tick_tf == "" ? timeframe.period : tick_tf
+tick_val    = request.security(tick_sym, _tick_tf, close, ignore_invalid_symbol=true)
+
+tick_bull   = not na(tick_val) and tick_val > 0
+tick_bear   = not na(tick_val) and tick_val < 0
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ATR TRAILING STOP  (3-period, 1× ATR — Garrett's exact spec)
+//  Blue below price  = long trend
+//  Pink above price  = short trend
+//  Entry trigger: first bar where the stop flips direction
+// ══════════════════════════════════════════════════════════════════════════════
+ts_atr      = ta.atr(ts_len) * ts_mult
+
+var float ts_level = na
+var int   ts_dir   = 0   // 1 = long, -1 = short
+
+if na(ts_level)
+    ts_level := close - ts_atr
+    ts_dir   := 1
+else
+    if ts_dir == 1
+        if close < ts_level           // price closed below stop → flip short
+            ts_dir   := -1
+            ts_level := close + ts_atr
+        else                          // still long — trail stop upward
+            ts_level := math.max(ts_level, close - ts_atr)
+    else
+        if close > ts_level           // price closed above stop → flip long
+            ts_dir   := 1
+            ts_level := close - ts_atr
+        else                          // still short — trail stop downward
+            ts_level := math.min(ts_level, close + ts_atr)
+
+// Detect the flip bars (these are the entry triggers)
+ts_flipped_long  = ts_dir == 1  and ts_dir[1] == -1
+ts_flipped_short = ts_dir == -1 and ts_dir[1] == 1
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ENTRY SIGNALS
+//  All 3 components must align:
+//    1. Squeeze has been compressed ≥ sq_min_bars
+//    2. TICK confirms the direction
+//    3. ATR trailing stop just flipped in that direction
+// ══════════════════════════════════════════════════════════════════════════════
+long_entry  = sq_ready and tick_bull and ts_flipped_long
+short_entry = sq_ready and tick_bear and ts_flipped_short
+
+// Setup context (not yet triggered — all lined up but stop hasn't flipped)
+long_setup  = sq_ready and tick_bull and ts_dir == 1
+short_setup = sq_ready and tick_bear and ts_dir == -1
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  EXIT SIGNAL
+//  Exit when the ATR trailing stop flips against the open position
+// ══════════════════════════════════════════════════════════════════════════════
+long_exit   = ts_flipped_short
+short_exit  = ts_flipped_long
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  PLOTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ATR Trailing Stop — the primary chart overlay
+ts_color    = ts_dir == 1 ? color.new(#2962FF, 0) : color.new(#E91E8C, 0)
+plot(ts_level, "ATR Trailing Stop", color=ts_color, linewidth=2, style=plot.style_line)
+
+// Bollinger Bands (purple, semi-transparent)
+p_bb_hi = plot(show_bb ? bb_upper : na, "BB Upper", color=color.new(#9C27B0, 55), linewidth=1)
+p_bb_lo = plot(show_bb ? bb_lower : na, "BB Lower", color=color.new(#9C27B0, 55), linewidth=1)
+fill(p_bb_hi, p_bb_lo, color=color.new(#9C27B0, 88))
+
+// Keltner Channel (blue, semi-transparent)
+p_kc_hi = plot(show_kc ? kc_upper : na, "KC Upper", color=color.new(#2962FF, 55), linewidth=1)
+p_kc_lo = plot(show_kc ? kc_lower : na, "KC Lower", color=color.new(#2962FF, 55), linewidth=1)
+fill(p_kc_hi, p_kc_lo, color=color.new(#2962FF, 92))
+
+// Squeeze dots on chart bottom
+//  Red   = squeeze has met minimum bar count (ready)
+//  Orange = in squeeze but not yet at min bars
+//  Gray   = not in squeeze
+sq_dot_col = sq_ready ? color.new(#F44336, 0) : in_squeeze ? color.new(#FF9800, 0) : color.new(#9E9E9E, 80)
+plotshape(true, "Squeeze Dots", shape.circle, location.bottom, color=sq_dot_col, size=size.tiny)
+
+// Entry / exit arrows
+plotshape(long_entry,  "Long Entry",  shape.triangleup,   location.belowbar, color=color.new(#00C853, 0), size=size.normal, text="BUY", textcolor=color.new(#00C853, 0))
+plotshape(short_entry, "Short Entry", shape.triangledown,  location.abovebar, color=color.new(#F44336, 0), size=size.normal, text="SELL", textcolor=color.new(#F44336, 0))
+
+// Subtle "setup in progress" markers (all aligned but stop hasn't flipped yet)
+plotshape(long_setup  and not long_entry,  "Long Setup",  shape.diamond, location.belowbar, color=color.new(#00C853, 70), size=size.tiny)
+plotshape(short_setup and not short_entry, "Short Setup", shape.diamond, location.abovebar, color=color.new(#F44336, 70), size=size.tiny)
+
+// Exit markers
+plotshape(long_exit  and not long_entry,  "Long Exit",  shape.xcross, location.abovebar, color=color.new(#2962FF, 20), size=size.small)
+plotshape(short_exit and not short_entry, "Short Exit", shape.xcross, location.belowbar, color=color.new(#E91E8C, 20), size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STATUS TABLE  (top-right corner)
+// ══════════════════════════════════════════════════════════════════════════════
+C_HDR  = color.new(#263238, 0)
+C_TXT  = color.white
+C_BULL = color.new(#00C853, 50)
+C_BEAR = color.new(#F44336, 50)
+C_WARN = color.new(#FF9800, 50)
+C_OFF  = color.new(#455A64, 50)
+
+var table status = table.new(position.top_right, 2, 5,
+     bgcolor=color.new(#263238, 10), border_color=color.new(#546E7A, 40), border_width=1,
+     frame_color=color.new(#546E7A, 40), frame_width=1)
+
+if barstate.islast and show_table
+    // Header
+    table.cell(status, 0, 0, "0DTE SETUP", bgcolor=C_HDR,  text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 0, "STATUS",     bgcolor=C_HDR,  text_color=C_TXT, text_size=size.small)
+
+    // TICK row
+    tick_bg  = tick_bull ? C_BULL : tick_bear ? C_BEAR : C_OFF
+    tick_str = na(tick_val) ? "N/A" : str.tostring(math.round(tick_val)) + (tick_bull ? " ▲" : tick_bear ? " ▼" : " –")
+    table.cell(status, 0, 1, "TICK",  bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 1, tick_str, bgcolor=tick_bg, text_color=C_TXT, text_size=size.small)
+
+    // Squeeze row
+    sq_bg  = sq_ready ? C_BEAR : in_squeeze ? C_WARN : C_OFF
+    sq_str = sq_ready ? "READY (" + str.tostring(sq_count) + "b)" : in_squeeze ? "FORMING (" + str.tostring(sq_count) + "b)" : "NONE"
+    table.cell(status, 0, 2, "SQUEEZE", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 2, sq_str,   bgcolor=sq_bg,  text_color=C_TXT, text_size=size.small)
+
+    // ATR Trailing Stop direction row
+    ts_bg  = ts_dir == 1 ? C_BULL : C_BEAR
+    ts_str = ts_dir == 1 ? "LONG" : "SHORT"
+    table.cell(status, 0, 3, "ATR TRAIL", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 3, ts_str,     bgcolor=ts_bg,  text_color=C_TXT, text_size=size.small)
+
+    // Overall setup
+    setup_dir = long_setup ? "LONG ✓" : short_setup ? "SHORT ✓" : "WAITING"
+    setup_bg  = long_setup ? C_BULL : short_setup ? C_BEAR : C_OFF
+    table.cell(status, 0, 4, "SETUP",   bgcolor=C_HDR,   text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 4, setup_dir, bgcolor=setup_bg, text_color=C_TXT, text_size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ALERTS
+// ══════════════════════════════════════════════════════════════════════════════
+alertcondition(long_entry,  "0DTE Long Entry",  "0DTE Momentum: LONG entry — squeeze + TICK bull + ATR flip long")
+alertcondition(short_entry, "0DTE Short Entry", "0DTE Momentum: SHORT entry — squeeze + TICK bear + ATR flip short")
+alertcondition(long_exit,   "0DTE Long Exit",   "0DTE Momentum: Exit LONG — ATR trailing stop flipped short")
+alertcondition(short_exit,  "0DTE Short Exit",  "0DTE Momentum: Exit SHORT — ATR trailing stop flipped long")
+alertcondition(long_setup,  "0DTE Long Setup",  "0DTE Momentum: LONG setup aligned — waiting for ATR flip")
+alertcondition(short_setup, "0DTE Short Setup", "0DTE Momentum: SHORT setup aligned — waiting for ATR flip")

@@ -7,10 +7,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 from reports import morning_edge
+from signal_forge.data import commodity_resolver
+from signal_forge.data.providers import FMPProvider
 from signal_forge.data.unified_data import FetchOutcome
 
 
 class MorningEdgeMarketDataTests(unittest.TestCase):
+    def setUp(self) -> None:
+        commodity_resolver.LAST_GOOD.clear()
+
     def test_get_macro_bundle_returns_dashboard_bundle(self) -> None:
         market_data = {
             "DXY": {"price": 100.0, "day_chg": 0.5, "week_chg": 1.0, "formatted": "100.00", "is_yield": False},
@@ -73,6 +78,84 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
 
         self.assertEqual(data, stub)
 
+    def test_fetch_market_data_invalidates_out_of_range_gold(self) -> None:
+        invalid = {
+            "GOLD": {"price": 18.04, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$18.04", "is_yield": False},
+            "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+            "US10Y": {"price": 4.21, "day_chg": 4.0, "week_chg": 11.0, "formatted": "4.21%", "is_yield": True},
+        }
+
+        with patch(
+            "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+            return_value=FetchOutcome(invalid, "yfinance", False, None),
+        ):
+            data = morning_edge.fetch_market_data()
+
+        self.assertIsNone(data["GOLD"]["price"])
+        self.assertEqual(data["GOLD"]["formatted"], "Gold: unavailable")
+        self.assertTrue(data["GOLD"]["source_unavailable"])
+        self.assertIn("REAL10Y", data)
+
+    def test_fetch_market_data_marks_gold_unavailable_when_fmp_proxy_is_invalid(self) -> None:
+        live_result = {
+            "GOLD": {"price": 4645.4, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$4645.40", "is_yield": False},
+            "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+            "US10Y": {"price": 4.21, "day_chg": 4.0, "week_chg": 11.0, "formatted": "4.21%", "is_yield": True},
+        }
+
+        with patch(
+            "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+            return_value=FetchOutcome(live_result, "yfinance", False, None),
+        ):
+            with patch.object(FMPProvider, "fetch_histories", return_value=({"GOLD": [178.0, 179.0, 180.0]}, None)):
+                data = morning_edge.fetch_market_data()
+
+        self.assertIsNone(data["GOLD"]["price"])
+        self.assertEqual(data["GOLD"]["formatted"], "Gold: unavailable")
+        self.assertTrue(data["GOLD"]["validation_failed"])
+
+    def test_fetch_market_data_uses_cached_wti_when_live_value_is_invalid(self) -> None:
+        live_result = {
+            "WTI": {"price": 9.0, "day_chg": 1.1, "week_chg": 2.7, "formatted": "$9.00", "is_yield": False},
+            "GOLD": {"price": 2400.0, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$2400.00", "is_yield": False},
+            "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+            "US10Y": {"price": 4.21, "day_chg": 4.0, "week_chg": 11.0, "formatted": "4.21%", "is_yield": True},
+        }
+        cached = {
+            "WTI": {"price": 81.44, "day_chg": 1.1, "week_chg": 2.7, "formatted": "$81.44", "is_yield": False, "source": "cache"},
+        }
+
+        with patch(
+            "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+            return_value=FetchOutcome(live_result, "yfinance", False, None),
+        ):
+            with patch("reports.morning_edge.load_market_data_cache", return_value=cached):
+                with patch.object(FMPProvider, "fetch_histories", return_value=({"GOLD": [2390.0, 2400.0, 2410.0]}, None)):
+                    data = morning_edge.fetch_market_data()
+
+        self.assertEqual(data["WTI"]["price"], 81.44)
+        self.assertEqual(data["WTI"]["source"], "cache")
+
+    def test_fetch_market_data_marks_wti_unavailable_without_valid_fallback(self) -> None:
+        live_result = {
+            "WTI": {"price": 9.0, "day_chg": 1.1, "week_chg": 2.7, "formatted": "$9.00", "is_yield": False},
+            "GOLD": {"price": 2400.0, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$2400.00", "is_yield": False},
+            "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
+            "US10Y": {"price": 4.21, "day_chg": 4.0, "week_chg": 11.0, "formatted": "4.21%", "is_yield": True},
+        }
+
+        with patch(
+            "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
+            return_value=FetchOutcome(live_result, "yfinance", False, None),
+        ):
+            with patch("reports.morning_edge.load_market_data_cache", return_value={}):
+                with patch.object(FMPProvider, "fetch_histories", return_value=({"GOLD": [2390.0, 2400.0, 2410.0]}, None)):
+                    data = morning_edge.fetch_market_data()
+
+        self.assertIsNone(data["WTI"]["price"])
+        self.assertEqual(data["WTI"]["formatted"], "WTI: unavailable")
+        self.assertTrue(data["WTI"]["validation_failed"])
+
     def test_save_market_data_cache_writes_payload(self) -> None:
         sample = {"SPY": {"price": 123.45, "formatted": "$123.45"}}
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -102,6 +185,18 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
         self.assertIn("Shanghai silver reference: Shanghai data not yet integrated", metals["inventory_lines"])
         self.assertIn("Warehouse / exchange inventory: Inventory data coming soon", metals["inventory_lines"])
 
+    def test_build_metals_context_renders_unavailable_gold_cleanly(self) -> None:
+        md = {
+            "GOLD": {"price": None, "formatted": "Gold: unavailable", "source_unavailable": True},
+            "SILVER": {"price": 30.0, "formatted": "$30.00"},
+            "REAL10Y": {"price": 2.0, "formatted": "2.00%", "is_yield": True},
+        }
+
+        metals = morning_edge._build_metals_context(md)
+
+        self.assertEqual(metals["cards"][0]["entry"]["formatted"], "Gold: unavailable")
+        self.assertEqual(metals["gold_silver_ratio"], "Unavailable")
+
     def test_build_financial_plumbing_includes_value_and_change_fields(self) -> None:
         md = {
             "DXY": {"price": 100.0, "day_chg": 0.5, "formatted": "100.00", "is_yield": False},
@@ -118,6 +213,73 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
         self.assertEqual(plumbing[1]["absolute_change"], "+0.05 pts")
         self.assertEqual(plumbing[1]["percent_change"], "+5bps")
         self.assertEqual(plumbing[5]["direction"], "down")
+
+    def test_generate_narrative_falls_back_on_invalid_json(self) -> None:
+        market_data = morning_edge.build_stub_market_data()
+
+        class _FakeContent:
+            text = '{"summary":"broken'
+
+        class _FakeResponse:
+            content = [_FakeContent()]
+
+        class _FakeMessages:
+            @staticmethod
+            def create(**_: object) -> _FakeResponse:
+                return _FakeResponse()
+
+        class _FakeClient:
+            def __init__(self, api_key: str) -> None:
+                self.api_key = api_key
+                self.messages = _FakeMessages()
+
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}, clear=False):
+            with patch("reports.morning_edge.anthropic.Anthropic", _FakeClient):
+                narrative = morning_edge.generate_narrative(market_data)
+
+        self.assertEqual(narrative, morning_edge._stub_narrative(market_data))
+
+    def test_generate_narrative_falls_back_to_stub_when_anthropic_is_unreachable(self) -> None:
+        market_data = morning_edge.build_stub_market_data()
+        stub_narrative = morning_edge._stub_narrative(market_data)
+
+        class _FailingMessages:
+            @staticmethod
+            def create(**_: object) -> object:
+                raise RuntimeError("network unavailable")
+
+        class _FakeClient:
+            def __init__(self, api_key: str) -> None:
+                self.api_key = api_key
+                self.messages = _FailingMessages()
+
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}, clear=False):
+            with patch("reports.morning_edge.anthropic.Anthropic", _FakeClient):
+                narrative = morning_edge.generate_narrative(market_data)
+
+        self.assertEqual(narrative, stub_narrative)
+
+    def test_generate_narrative_retries_before_stub_fallback(self) -> None:
+        market_data = morning_edge.build_stub_market_data()
+        attempts: list[int] = []
+
+        class _FailingMessages:
+            @staticmethod
+            def create(**_: object) -> object:
+                attempts.append(1)
+                raise RuntimeError("still unavailable")
+
+        class _FakeClient:
+            def __init__(self, api_key: str) -> None:
+                self.api_key = api_key
+                self.messages = _FailingMessages()
+
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}, clear=False):
+            with patch("reports.morning_edge.anthropic.Anthropic", _FakeClient):
+                narrative = morning_edge.generate_narrative(market_data)
+
+        self.assertEqual(len(attempts), morning_edge.NARRATIVE_RETRY_ATTEMPTS)
+        self.assertEqual(narrative, morning_edge._stub_narrative(market_data))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1 @@
+timestamp,ticker,timeframe,signal_type,direction,entry_price,price_after_5,price_after_10,price_after_20,mfe_20,mae_20,directionally_correct,strong_follow_through,immediate_failure,regime,market_quality

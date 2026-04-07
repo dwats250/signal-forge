@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+FMP_API_KEY = "6ighJDJXhH7ltRcESGb2TInvg6T8Ke81"
+
 USE_OPENWOLF = False
 
 MIN_RISK_REWARD_RATIO = 2.0

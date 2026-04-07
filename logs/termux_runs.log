@@ -1,0 +1,34 @@
+2026-04-07T11:39:11-0700 | START | command=python3 /home/dustin/signal-forge/run_live_pipeline.py
+2026-04-07T11:39:11-0700 | START | command=python-does-not-exist /home/dustin/signal-forge/run_live_pipeline.py
+2026-04-07T11:39:11-0700 | STATUS=FAILURE | python missing: python-does-not-exist
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=equities status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=volatility status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=fx status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=rates status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=metals status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=fmp group=energy status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=equities status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=volatility status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=fx status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=rates status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=metals status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [fetch] provider=stooq group=energy status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:12-0700 | [pipeline] mode=unavailable render=skip missing_groups=equities,volatility,fx,rates,metals,energy partial_groups=none
+2026-04-07T11:39:12-0700 | DATA FETCH FAILED — SKIPPING RUN (minimum viable dataset unavailable)
+2026-04-07T11:39:12-0700 | STATUS=SUCCESS | pipeline completed
+2026-04-07T11:39:38-0700 | START | command=python3 /home/dustin/signal-forge/run_live_pipeline.py
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=equities status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=volatility status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=fx status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=rates status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=metals status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=fmp group=energy status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=equities status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=volatility status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=yes
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=fx status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=rates status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=metals status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [fetch] provider=stooq group=energy status=failed count=0 exception=URLError error=<urlopen error [Errno -3] Temporary failure in name resolution> fatal=no
+2026-04-07T11:39:38-0700 | [pipeline] mode=unavailable render=skip missing_groups=equities,volatility,fx,rates,metals,energy partial_groups=none
+2026-04-07T11:39:38-0700 | DATA FETCH FAILED — SKIPPING RUN (minimum viable dataset unavailable)
+2026-04-07T11:39:38-0700 | STATUS=FAILURE | pipeline skipped: data fetch failed

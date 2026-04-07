@@ -118,5 +118,6 @@ Example cron entries:
 
 ```bash
 0 17 * * 0 cd ~/trading-system && python3 -m reports.run_sunday
-30 6 * * 1-5 cd ~/trading-system && python3 -m reports.run_premarket
+0 6 * * 1-5 cd ~/trading-system && python3 -m reports.run_premarket
+30 6 * * 1-5 cd ~/signal-forge && python3 run_live_pipeline.py
 ```

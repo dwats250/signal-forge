@@ -15,15 +15,25 @@ class StooqProvider:
     def name(self) -> str:
         return "stooq"
 
-    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], str | None]:
+    def fetch_histories(self, symbol_map: dict[str, str]) -> tuple[dict[str, list[float]], list[dict[str, str]]]:
         histories: dict[str, list[float]] = {}
+        diagnostics: list[dict[str, str]] = []
         for canonical, provider_symbol in symbol_map.items():
             url = f"https://stooq.com/q/d/l/?s={provider_symbol}&i=d"
             try:
                 with urlopen(url, timeout=self.timeout_seconds) as response:
                     payload = response.read().decode("utf-8")
             except (OSError, TimeoutError, URLError) as exc:
-                return {}, str(exc)
+                diagnostics.append(
+                    {
+                        "provider": self.name,
+                        "symbol": canonical,
+                        "status": "failed",
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                    }
+                )
+                continue
 
             rows = list(csv.DictReader(io.StringIO(payload)))
             closes: list[float] = []
@@ -35,7 +45,26 @@ class StooqProvider:
                     closes.append(float(close))
                 except ValueError:
                     continue
-            if closes:
+            if len(closes) >= 2:
                 histories[canonical] = closes
+                diagnostics.append(
+                    {
+                        "provider": self.name,
+                        "symbol": canonical,
+                        "status": "ok",
+                        "count": str(len(closes)),
+                    }
+                )
+                continue
 
-        return histories, None
+            diagnostics.append(
+                {
+                    "provider": self.name,
+                    "symbol": canonical,
+                    "status": "failed",
+                    "error_type": "EmptyPayload",
+                    "error": "no usable closes",
+                }
+            )
+
+        return histories, diagnostics

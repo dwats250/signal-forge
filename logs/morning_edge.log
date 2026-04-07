@@ -1,0 +1,38 @@
+=== MORNING EDGE RUN Tue 07 Apr 2026 12:45:57 PM PDT ===
+============================================================
+Signal Forge — Static Site Build
+============================================================
+============================================================
+Morning Macro Edge — Report Generator
+============================================================
+Fetching market data...
+  Warning: GOLD price 168.13 is outside expected range [1000, 5500]. Marking entry unavailable.
+  Warning: WTI price 3.12 is outside expected range [20, 200]. Marking entry unavailable.
+  Warning: GOLD price 168.13 from FMP-backed source is outside expected range [1000, 5500]. Marking gold unavailable.
+  Warning: GOLD price is unavailable after FMP-backed validation. No live gold value will be rendered.
+Generating narrative via Claude...
+NARRATIVE PARSE FAILED — FALLBACK MODE
+[OK] Generated Daily Premarket Report HTML -> /tmp/premarket-report-u42feq72/premarket.html
+[OK] Generated Daily Premarket Report PDF -> /tmp/premarket-report-u42feq72/premarket.pdf
+[OK] Archived prior Daily Premarket Report HTML -> /home/dustin/signal-forge/reports/archive/daily/premarket_2026-04-07_1246_2.html
+[OK] Promoted new Daily Premarket Report HTML -> /home/dustin/signal-forge/reports/output/premarket.html
+[OK] Updated latest pointer for Daily Premarket Report HTML -> /home/dustin/signal-forge/reports/output/latest_premarket.html
+[OK] Archived prior Daily Premarket Report PDF -> /home/dustin/signal-forge/reports/archive/daily/premarket_2026-04-07_1246_2.pdf
+[OK] Promoted new Daily Premarket Report PDF -> /home/dustin/signal-forge/reports/output/premarket.pdf
+[OK] Updated latest pointer for Daily Premarket Report PDF -> /home/dustin/signal-forge/reports/output/latest_premarket.pdf
+============================================================
+Done. Thesis: 
+Site index: /home/dustin/signal-forge/_site/index.html
+Latest report: /home/dustin/signal-forge/_site/morning_edge.html
+Archive copy: /home/dustin/signal-forge/_site/archive/premarket_2026-04-07_1246_2.html
+Archive index: /home/dustin/signal-forge/_site/archive/index.html
+[fetch] provider=fmp group=equities status=ok count=3 fatal=no
+[fetch] provider=fmp group=volatility status=ok count=1 fatal=no
+[fetch] provider=fmp group=fx status=ok count=1 fatal=no
+[fetch] provider=fmp group=rates status=ok count=1 fatal=no
+[fetch] provider=fmp group=metals status=ok count=1 fatal=no
+[fetch] provider=fmp group=energy status=ok count=2 fatal=no
+[pipeline] mode=full render=proceed missing_groups=none partial_groups=none
+REGIME: bullish
+TRADES: READY=1 BLOCKED=0
+=== COMPLETE ===

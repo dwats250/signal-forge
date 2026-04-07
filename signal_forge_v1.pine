@@ -1,0 +1,727 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// Signal Forge v1 — 0DTE Qualification & Alert Engine
+// PRD: Signal Forge v1 FINAL (rev 1.1)
+// Target: 5-minute chart | Timezone: America/Los_Angeles
+
+//@version=6
+indicator("Signal Forge v1 — 0DTE", overlay=true, max_labels_count=100, max_lines_count=50)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 1: INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+i_min_atr        = input.float(0.30, "Min ATR Threshold",    minval=0.01, step=0.05, group="Filters")
+i_score_thresh   = input.int(7,     "Alert Score Threshold", minval=1, maxval=8,     group="Filters")
+i_show_labels    = input.bool(true,  "Show Debug Labels",                             group="Display")
+i_show_levels    = input.bool(true,  "Show Key Level Lines",                          group="Display")
+i_show_sessions  = input.bool(true,  "Show Session Background",                       group="Display")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 2: TICKER VALIDATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+is_spy      = syminfo.ticker == "SPY"
+is_qqq      = syminfo.ticker == "QQQ"
+is_nvda     = syminfo.ticker == "NVDA"
+is_tsla     = syminfo.ticker == "TSLA"
+is_amd      = syminfo.ticker == "AMD"
+is_smci     = syminfo.ticker == "SMCI"
+is_meta     = syminfo.ticker == "META"
+is_mstr     = syminfo.ticker == "MSTR"
+is_coin     = syminfo.ticker == "COIN"
+
+is_tier1    = is_spy or is_qqq
+is_tier2    = is_nvda or is_tsla or is_amd or is_smci or is_meta
+is_optional = is_mstr or is_coin
+
+ticker_approved = is_tier1 or is_tier2 or is_optional
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 3: SESSION LOGIC (exchange timezone only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+TZ = syminfo.timezone
+
+exch_year  = year
+exch_month = month
+exch_day   = dayofmonth
+exch_hour  = hour(time, TZ)
+exch_min   = minute(time, TZ)
+
+ts_premarket_start = timestamp(TZ, exch_year, exch_month, exch_day, 4, 0)
+ts_open_start      = timestamp(TZ, exch_year, exch_month, exch_day, 9, 30)
+ts_midday_start    = timestamp(TZ, exch_year, exch_month, exch_day, 10, 30)
+ts_late_day_start  = timestamp(TZ, exch_year, exch_month, exch_day, 14, 30)
+ts_power_start     = timestamp(TZ, exch_year, exch_month, exch_day, 15, 0)
+ts_rth_end         = timestamp(TZ, exch_year, exch_month, exch_day, 16, 0)
+ts_post_end        = timestamp(TZ, exch_year, exch_month, exch_day, 20, 0)
+
+premarket  = time >= ts_premarket_start and time < ts_open_start
+open_drive = time >= ts_open_start and time < ts_midday_start
+midday     = time >= ts_midday_start and time < ts_late_day_start
+late_day   = time >= ts_late_day_start and time < ts_power_start
+power_hour = time >= ts_power_start and time <= ts_rth_end
+postmarket = time > ts_rth_end and time < ts_post_end
+
+session_count = 0
+if premarket
+    session_count += 1
+if open_drive
+    session_count += 1
+if midday
+    session_count += 1
+if late_day
+    session_count += 1
+if power_hour
+    session_count += 1
+if postmarket
+    session_count += 1
+
+session_conflict = session_count > 1
+valid_session = open_drive or midday or power_hour
+
+session_label = "OFF_HOURS"
+if premarket
+    session_label := "PREMARKET"
+else if open_drive
+    session_label := "OPEN"
+else if midday
+    session_label := "MIDDAY"
+else if late_day
+    session_label := "LATE_DAY"
+else if power_hour
+    session_label := "POWER_HOUR"
+else if postmarket
+    session_label := "POSTMARKET"
+
+color open_bg = na
+color power_bg = na
+color midday_bg = na
+color late_bg = na
+color premarket_bg = na
+if i_show_sessions
+    if premarket
+        premarket_bg := color.new(color.purple, 94)
+    if open_drive
+        open_bg := color.new(color.green, 92)
+    if midday
+        midday_bg := color.new(color.red, 94)
+    if late_day
+        late_bg := color.new(color.orange, 94)
+    if power_hour
+        power_bg := color.new(color.blue, 92)
+
+bgcolor(premarket_bg, title="Premarket BG")
+bgcolor(open_bg, title="Open Drive BG")
+bgcolor(midday_bg, title="Midday BG")
+bgcolor(late_bg, title="Late Day BG")
+bgcolor(power_bg, title="Power Hour BG")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 4: OPENING RANGE (09:30–09:45 exchange time)
+// ─────────────────────────────────────────────────────────────────────────────
+
+or_window = time >= ts_open_start and time < timestamp(TZ, exch_year, exch_month, exch_day, 9, 45)
+
+var float or_high      = na
+var float or_low       = na
+var bool  or_finalized = false
+var bool  _prev_or     = false
+
+// Reset on new trading day
+new_day = dayofweek != dayofweek[1]
+if new_day
+    or_high      := na
+    or_low       := na
+    or_finalized := false
+
+// Accumulate while in OR window
+if or_window and not or_finalized
+    or_high := na(or_high) ? high : math.max(or_high, high)
+    or_low  := na(or_low)  ? low  : math.min(or_low, low)
+
+// Freeze when window closes
+if _prev_or and not or_window
+    or_finalized := true
+_prev_or := or_window
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 5: PREMARKET HIGH / LOW (04:00–09:29 exchange time)
+// ─────────────────────────────────────────────────────────────────────────────
+
+var float pm_high = na
+var float pm_low  = na
+
+if new_day
+    pm_high := na
+    pm_low  := na
+
+if premarket
+    pm_high := na(pm_high) ? high : math.max(pm_high, high)
+    pm_low  := na(pm_low)  ? low  : math.min(pm_low, low)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 6: PREVIOUS DAY HIGH / LOW
+// ─────────────────────────────────────────────────────────────────────────────
+
+prev_day_high = request.security(syminfo.tickerid, "D", high[1], lookahead=barmerge.lookahead_on)
+prev_day_low  = request.security(syminfo.tickerid, "D", low[1],  lookahead=barmerge.lookahead_on)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 7: VWAP & EMAs
+// ─────────────────────────────────────────────────────────────────────────────
+
+vwap_val = ta.vwap(hlc3)
+ema9     = ta.ema(close, 9)
+ema21    = ta.ema(close, 21)
+
+plot(ema9,  "EMA 9",  color=color.new(color.blue,   20), linewidth=1)
+plot(ema21, "EMA 21", color=color.new(color.orange,  20), linewidth=1)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 8: MACRO PROXY (no circular self-comparison)
+// SPY uses QQQ; QQQ uses SPY; Tier 2 uses QQQ
+// ─────────────────────────────────────────────────────────────────────────────
+
+macro_sym   = is_spy ? "NASDAQ:QQQ" : "AMEX:SPY"
+macro_close = request.security(macro_sym, timeframe.period, close,         lookahead=barmerge.lookahead_off)
+macro_vwap  = request.security(macro_sym, timeframe.period, ta.vwap(hlc3), lookahead=barmerge.lookahead_off)
+
+macro_bullish = macro_close > macro_vwap
+macro_bearish = macro_close < macro_vwap
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 9: VOLUME — 60-MINUTE TIME-NORMALIZED AVERAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Guard: only valid on intraday timeframes
+bars_per_hour = timeframe.isintraday ? math.max(1, math.round(60 / timeframe.multiplier)) : 12
+vol_avg_60    = ta.sma(volume, bars_per_hour)
+vol_ratio     = vol_avg_60 > 0 ? volume / vol_avg_60 : 0.0
+vol_expanded  = vol_ratio >= 1.5
+low_liquidity = vol_ratio < 0.5
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 10: EXTENSION FROM VWAP
+// ─────────────────────────────────────────────────────────────────────────────
+
+extension_pct = not na(vwap_val) and vwap_val > 0 ? math.abs(close - vwap_val) / vwap_val * 100 : 0.0
+hard_extended = extension_pct > 1.5
+
+dist_ema9_pct  = ema9 > 0 ? math.abs(close - ema9) / ema9 * 100 : 0.0
+dist_ema21_pct = ema21 > 0 ? math.abs(close - ema21) / ema21 * 100 : 0.0
+ema9_penalty_flag = dist_ema9_pct > 0.8
+ema21_hard_block = dist_ema21_pct > 1.5
+bar_range = high - low
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 11: ATR MOVEMENT FILTER
+// ─────────────────────────────────────────────────────────────────────────────
+
+atr_val             = ta.atr(14)
+sufficient_movement = atr_val >= i_min_atr
+atr_exhaustion_flag = atr_val > 0 and bar_range > atr_val * 0.8
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 12: CHOP DETECTION
+// Net price move over last 5 bars < 0.2% = choppy
+// ─────────────────────────────────────────────────────────────────────────────
+
+net_move_5 = close[5] > 0 ? math.abs(close - close[5]) / close[5] * 100 : 100.0
+is_choppy  = net_move_5 < 0.2
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 13: BIAS DETERMINATION
+// Bullish: EMA9 > EMA21 AND price above VWAP
+// Bearish: EMA9 < EMA21 AND price below VWAP
+// Mixed:   conflicting signals — structure score = 0
+// ─────────────────────────────────────────────────────────────────────────────
+
+bullish_bias = ema9 > ema21 and close > vwap_val
+bearish_bias = ema9 < ema21 and close < vwap_val
+has_bias     = bullish_bias or bearish_bias
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 14: KEY LEVEL DETECTION
+// at_key_level: price within 0.3% of any defined level in bias direction
+// ─────────────────────────────────────────────────────────────────────────────
+
+LEVEL_PROX = 0.003   // 0.3%
+
+f_near(src, lvl) =>
+    not na(lvl) and math.abs(src - lvl) / src < LEVEL_PROX
+
+at_level_bull = (f_near(close, or_high)       or
+                 f_near(close, pm_high)       or
+                 f_near(close, prev_day_high) or
+                 f_near(close, vwap_val))
+
+at_level_bear = (f_near(close, or_low)      or
+                 f_near(close, pm_low)       or
+                 f_near(close, prev_day_low) or
+                 f_near(close, vwap_val))
+
+at_key_level     = (bullish_bias and at_level_bull) or (bearish_bias and at_level_bear)
+any_level_exists = not na(or_high) or not na(or_low) or not na(pm_high) or not na(pm_low) or not na(prev_day_high) or not na(prev_day_low) or not na(vwap_val)
+
+// Active level: nearest defined level to current close in bias direction
+f_nearest(src, a, b, c, d) =>
+    candidates = array.new_float(0)
+    if not na(a)
+        array.push(candidates, math.abs(src - a))
+    if not na(b)
+        array.push(candidates, math.abs(src - b))
+    if not na(c)
+        array.push(candidates, math.abs(src - c))
+    if not na(d)
+        array.push(candidates, math.abs(src - d))
+    levels_raw = array.new_float(0)
+    if not na(a)
+        array.push(levels_raw, a)
+    if not na(b)
+        array.push(levels_raw, b)
+    if not na(c)
+        array.push(levels_raw, c)
+    if not na(d)
+        array.push(levels_raw, d)
+    if array.size(candidates) == 0
+        float(na)
+    else
+        min_idx = array.indexof(candidates, array.min(candidates))
+        array.get(levels_raw, min_idx)
+
+active_level_bull = f_nearest(close, or_high, pm_high, prev_day_high, vwap_val)
+active_level_bear = f_nearest(close, or_low,  pm_low,  prev_day_low,  vwap_val)
+active_level = float(na)
+if bullish_bias
+    active_level := active_level_bull
+else if bearish_bias
+    active_level := active_level_bear
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 15: TIER 2 ALIGNMENT GATE (hard — not scored)
+// ─────────────────────────────────────────────────────────────────────────────
+
+tier2_aligned = (not is_tier2 or
+                 (bullish_bias and macro_bullish) or
+                 (bearish_bias and macro_bearish))
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 16: HARD DISQUALIFIERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+leg_lookback = 20
+bull_push_event = bullish_bias and close > high[1] and close > ema9
+bear_push_event = bearish_bias and close < low[1] and close < ema9
+base_reset_bars = 0
+if bullish_bias
+    base_reset_bars := nz(ta.barssince(low <= ema9), leg_lookback)
+else if bearish_bias
+    base_reset_bars := nz(ta.barssince(high >= ema9), leg_lookback)
+else
+    base_reset_bars := leg_lookback
+
+leg_count = 0
+for i = 0 to 19
+    in_base_window = i <= math.min(base_reset_bars, leg_lookback - 1)
+    new_bull_leg = bull_push_event[i] and not bull_push_event[i + 1]
+    new_bear_leg = bear_push_event[i] and not bear_push_event[i + 1]
+    if in_base_window and (new_bull_leg or new_bear_leg)
+        leg_count += 1
+
+leg_penalty_flag = leg_count >= 2
+leg_hard_block = leg_count >= 3
+
+hard_reject = not ticker_approved or hard_extended or ema21_hard_block or not any_level_exists or low_liquidity or not sufficient_movement or not tier2_aligned or not has_bias or not timeframe.isintraday or session_conflict
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 17: SCORING MODEL (0–8)
+// Only runs when hard_reject = false
+// ─────────────────────────────────────────────────────────────────────────────
+
+var int score_raw = 0
+var int score_penalty = 0
+var int score = 0
+
+if not hard_reject
+    _s = 0
+    // +2 Macro alignment
+    if (bullish_bias and macro_bullish) or (bearish_bias and macro_bearish)
+        _s += 2
+    // +2 Structure alignment — zeroed if choppy
+    if not is_choppy
+        if (bullish_bias and ema9 > ema21) or (bearish_bias and ema9 < ema21)
+            _s += 2
+    // +2 Volume expansion
+    if vol_expanded
+        _s += 2
+    // +1 Not hard-extended from VWAP
+    if not hard_extended
+        _s += 1
+    // +1 At key level
+    if at_key_level
+        _s += 1
+    _penalty = 0
+    if ema9_penalty_flag
+        _penalty += 1
+    if atr_exhaustion_flag
+        _penalty += 1
+    if leg_penalty_flag
+        _penalty += 1
+    score_raw := _s
+    score_penalty := _penalty
+    score := math.max(0, _s - _penalty)
+else
+    score_raw := 0
+    score_penalty := 0
+    score := 0
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 18: TRIGGER LOGIC
+// Breakout / reclaim / pullback confirmation with session-aware gating
+// ─────────────────────────────────────────────────────────────────────────────
+
+RETEST_TOL = 0.0015   // ±0.15%
+READY_SCORE = 6
+OPEN_DRIVE_VOL_RATIO = 1.75
+
+// Breakout: close crosses active level (not wick-only) + volume
+breakout_bull = (not na(active_level) and bullish_bias and
+                 close > active_level and close[1] <= active_level and
+                 vol_expanded)
+
+breakout_bear = (not na(active_level) and bearish_bias and
+                 close < active_level and close[1] >= active_level and
+                 vol_expanded)
+
+breakout_confirmed = barstate.isconfirmed and (breakout_bull or breakout_bear)
+
+// Retest: prior bar holds the level, current bar meaningfully probes it and closes back through it
+retest_hold_bull = (not na(active_level) and bullish_bias and
+                    close[1] > active_level and low <= active_level * (1 + RETEST_TOL) and
+                    close > active_level)
+retest_hold_bear = (not na(active_level) and bearish_bias and
+                    close[1] < active_level and high >= active_level * (1 - RETEST_TOL) and
+                    close < active_level)
+
+confirm_bull = barstate.isconfirmed and close > close[1]
+confirm_bear = barstate.isconfirmed and close < close[1]
+
+reclaim_bull = not na(active_level) and bullish_bias and close[1] < active_level and low <= active_level and close > active_level and confirm_bull
+reclaim_bear = not na(active_level) and bearish_bias and close[1] > active_level and high >= active_level and close < active_level and confirm_bear
+reclaim_confirmed = barstate.isconfirmed and (reclaim_bull or reclaim_bear)
+
+retest_confirmed = ((retest_hold_bull and confirm_bull) or
+                    (retest_hold_bear and confirm_bear))
+
+setup_type_str = "NONE"
+if breakout_confirmed
+    setup_type_str := "BREAKOUT"
+else if reclaim_confirmed
+    setup_type_str := "RECLAIM"
+else if retest_confirmed
+    setup_type_str := "PULLBACK"
+
+open_drive_breakout_ok = open_drive and vol_ratio >= OPEN_DRIVE_VOL_RATIO and breakout_confirmed
+midday_pullback_ok = midday and (retest_confirmed or reclaim_confirmed)
+power_hour_momentum_ok = power_hour and (breakout_confirmed or reclaim_confirmed or retest_confirmed)
+trigger_met = open_drive_breakout_ok or midday_pullback_ok or power_hour_momentum_ok
+
+distance_filter_ok = at_key_level and not na(active_level)
+ready_conditions = score >= READY_SCORE and has_bias and tier2_aligned and not hard_extended and not ema21_hard_block and not is_choppy and distance_filter_ok and not ema9_penalty_flag and not atr_exhaustion_flag and not leg_hard_block and valid_session
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 20: STATE MACHINE
+// States: SCAN(0) READY(1) ALERT(2) INVALID(3)
+// ─────────────────────────────────────────────────────────────────────────────
+
+STATE_SCAN    = 0
+STATE_READY   = 1
+STATE_ALERT   = 2
+STATE_INVALID = 3
+
+var int state = STATE_SCAN
+var int state_bars = 0
+var float locked_level = na
+var string locked_bias = na
+var string locked_setup_type = na
+var bool alerted_this_cycle = false
+
+state_bars := state_bars + 1
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 19: INVALIDATION REFERENCE
+// Bullish: level - 0.1% | Bearish: level + 0.1%
+// ─────────────────────────────────────────────────────────────────────────────
+
+invalidation_level = active_level
+if not na(locked_level)
+    invalidation_level := locked_level
+
+invalidation_bias_bull = bullish_bias
+if not na(locked_bias)
+    invalidation_bias_bull := locked_bias == "bullish"
+
+invalidation_ref = float(na)
+if not na(invalidation_level)
+    if invalidation_bias_bull
+        invalidation_ref := invalidation_level * 0.999
+    else
+        invalidation_ref := invalidation_level * 1.001
+
+locked_structure_break = false
+if state != STATE_SCAN and not na(locked_bias)
+    if locked_bias == "bullish"
+        locked_structure_break := close < ema21 or close < invalidation_ref
+    else if locked_bias == "bearish"
+        locked_structure_break := close > ema21 or close > invalidation_ref
+
+invalid_now = session_conflict or is_choppy or hard_extended or ema21_hard_block or locked_structure_break
+
+// ANY → INVALID
+if state != STATE_SCAN and invalid_now
+    state := STATE_INVALID
+    state_bars := 0
+
+// SCAN → READY
+if state == STATE_SCAN
+    if barstate.isconfirmed and not hard_reject and ready_conditions
+        state := STATE_READY
+        state_bars := 0
+        locked_level := active_level
+        locked_bias := "bearish"
+        if bullish_bias
+            locked_bias := "bullish"
+        locked_setup_type := "NONE"
+        alerted_this_cycle := false
+
+// READY → ALERT or INVALID
+if state == STATE_READY
+    if barstate.isconfirmed and trigger_met and score >= i_score_thresh
+        state := STATE_ALERT
+        state_bars := 0
+        locked_setup_type := setup_type_str
+    else if barstate.isconfirmed and (not ready_conditions or premarket or late_day or postmarket)
+        state := STATE_INVALID
+        state_bars := 0
+
+// ALERT → INVALID
+if state == STATE_ALERT
+    if barstate.isconfirmed and invalid_now
+        state := STATE_INVALID
+        state_bars := 0
+
+// INVALID → SCAN
+if state == STATE_INVALID
+    price_reset = na(locked_level) or math.abs(close - locked_level) / locked_level > 0.005
+    if price_reset
+        state := STATE_SCAN
+        state_bars := 0
+        locked_level := na
+        locked_bias := na
+        locked_setup_type := na
+        alerted_this_cycle := false
+
+// Reset alert flag when returning to SCAN
+if state == STATE_SCAN
+    alerted_this_cycle := false
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 21: ALERT EMISSION — ONE PER LIFECYCLE
+// ─────────────────────────────────────────────────────────────────────────────
+
+alert_msg = "ALERT | " + syminfo.ticker + " | " + locked_bias + " | " + locked_setup_type + "\n" + "Score: " + str.tostring(score) + "/8\n" + "Raw Score: " + str.tostring(score_raw) + "\n" + "Session: " + session_label + "\n" + "Level: " + str.tostring(locked_level, "#.##") + "\n" + "Invalidation: " + str.tostring(invalidation_ref, "#.##") + "\n" + "EMA9 Dist: " + str.tostring(dist_ema9_pct, "#.##") + "%\n" + "EMA21 Dist: " + str.tostring(dist_ema21_pct, "#.##") + "%\n" + "Legs: " + str.tostring(leg_count) + "\n" + "Time: " + str.format_time(time, "HH:mm", TZ)
+
+fire_alert = state == STATE_ALERT and not alerted_this_cycle
+if fire_alert
+    alerted_this_cycle := true
+    alert(alert_msg, alert.freq_once_per_bar_close)
+
+alertcondition(fire_alert, title="Signal Forge v1", message="Signal Forge v1 setup triggered. Use alert() payload for details.")
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 22: VISUAL LAYER
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Key level lines
+var line l_or_high   = na
+var line l_or_low    = na
+var line l_pm_high   = na
+var line l_pm_low    = na
+var line l_pd_high   = na
+var line l_pd_low    = na
+
+if i_show_levels and barstate.islast
+    if not na(or_high)
+        l_or_high := line.new(bar_index - 50, or_high, bar_index, or_high,
+                              color=color.new(color.yellow, 30), width=1, style=line.style_dashed)
+    if not na(or_low)
+        l_or_low := line.new(bar_index - 50, or_low, bar_index, or_low,
+                             color=color.new(color.yellow, 30), width=1, style=line.style_dashed)
+    if not na(pm_high)
+        l_pm_high := line.new(bar_index - 50, pm_high, bar_index, pm_high,
+                              color=color.new(color.purple, 40), width=1, style=line.style_dotted)
+    if not na(pm_low)
+        l_pm_low := line.new(bar_index - 50, pm_low, bar_index, pm_low,
+                             color=color.new(color.purple, 40), width=1, style=line.style_dotted)
+    if not na(prev_day_high)
+        l_pd_high := line.new(bar_index - 50, prev_day_high, bar_index, prev_day_high,
+                              color=color.new(color.gray, 40), width=1, style=line.style_dotted)
+    if not na(prev_day_low)
+        l_pd_low := line.new(bar_index - 50, prev_day_low, bar_index, prev_day_low,
+                             color=color.new(color.gray, 40), width=1, style=line.style_dotted)
+
+// Alert label on fired bar
+if fire_alert and i_show_labels
+    alert_label_color = color.new(color.red, 10)
+    if locked_bias == "bullish"
+        alert_label_color := color.new(color.green, 10)
+    label.new(bar_index, high,
+              text = "▲ " + str.tostring(score) + "/8\n" + locked_bias,
+              color = alert_label_color,
+              textcolor = color.white,
+              style = label.style_label_down,
+              size = size.normal)
+
+plotshape(i_show_labels and state == STATE_READY, title="Ready", style=shape.circle,
+          location=location.belowbar, color=color.new(color.blue, 20), size=size.tiny)
+
+plotshape(i_show_labels and state == STATE_ALERT, title="Alert", style=shape.circle,
+          location=location.belowbar, color=color.new(color.orange, 20), size=size.small)
+
+// Unapproved ticker warning
+if not ticker_approved and barstate.islast
+    label.new(bar_index, close,
+              text = "⚠ " + syminfo.ticker + " NOT IN APPROVED UNIVERSE",
+              color = color.new(color.red, 0),
+              textcolor = color.white,
+              style = label.style_label_left,
+              size = size.normal)
+
+if session_conflict and barstate.islast
+    label.new(bar_index, close,
+              text = "⚠ SESSION CONFLICT",
+              color = color.new(color.red, 0),
+              textcolor = color.white,
+              style = label.style_label_left,
+              size = size.small)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION 23: DEBUG TABLE (bottom-right, shows live state)
+// ─────────────────────────────────────────────────────────────────────────────
+
+if i_show_labels and barstate.islast
+    state_str = "INVALID"
+    if state == STATE_SCAN
+        state_str := "SCAN"
+    else if state == STATE_READY
+        state_str := "READY"
+    else if state == STATE_ALERT
+        state_str := "ALERT"
+
+    var table t = table.new(position.bottom_right, 2, 15,
+                            bgcolor=color.new(color.black, 20),
+                            border_color=color.new(color.gray, 50),
+                            border_width=1)
+
+    score_color = color.orange
+    if score >= i_score_thresh
+        score_color := color.green
+
+    session_color = color.red
+    if valid_session
+        session_color := color.green
+
+    bias_text = "MIXED"
+    bias_color = color.gray
+    if bullish_bias
+        bias_text := "BULL"
+        bias_color := color.green
+    else if bearish_bias
+        bias_text := "BEAR"
+        bias_color := color.red
+
+    macro_text = "BEAR"
+    macro_color = color.red
+    if macro_bullish
+        macro_text := "BULL"
+        macro_color := color.green
+
+    vol_color = color.orange
+    if vol_expanded
+        vol_color := color.green
+
+    ext_color = color.green
+    if ema9_penalty_flag
+        ext_color := color.orange
+    if hard_extended or ema21_hard_block
+        ext_color := color.red
+
+    chop_text = "NO"
+    chop_color = color.green
+    if is_choppy
+        chop_text := "YES"
+        chop_color := color.red
+
+    reject_text = "NO"
+    reject_color = color.green
+    if hard_reject
+        reject_text := "YES"
+        reject_color := color.red
+
+    conflict_text = "NO"
+    conflict_color = color.green
+    if session_conflict
+        conflict_text := "YES"
+        conflict_color := color.red
+
+    extension_text = "OK"
+    if ema21_hard_block
+        extension_text := "EMA21_BLOCK"
+    else if ema9_penalty_flag
+        extension_text := "EMA9_PENALTY"
+
+    exhaustion_text = "OK"
+    if atr_exhaustion_flag
+        exhaustion_text := "ATR_EXHAUST"
+
+    exhaustion_color = color.green
+    if atr_exhaustion_flag
+        exhaustion_color := color.red
+
+    leg_color = color.green
+    if leg_penalty_flag
+        leg_color := color.orange
+    if leg_hard_block
+        leg_color := color.red
+
+    table.cell(t, 0, 0, "Signal Forge v1", text_color=color.white, text_size=size.small, bgcolor=color.new(color.navy, 10))
+    table.cell(t, 1, 0, syminfo.ticker,    text_color=color.yellow, text_size=size.small, bgcolor=color.new(color.navy, 10))
+    table.cell(t, 0, 1, "TZ", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 1, TZ, text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 2, "Time", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 2, str.tostring(exch_hour) + ":" + str.tostring(exch_min), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 3, "Session", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 3, session_label, text_color=session_color, text_size=size.small)
+    table.cell(t, 0, 4, "Conflict", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 4, conflict_text, text_color=conflict_color, text_size=size.small)
+    table.cell(t, 0, 5, "State", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 5, state_str, text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 6, "Score", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 6, str.tostring(score) + " (" + str.tostring(score_raw) + "-" + str.tostring(score_penalty) + ")", text_color=score_color, text_size=size.small)
+    table.cell(t, 0, 7, "Bias", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 7, bias_text, text_color=bias_color, text_size=size.small)
+    table.cell(t, 0, 8, "Macro", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 8, macro_text, text_color=macro_color, text_size=size.small)
+    table.cell(t, 0, 9, "Vol Ratio", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 9, str.tostring(vol_ratio, "#.##") + "x", text_color=vol_color, text_size=size.small)
+    table.cell(t, 0, 10, "EMA Dist", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 10, str.tostring(dist_ema9_pct, "#.##") + "% / " + str.tostring(dist_ema21_pct, "#.##") + "%", text_color=ext_color, text_size=size.small)
+    table.cell(t, 0, 11, "Ext Flag", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 11, extension_text, text_color=ext_color, text_size=size.small)
+    table.cell(t, 0, 12, "Exhaust", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 12, exhaustion_text, text_color=exhaustion_color, text_size=size.small)
+    table.cell(t, 0, 13, "Legs", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 13, str.tostring(leg_count), text_color=leg_color, text_size=size.small)
+    table.cell(t, 0, 14, "Hard Rej", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 14, reject_text, text_color=reject_color, text_size=size.small)
