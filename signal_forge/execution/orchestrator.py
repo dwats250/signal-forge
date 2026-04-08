@@ -97,6 +97,27 @@ class ExecutionOrchestrator:
             )
             self._reject_record(record, policy_gate_reason)
 
+        data_gate_reason = self._data_confidence_gate_reason(candidate=candidate, market_context=market_context)
+        if data_gate_reason is not None:
+            self._log_trade_policy(
+                market_regime=market_context,
+                trade_policy=trade_policy.to_dict(),
+                trades_taken=0,
+                trades_blocked=1,
+                reason_blocked=data_gate_reason,
+                rejection_stage="data_confidence",
+            )
+            self._log_decision(
+                candidate=candidate,
+                market_regime=market_context,
+                policy_decision="block",
+                policy_reason=data_gate_reason,
+                execution_status="blocked",
+                execution_reason=data_gate_reason,
+                sized=False,
+            )
+            self._reject_record(record, data_gate_reason)
+
         policy_passed, policy_reason = filter_trade_candidate(
             candidate,
             trade_policy,
@@ -309,6 +330,32 @@ class ExecutionOrchestrator:
             )
         return None
 
+    def _data_confidence_gate_reason(
+        self,
+        *,
+        candidate: TradeCandidate,
+        market_context: dict[str, object],
+    ) -> str | None:
+        fail_safe = bool(market_context.get("fail_safe_no_trade"))
+        critical_missing = market_context.get("critical_missing")
+        confidence = market_context.get("data_confidence_score", market_context.get("confidence_score"))
+        try:
+            confidence_score = int(confidence) if confidence is not None else None
+        except (TypeError, ValueError):
+            confidence_score = None
+
+        if fail_safe:
+            return "BLOCKED: LOW DATA CONFIDENCE - critical macro inputs missing; forced NO_TRADE"
+        if isinstance(critical_missing, list) and sorted(str(item) for item in critical_missing) == ["DXY", "US10Y", "VIX"]:
+            return "BLOCKED: LOW DATA CONFIDENCE - DXY, US10Y, and VIX missing; forced NO_TRADE"
+        if confidence_score is None:
+            return None
+        if confidence_score < 70:
+            return "BLOCKED: LOW DATA CONFIDENCE"
+        if confidence_score <= 85 and candidate.score < 0.9:
+            return "BLOCKED: MODERATE DATA CONFIDENCE - high score setups only"
+        return None
+
     def _persist(self, record: TradeRecord) -> None:
         record.updated_at = utc_now()
         self.records[record.trade_id] = record
@@ -351,6 +398,8 @@ class ExecutionOrchestrator:
             "timestamp": utc_now(),
             "regime": market_context.get("regime", "MIXED"),
             "market_quality": market_context.get("market_quality", "MIXED"),
+            "data_confidence_score": market_context.get("data_confidence_score", market_context.get("confidence_score")),
+            "fail_safe_no_trade": bool(market_context.get("fail_safe_no_trade")),
             "policy_state": trade_policy["policy_state"],
             "candidates_seen": 1,
             "trades_taken": trades_taken,
@@ -380,6 +429,8 @@ class ExecutionOrchestrator:
             "symbol": candidate.symbol,
             "regime": str(market_regime.get("regime", "MIXED")),
             "market_quality": str(market_regime.get("market_quality", "MIXED")),
+            "data_confidence_score": market_regime.get("data_confidence_score", market_regime.get("confidence_score")),
+            "fail_safe_no_trade": bool(market_regime.get("fail_safe_no_trade")),
             "candidate_score": candidate.score,
             "policy_decision": policy_decision,
             "policy_reason": policy_reason,

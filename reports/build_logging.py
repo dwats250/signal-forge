@@ -31,3 +31,16 @@ def append_report_log(stage: str, status: str, message: str = "", *, now: dateti
     line = f"{report_timestamp(now)} | stage={stage} | status={status}{suffix}\n"
     with LOG_PATH.open("a", encoding="utf-8") as handle:
         handle.write(line)
+
+
+def append_data_source_log(symbol: str, source: str, *, fallback_used: bool = False, stale_risk: bool = False) -> None:
+    message = f"{symbol} -> {source.upper()}"
+    if fallback_used:
+        message += " (fallback)"
+    if stale_risk:
+        message += " (stale risk)"
+    append_report_log("data.health", "info", message)
+
+
+def append_confidence_score_log(score: int) -> None:
+    append_report_log("data.health", "info", f"CONFIDENCE SCORE -> {score}")

@@ -101,6 +101,91 @@ class ExecutionSubsystemTests(unittest.TestCase):
                     risk_percent=1,
                 )
 
+    def test_low_data_confidence_blocks_trade_submission(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidate = TradeCandidate(
+                symbol="SPY",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "BLOCKED: LOW DATA CONFIDENCE"):
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                        "data_confidence_score": 65,
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+            decision_lines = (Path(tmpdir) / "decision_log.jsonl").read_text(encoding="utf-8").strip().splitlines()
+            decision = json.loads(decision_lines[-1])
+            self.assertEqual(decision["data_confidence_score"], 65)
+            self.assertEqual(decision["execution_status"], "blocked")
+
+    def test_mid_data_confidence_allows_only_high_score_setups(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidate = TradeCandidate(
+                symbol="SPY",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+                score=0.85,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "high score setups only"):
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                        "data_confidence_score": 80,
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
+    def test_fail_safe_missing_core_macro_inputs_forces_no_trade(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            orchestrator = ExecutionOrchestrator(Path(tmpdir))
+            candidate = TradeCandidate(
+                symbol="SPY",
+                strategy_type=StrategyType.EQUITY,
+                direction=TradeDirection.BULLISH,
+                entry_trigger=EntryTrigger(trigger_type="breakout", price=100.0),
+                stop_level=98.0,
+                target_level=106.0,
+            )
+
+            with self.assertRaisesRegex(ExecutionError, "forced NO_TRADE"):
+                orchestrator.submit_trade(
+                    candidate,
+                    market_regime={
+                        "approved": True,
+                        "regime": "RISK_ON",
+                        "market_quality": "CLEAN",
+                        "fail_safe_no_trade": True,
+                        "critical_missing": ["DXY", "US10Y", "VIX"],
+                    },
+                    setup_result={"valid": True, "direction": "bullish"},
+                    account_size=10_000,
+                    risk_percent=0.01,
+                )
+
     def test_no_trade_policy_blocks_submission_before_risk(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             orchestrator = ExecutionOrchestrator(Path(tmpdir))

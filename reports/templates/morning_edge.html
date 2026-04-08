@@ -13,6 +13,48 @@
     align-items: baseline;
     padding-bottom: 6px;
   }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .data-health-banner {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(240, 107, 107, 0.35);
+    background: rgba(240, 107, 107, 0.08);
+    color: #ffd6d6;
+    font-size: 0.92rem;
+    font-weight: 700;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-badge.green {
+    color: #d6ffe5;
+    background: rgba(63, 211, 122, 0.14);
+    border: 1px solid rgba(63, 211, 122, 0.25);
+  }
+  .status-badge.yellow {
+    color: #ffeab3;
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .status-badge.red {
+    color: #ffd6d6;
+    background: rgba(240, 107, 107, 0.14);
+    border: 1px solid rgba(240, 107, 107, 0.25);
+  }
 
   .reports-grid {
     display: grid;
@@ -80,6 +122,7 @@
     line-height: 1.05;
     font-variant-numeric: tabular-nums;
   }
+  .macro-item .status-badge { margin-top: 4px; }
 
   /* ── TIER 2: System State ── */
   .state-card { padding: 18px 20px 16px; }
@@ -211,6 +254,7 @@
     line-height: 1.74;
     color: #DCE2EC;
   }
+  .plumbing-card .status-badge { margin-top: 2px; }
 
   /* ── Events ── */
   .events-list { display: flex; flex-direction: column; gap: 10px; }
@@ -553,8 +597,15 @@
 
   <header class="header">
     <h1>Morning <span>Macro</span> Edge</h1>
-    <span class="ts">{{ generated_line }}</span>
+    <div class="header-meta">
+      <span class="ts">{{ generated_line }}</span>
+      <span class="status-badge {{ confidence_badge_tone }}">{{ confidence_badge_text }}</span>
+    </div>
   </header>
+
+  {% if show_low_confidence_banner %}
+  <section class="data-health-banner">LOW DATA CONFIDENCE — SIGNALS DEGRADED</section>
+  {% endif %}
 
   <section class="card">
     <div class="card-title">Latest Reports</div>
@@ -592,6 +643,7 @@
       <span class="label">{{ item.name }}</span>
       <span class="value">{{ item.value }}</span>
       <span class="change dir-{{ item.direction }}">{{ item.change }}</span>
+      <span class="status-badge {{ item.badge_tone }}">{{ item.badge_text }}</span>
     </div>
     {% endfor %}
   </section>
@@ -630,6 +682,7 @@
       <div class="plumbing-card">
         <div class="plumbing-label">{{ item.label }}</div>
         <div class="plumbing-value">{{ item.value }}</div>
+        <span class="status-badge {{ item.badge_tone }}">{{ item.badge_text }}</span>
         <div class="plumbing-moves">
           <span class="plumbing-abs dir-{{ item.direction }}">{{ item.absolute_change }}</span>
           <span class="plumbing-pct dir-{{ item.direction }}">{{ item.percent_change }}</span>

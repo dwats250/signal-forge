@@ -14,12 +14,23 @@ from zoneinfo import ZoneInfo
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
-from reports.build_logging import append_report_log, generated_line, report_now
+from reports.build_logging import (
+    append_confidence_score_log,
+    append_data_source_log,
+    append_report_log,
+    generated_line,
+    report_now,
+)
 from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.commodity_resolver import validate_price
-from signal_forge.data.providers import FMPProvider, StooqProvider
-from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, FetchOutcome, UnifiedMarketDataClient
+from signal_forge.data.unified_data import (
+    DATA_SOURCE_UNAVAILABLE,
+    FetchOutcome,
+    UnifiedMarketDataClient,
+    compute_data_confidence,
+    validate_data_point,
+)
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -69,8 +80,6 @@ MARKET_VALIDATION_RANGES: dict[str, tuple[float, float]] = {
     "PALLADIUM": (500.0, 2500.0),
     "WTI": (20.0, 200.0),
 }
-GOLD_SOURCE_UNAVAILABLE = DATA_UNAVAILABLE_TEXT
-WTI_SOURCE_UNAVAILABLE = DATA_UNAVAILABLE_TEXT
 NARRATIVE_RETRY_ATTEMPTS = 2
 # ── Ticker highlight filter ────────────────────────────────────────────────
 
@@ -175,7 +184,7 @@ def _invalidate_market_entry(name: str, entry: dict, *, reason: str) -> dict:
     invalid = _missing_market_entry(
         is_yield=entry.get("is_yield", False),
         estimated=entry.get("estimated", False),
-        reason=reason,
+        reason=DATA_UNAVAILABLE_TEXT,
     )
     invalid["validation_failed"] = True
     invalid["validation_reason"] = f"{name}: {reason}"
@@ -209,42 +218,6 @@ def _commodity_unavailable_entry(symbol: str, fallback_text: str) -> dict:
     invalid["validation_failed"] = True
     invalid["validation_reason"] = f"{symbol}: {fallback_text}"
     return invalid
-
-
-def _resolve_commodity_entry(
-    symbol: str,
-    *,
-    primary_entry: dict | None,
-    secondary_entry: dict | None,
-    tertiary_entry: dict | None = None,
-    fallback_text: str,
-) -> dict:
-    for entry, source in (
-        (primary_entry, "fmp"),
-        (secondary_entry, "stooq"),
-        (tertiary_entry, "cache"),
-    ):
-        if not isinstance(entry, dict):
-            continue
-        price = _entry_price(entry)
-        if not validate_price(symbol, price):
-            continue
-        if entry.get("day_chg") is None:
-            continue
-        resolved = dict(entry)
-        resolved["source"] = resolved.get("source", source)
-        return resolved
-    return _commodity_unavailable_entry(symbol, fallback_text)
-
-
-def _fetch_provider_entry(symbol: str, provider: object, source_name: str) -> dict | None:
-    client = UnifiedMarketDataClient(providers=[provider])
-    series = client.fetch_series(symbol, fallback_builder=lambda _symbol: [])
-    if len(series) < 2:
-        return None
-    entry = _build_market_entry_from_closes(series, symbol)
-    entry["source"] = source_name
-    return entry
 
 
 def _cache_preserving_commodities(result: dict) -> dict:
@@ -333,6 +306,7 @@ def _format_numeric_delta(name: str, delta: float | None) -> str:
 def _plumbing_item(name: str, label: str, entry: dict) -> dict:
     price = entry.get("price")
     day_chg = entry.get("day_chg")
+    badge_text, badge_tone = _source_badge(entry)
     if price is None or day_chg is None:
         return {
             "label": label,
@@ -340,6 +314,8 @@ def _plumbing_item(name: str, label: str, entry: dict) -> dict:
             "absolute_change": "Unavailable",
             "percent_change": "Unavailable",
             "direction": "flat",
+            "badge_text": badge_text,
+            "badge_tone": badge_tone,
         }
 
     if entry.get("is_yield"):
@@ -356,6 +332,8 @@ def _plumbing_item(name: str, label: str, entry: dict) -> dict:
         "absolute_change": absolute_change,
         "percent_change": percent_change,
         "direction": "up" if day_chg > 0 else "down" if day_chg < 0 else "flat",
+        "badge_text": badge_text,
+        "badge_tone": badge_tone,
     }
 
 
@@ -370,10 +348,35 @@ def _build_financial_plumbing(md: dict) -> list[dict]:
     ]
 
 
+def _source_badge(entry: dict | None) -> tuple[str, str]:
+    if not isinstance(entry, dict):
+        return "DATA UNAVAILABLE", "red"
+    source = str(entry.get("source", "unavailable")).lower()
+    if source == "stooq":
+        return "FALLBACK SOURCE (STOOQ)", "yellow"
+    if source == "cache":
+        return "CACHED VALUE", "yellow"
+    if source == "fmp":
+        return "PRIMARY: FMP", "green"
+    if source == "stub":
+        return "DEGRADED STUB", "red"
+    return "DATA UNAVAILABLE", "red"
+
+
+def _confidence_badge(score: int) -> tuple[str, str]:
+    if score > 85:
+        return f"DATA CONFIDENCE {score}/100", "green"
+    if score >= 70:
+        return f"DATA CONFIDENCE {score}/100", "yellow"
+    return f"DATA CONFIDENCE {score}/100", "red"
+
+
 def _build_state_summary(md: dict, narrative: dict) -> dict:
     thesis = narrative.get("thesis", "")
     thesis_lower = thesis.lower()
     vix = md.get("VIX", {}).get("price")
+    meta = md.get("_meta", {})
+    confidence_score = int(meta.get("confidence_score", compute_data_confidence(md)))
 
     if "bull" in thesis_lower:
         posture = "Bullish"
@@ -393,16 +396,22 @@ def _build_state_summary(md: dict, narrative: dict) -> dict:
     else:
         quality = "Fragile"
 
-    execution_bias = "Selective" if narrative.get("no_setups", True) else "Actionable"
+    if confidence_score < 70:
+        execution_bias = "Blocked"
+    elif confidence_score <= 85:
+        execution_bias = "High Score Only"
+    else:
+        execution_bias = "Selective" if narrative.get("no_setups", True) else "Actionable"
 
     posture_color = "positive" if posture == "Bullish" else "negative" if posture == "Bearish" else "neutral"
     quality_color = "positive" if quality == "Calm" else "negative" if quality == "Fragile" else "neutral"
-    bias_color = "positive" if execution_bias == "Actionable" else "neutral"
+    bias_color = "negative" if execution_bias == "Blocked" else "neutral" if execution_bias == "High Score Only" else "positive" if execution_bias == "Actionable" else "neutral"
 
     return {
         "market_posture": posture,
         "market_quality": quality,
         "execution_bias": execution_bias,
+        "data_confidence": confidence_score,
         "posture_color": posture_color,
         "quality_color": quality_color,
         "bias_color": bias_color,
@@ -454,20 +463,10 @@ def fetch_market_data() -> dict:
             print("  Falling back to deterministic stub market data for this build.")
 
     result = _sanitize_market_data(outcome.data)
-    cached_market_data = load_market_data_cache() or {}
-    result["GOLD"] = _resolve_commodity_entry(
-        "GOLD",
-        primary_entry=_fetch_provider_entry("GOLD", FMPProvider(), "fmp"),
-        secondary_entry=_fetch_provider_entry("GOLD", StooqProvider(), "stooq"),
-        tertiary_entry=cached_market_data.get("GOLD"),
-        fallback_text=GOLD_SOURCE_UNAVAILABLE,
-    )
-    result["WTI"] = _resolve_commodity_entry(
-        "WTI",
-        primary_entry=result.get("WTI"),
-        secondary_entry=cached_market_data.get("WTI"),
-        fallback_text=WTI_SOURCE_UNAVAILABLE,
-    )
+    meta = result.setdefault("_meta", {})
+    meta["confidence_score"] = int(meta.get("confidence_score", compute_data_confidence(result)))
+    meta["critical_missing"] = [ticker for ticker in ("DXY", "US10Y", "VIX") if not bool(result.get(ticker, {}).get("valid"))]
+    meta["fail_safe_no_trade"] = len(meta["critical_missing"]) == 3
 
     # Estimate REAL10Y: US10Y minus approximate 10Y breakeven inflation (~2.2%)
     us10y = result.get("US10Y", {}).get("price")
@@ -481,6 +480,9 @@ def fetch_market_data() -> dict:
             "formatted": f"{real10y_est:.2f}%",
             "is_yield": True,
             "estimated": True,
+            "source": result["US10Y"].get("source", "unavailable"),
+            "timestamp": result["US10Y"].get("timestamp", ""),
+            "valid": bool(result["US10Y"].get("valid")),
         }
     else:
         result["REAL10Y"] = _missing_market_entry(is_yield=True, estimated=True)
@@ -511,8 +513,17 @@ def fetch_market_data() -> dict:
     else:
         print("  Warning: GOLD price is unavailable after FMP-backed validation. No live gold value will be rendered.")
 
-    if not outcome.fallback_used:
-        save_market_data_cache(_cache_preserving_commodities(result), source=outcome.source)
+    for symbol in ("DXY", "US10Y", "WTI", "GOLD", "SILVER", "VIX", "SPY"):
+        entry = result.get(symbol, {})
+        append_data_source_log(
+            symbol,
+            str(entry.get("source", "unavailable")),
+            fallback_used=str(entry.get("source", "")).lower() in {"stooq", "cache", "stub"},
+            stale_risk=not validate_data_point(entry.get("price"), entry.get("timestamp")),
+        )
+    append_confidence_score_log(int(meta["confidence_score"]))
+
+    save_market_data_cache(_cache_preserving_commodities(result), source=outcome.source)
     return result
 
 
@@ -546,12 +557,15 @@ def build_macro_bar(md: dict) -> list[dict]:
         is_yield = d.get("is_yield", False)
         chg = _chg_str(d.get("day_chg"), is_yield, include_5d, d.get("week_chg"))
         est = " ~est" if d.get("estimated") else ""
+        badge_text, badge_tone = _source_badge(d)
         items.append({
             "name": label or name,
             "value": d.get("formatted", "N/A"),
             "change": chg,
             "estimated": d.get("estimated", False),
             "direction": "up" if d.get("day_chg") is not None and d.get("day_chg") > 0 else "down" if d.get("day_chg") is not None and d.get("day_chg") < 0 else "flat",
+            "badge_text": badge_text,
+            "badge_tone": badge_tone,
         })
 
     add("DXY")
@@ -775,11 +789,18 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
 
 def build_report_data(md: dict, narrative: dict) -> dict:
     now_vancouver = report_now()
+    meta = md.get("_meta", {})
+    confidence_score = int(meta.get("confidence_score", compute_data_confidence(md)))
+    confidence_text, confidence_tone = _confidence_badge(confidence_score)
     return {
         "timestamp": now_vancouver.strftime("%Y-%m-%d — %H:%M %Z"),
         "generated_line": generated_line(now_vancouver),
         "date": now_vancouver.strftime("%Y-%m-%d"),
         "archive_href": "archive/",
+        "confidence_score": confidence_score,
+        "confidence_badge_text": confidence_text,
+        "confidence_badge_tone": confidence_tone,
+        "show_low_confidence_banner": confidence_score < 70,
         "macro_bar": build_macro_bar(md),
         "state_summary": _build_state_summary(md, narrative),
         "financial_plumbing": _build_financial_plumbing(md),
