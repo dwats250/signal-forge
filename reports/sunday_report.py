@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -16,6 +17,7 @@ from zoneinfo import ZoneInfo
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from reports.build_logging import append_report_log, generated_line, report_now
 from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.unified_data import (
@@ -35,6 +37,7 @@ LIVE_HTML_PATH = OUTPUT_DIR / "sunday_report.html"
 LIVE_PDF_PATH = OUTPUT_DIR / "sunday_report.pdf"
 LATEST_HTML_PATH = OUTPUT_DIR / "latest_sunday.html"
 LATEST_PDF_PATH = OUTPUT_DIR / "latest_sunday.pdf"
+NARRATIVE_FAILURE_ARTIFACT_PATH = OUTPUT_DIR / "sunday_narrative_failure.latest.json"
 
 # ── Tickers ────────────────────────────────────────────────────────────────
 
@@ -283,6 +286,49 @@ SUNDAY_SCHEMA = {
     "key_risk": "string — single biggest threat to the week thesis",
 }
 
+REQUIRED_STRING_FIELDS = (
+    "regime",
+    "regime_driver",
+    "regime_confidence",
+    "quality",
+    "posture",
+    "energy_paragraph",
+    "energy_action",
+    "metals_paragraph",
+    "metals_action",
+    "key_risk",
+)
+REQUIRED_STRING_LIST_FIELDS = (
+    "regime_bullets",
+    "cross_asset_bullets",
+    "playbook",
+    "primary_drivers",
+)
+REQUIRED_OBJECT_LIST_FIELDS: dict[str, tuple[str, ...]] = {
+    "quality_signals": ("label", "signal", "tone"),
+    "what_matters": ("title", "why", "implication"),
+    "events": ("date", "event", "impact", "note"),
+    "themes": ("title", "bias", "logic", "invalidates_if"),
+}
+
+
+@dataclass
+class NarrativeParseResult:
+    ok: bool
+    payload: dict | None = None
+    reason: str | None = None
+    detail: str | None = None
+    parse_mode: str | None = None
+
+
+@dataclass
+class NarrativeResolution:
+    narrative: dict
+    used_fallback: bool
+    reason: str | None = None
+    detail: str | None = None
+    artifact_path: Path | None = None
+
 
 # ── Stub narrative ─────────────────────────────────────────────────────────
 
@@ -394,10 +440,155 @@ def _stub_narrative(md: dict) -> dict:
     }
 
 
-# ── Generate narrative ─────────────────────────────────────────────────────
+def _fallback_narrative(md: dict, *, reason: str, detail: str | None = None) -> dict:
+    fallback = _stub_narrative(md)
+    fallback_note = f"Fallback narrative in effect — structured weekly data rendered because AI narrative payload was invalid ({reason})."
+    if detail:
+        fallback_note = f"{fallback_note} Detail: {detail}."
+    fallback["regime_bullets"] = [fallback_note, *fallback.get("regime_bullets", [])]
+    fallback["playbook"] = [
+        "Fallback mode: prioritize the structured macro snapshot and treat narrative commentary as limited-confidence.",
+        *fallback.get("playbook", []),
+    ]
+    fallback["key_risk"] = f"Fallback mode active due to Sunday narrative issue ({reason}). Validate discretionary interpretation before relying on commentary."
+    return fallback
 
-def generate_narrative(md: dict, week_of: str) -> dict:
+
+def _string_is_present(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and not _is_placeholder_string(value)
+
+
+def _is_placeholder_string(value: str) -> bool:
+    normalized = value.strip().lower()
+    if not normalized:
+        return True
+    return normalized in {"null", "none", "n/a", "placeholder"} or normalized.startswith("string")
+
+
+def _extract_json_candidates(raw_text: str) -> list[tuple[str, str]]:
+    candidates: list[tuple[str, str]] = []
+    stripped = raw_text.strip()
+    if stripped:
+        candidates.append(("raw", stripped))
+
+    fence_matches = re.findall(r"```(?:json)?\s*(.*?)```", raw_text, flags=re.DOTALL | re.IGNORECASE)
+    for match in fence_matches:
+        candidate = match.strip()
+        if candidate:
+            candidates.append(("markdown_fence", candidate))
+
+    start = raw_text.find("{")
+    end = raw_text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        candidate = raw_text[start:end + 1].strip()
+        if candidate:
+            candidates.append(("brace_extract", candidate))
+
+    unique_candidates: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for mode, candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        unique_candidates.append((mode, candidate))
+    return unique_candidates
+
+
+def _parse_sunday_narrative(raw_text: str) -> NarrativeParseResult:
+    if not raw_text or not raw_text.strip():
+        return NarrativeParseResult(False, reason="empty_response", detail="model returned empty text")
+
+    malformed_detail: str | None = None
+    for parse_mode, candidate in _extract_json_candidates(raw_text):
+        try:
+            payload = json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            malformed_detail = f"{type(exc).__name__}: {exc}"
+            continue
+
+        if not isinstance(payload, dict):
+            return NarrativeParseResult(
+                False,
+                reason="wrong_root_type",
+                detail=f"expected object, got {type(payload).__name__}",
+                parse_mode=parse_mode,
+            )
+        return NarrativeParseResult(True, payload=payload, parse_mode=parse_mode)
+
+    if raw_text.lstrip().startswith("{") or raw_text.lstrip().startswith("["):
+        return NarrativeParseResult(False, reason="malformed_json", detail=malformed_detail, parse_mode="raw")
+    if "```" in raw_text or (raw_text.find("{") != -1 and raw_text.rfind("}") > raw_text.find("{")):
+        return NarrativeParseResult(False, reason="malformed_json", detail=malformed_detail, parse_mode="extracted")
+    return NarrativeParseResult(False, reason="extra_prose_around_json", detail=malformed_detail or "no JSON object found")
+
+
+def _validate_string_list(payload: dict, field: str) -> str | None:
+    value = payload.get(field)
+    if not isinstance(value, list) or not value:
+        return f"{field} must be a non-empty list"
+    for idx, item in enumerate(value):
+        if not _string_is_present(item):
+            return f"{field}[{idx}] must be a non-empty string"
+    return None
+
+
+def _validate_object_list(payload: dict, field: str, required_fields: tuple[str, ...]) -> str | None:
+    value = payload.get(field)
+    if not isinstance(value, list) or not value:
+        return f"{field} must be a non-empty list"
+    for idx, item in enumerate(value):
+        if not isinstance(item, dict):
+            return f"{field}[{idx}] must be an object"
+        for required_field in required_fields:
+            if not _string_is_present(item.get(required_field)):
+                return f"{field}[{idx}].{required_field} must be a non-empty string"
+    return None
+
+
+def _validate_sunday_narrative_payload(payload: dict) -> NarrativeParseResult:
+    for field in REQUIRED_STRING_FIELDS:
+        if field not in payload:
+            return NarrativeParseResult(False, reason="missing_required_field", detail=field)
+        if not _string_is_present(payload.get(field)):
+            return NarrativeParseResult(False, reason="invalid_field_value", detail=f"{field} must be a non-empty string")
+
+    for field in REQUIRED_STRING_LIST_FIELDS:
+        error = _validate_string_list(payload, field)
+        if error is not None:
+            return NarrativeParseResult(False, reason="invalid_field_type", detail=error)
+
+    for field, required_fields in REQUIRED_OBJECT_LIST_FIELDS.items():
+        error = _validate_object_list(payload, field, required_fields)
+        if error is not None:
+            return NarrativeParseResult(False, reason="invalid_field_type", detail=error)
+
+    return NarrativeParseResult(True, payload=payload)
+
+
+def _write_narrative_failure_artifact(
+    *,
+    raw_text: str,
+    week_of: str,
+    reason: str,
+    detail: str | None,
+) -> Path:
+    NARRATIVE_FAILURE_ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    artifact = {
+        "captured_at": report_now().isoformat(),
+        "week_of": week_of,
+        "reason": reason,
+        "detail": detail,
+        "raw_text": raw_text,
+    }
+    NARRATIVE_FAILURE_ARTIFACT_PATH.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+    return NARRATIVE_FAILURE_ARTIFACT_PATH
+
+
+def _resolve_narrative(md: dict, week_of: str) -> NarrativeResolution:
     print("Generating weekly narrative via Claude...")
+
+
+# ── Generate narrative ─────────────────────────────────────────────────────
 
     def fmt(k: str) -> str:
         d = md.get(k, {})
@@ -448,7 +639,7 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         print("  Warning: ANTHROPIC_API_KEY not set — using stub narrative.")
-        return _stub_narrative(md)
+        return NarrativeResolution(narrative=_stub_narrative(md), used_fallback=False)
 
     client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
@@ -456,14 +647,67 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
         max_tokens=3000,
         messages=[{"role": "user", "content": prompt}],
     )
+    raw = response.content[0].text if response.content else ""
+    parse_result = _parse_sunday_narrative(raw)
+    if not parse_result.ok:
+        artifact_path = _write_narrative_failure_artifact(
+            raw_text=raw,
+            week_of=week_of,
+            reason=parse_result.reason or "parse_failed",
+            detail=parse_result.detail,
+        )
+        fallback = _fallback_narrative(md, reason=parse_result.reason or "parse_failed", detail=parse_result.detail)
+        append_report_log(
+            "sunday_report.narrative",
+            "recovered",
+            f"reason={parse_result.reason} detail={parse_result.detail} artifact={artifact_path}",
+        )
+        return NarrativeResolution(
+            narrative=fallback,
+            used_fallback=True,
+            reason=parse_result.reason,
+            detail=parse_result.detail,
+            artifact_path=artifact_path,
+        )
 
-    raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-    raw = raw.strip()
-    return json.loads(raw)
+    validation_result = _validate_sunday_narrative_payload(parse_result.payload or {})
+    if not validation_result.ok:
+        artifact_path = _write_narrative_failure_artifact(
+            raw_text=raw,
+            week_of=week_of,
+            reason=validation_result.reason or "validation_failed",
+            detail=validation_result.detail,
+        )
+        fallback = _fallback_narrative(md, reason=validation_result.reason or "validation_failed", detail=validation_result.detail)
+        append_report_log(
+            "sunday_report.narrative",
+            "recovered",
+            f"reason={validation_result.reason} detail={validation_result.detail} artifact={artifact_path}",
+        )
+        return NarrativeResolution(
+            narrative=fallback,
+            used_fallback=True,
+            reason=validation_result.reason,
+            detail=validation_result.detail,
+            artifact_path=artifact_path,
+        )
+
+    append_report_log(
+        "sunday_report.narrative",
+        "success",
+        f"parse_mode={parse_result.parse_mode or 'raw'}",
+    )
+    return NarrativeResolution(
+        narrative=validation_result.payload or {},
+        used_fallback=False,
+        reason=None,
+        detail=None,
+        artifact_path=None,
+    )
+
+
+def generate_narrative(md: dict, week_of: str) -> dict:
+    return _resolve_narrative(md, week_of).narrative
 
 
 # ── Report assembly ────────────────────────────────────────────────────────
@@ -473,7 +717,7 @@ def build_report_data(md: dict, narrative: dict, now: datetime) -> dict:
     return {
         "week_of":       week_of,
         "date_range":    date_range,
-        "generated_line": now.strftime("Generated %a %b %-d, %Y at %-I:%M %p %Z"),
+        "generated_line": generated_line(now),
         # Regime
         "regime":             narrative.get("regime", "MIXED"),
         "regime_driver":      narrative.get("regime_driver", "MIXED"),
@@ -552,13 +796,32 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
     week_of, date_range = _week_label(now)
     print(f"Week of: {date_range}")
 
-    market_data = fetch_market_data()
-    narrative = (
-        _stub_narrative(market_data)
-        if offline
-        else generate_narrative(market_data, week_of)
-    )
-    report_data = build_report_data(market_data, narrative, now)
+    failed_stages: list[str] = []
+    try:
+        market_data = fetch_market_data()
+        append_report_log("sunday_report.data_fetch", "success")
+    except Exception as exc:
+        failed_stages.append("sunday_report.data_fetch")
+        append_report_log("sunday_report.data_fetch", "failure", f"exception={type(exc).__name__}: {exc}")
+        market_data = build_stub_market_data()
+    try:
+        if offline:
+            narrative = _stub_narrative(market_data)
+        else:
+            narrative_outcome = _resolve_narrative(market_data, week_of)
+            narrative = narrative_outcome.narrative
+            if narrative_outcome.used_fallback:
+                print(
+                    f"  Warning: Sunday narrative fallback engaged ({narrative_outcome.reason}). "
+                    f"Artifact: {narrative_outcome.artifact_path}"
+                )
+        report_data = build_report_data(market_data, narrative, report_now())
+        append_report_log("sunday_report.report_build", "success")
+    except Exception as exc:
+        failed_stages.append("sunday_report.report_build")
+        append_report_log("sunday_report.report_build", "failure", f"exception={type(exc).__name__}: {exc}")
+        fallback_market_data = build_stub_market_data()
+        report_data = build_report_data(fallback_market_data, _stub_narrative(fallback_market_data), report_now())
 
     with TemporaryDirectory(prefix="sunday-report-") as tmpdir:
         temp_dir = Path(tmpdir)
@@ -569,7 +832,11 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
             render_html(report_data, out_path=html_temp_path)
         except Exception as exc:
             print(f"[FAIL] Sunday Report generation failed: {exc}")
-            raise
+            failed_stages.append("sunday_report.html_render")
+            append_report_log("sunday_report.html_render", "failure", f"exception={type(exc).__name__}: {exc}")
+            report_data["_failed_stages"] = failed_stages
+            return report_data
+        append_report_log("sunday_report.html_render", "success")
         print(f"[OK] Generated Sunday Report HTML -> {html_temp_path}")
 
         pdf_generated = False
@@ -578,8 +845,11 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
                 render_pdf(html_temp_path, out_path=pdf_temp_path)
             except Exception as exc:
                 print(f"[FAIL] Sunday Report PDF generation failed: {exc}")
+                failed_stages.append("sunday_report.pdf_render")
+                append_report_log("sunday_report.pdf_render", "failure", f"exception={type(exc).__name__}: {exc}")
             else:
                 pdf_generated = True
+                append_report_log("sunday_report.pdf_render", "success")
                 print(f"[OK] Generated Sunday Report PDF -> {pdf_temp_path}")
 
         promote_report_artifact(
@@ -606,6 +876,7 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
     print("=" * 60)
     print(f"Regime: {report_data['regime']}  |  Quality: {report_data['quality']}  |  Posture: {report_data['posture']}")
     print("=" * 60)
+    report_data["_failed_stages"] = failed_stages
     return report_data
 
 

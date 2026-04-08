@@ -17,13 +17,13 @@ Tasker
 
 Cron fallback
 - Use Termux `crond`
-- Add these lines to your crontab:
+- Add these lines to your crontab and do not schedule legacy report wrappers alongside them:
 - `0 6 * * 1-5 /data/data/com.termux/files/usr/bin/bash /home/dustin/signal-forge/scripts/run_reports_termux.sh`
 - `30 6 * * 1-5 /data/data/com.termux/files/usr/bin/bash /home/dustin/signal-forge/scripts/run_observation_termux.sh`
 
 DuckDNS
 - Disabled from active automation intentionally
-- Archived at `/home/dustin/signal-forge/scripts/disabled/duckdns_update.sh`
+- Archived at `/home/dustin/signal-forge/backup/duckdns/duckdns_update.sh`
 
 Logs
 - Report build log: `/home/dustin/signal-forge/logs/morning_reports.log`

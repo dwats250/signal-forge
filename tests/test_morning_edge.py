@@ -89,14 +89,17 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
             "reports.morning_edge.UnifiedMarketDataClient.fetch_entries",
             return_value=FetchOutcome(invalid, "yfinance", False, None),
         ):
-            data = morning_edge.fetch_market_data()
+            with patch("reports.morning_edge.load_market_data_cache", return_value={}):
+                with patch.object(FMPProvider, "fetch_histories", return_value=({}, None)):
+                    with patch.object(morning_edge.StooqProvider, "fetch_histories", return_value=({}, None)):
+                        data = morning_edge.fetch_market_data()
 
         self.assertIsNone(data["GOLD"]["price"])
-        self.assertEqual(data["GOLD"]["formatted"], "Gold: unavailable")
+        self.assertEqual(data["GOLD"]["formatted"], "DATA UNAVAILABLE")
         self.assertTrue(data["GOLD"]["source_unavailable"])
         self.assertIn("REAL10Y", data)
 
-    def test_fetch_market_data_marks_gold_unavailable_when_fmp_proxy_is_invalid(self) -> None:
+    def test_fetch_market_data_falls_back_to_stooq_when_fmp_gold_is_invalid(self) -> None:
         live_result = {
             "GOLD": {"price": 4645.4, "day_chg": 0.4, "week_chg": 1.8, "formatted": "$4645.40", "is_yield": False},
             "SILVER": {"price": 26.11, "day_chg": 0.6, "week_chg": 2.2, "formatted": "$26.11", "is_yield": False},
@@ -108,11 +111,12 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
             return_value=FetchOutcome(live_result, "yfinance", False, None),
         ):
             with patch.object(FMPProvider, "fetch_histories", return_value=({"GOLD": [178.0, 179.0, 180.0]}, None)):
-                data = morning_edge.fetch_market_data()
+                with patch("reports.morning_edge.StooqProvider.fetch_histories", return_value=({"GOLD": [2380.0, 2395.0, 2400.0]}, None)):
+                    data = morning_edge.fetch_market_data()
 
-        self.assertIsNone(data["GOLD"]["price"])
-        self.assertEqual(data["GOLD"]["formatted"], "Gold: unavailable")
-        self.assertTrue(data["GOLD"]["validation_failed"])
+        self.assertEqual(data["GOLD"]["price"], 2400.0)
+        self.assertEqual(data["GOLD"]["source"], "stooq")
+        self.assertEqual(data["GOLD"]["day_chg"], 0.21)
 
     def test_fetch_market_data_uses_cached_wti_when_live_value_is_invalid(self) -> None:
         live_result = {
@@ -153,7 +157,7 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
                     data = morning_edge.fetch_market_data()
 
         self.assertIsNone(data["WTI"]["price"])
-        self.assertEqual(data["WTI"]["formatted"], "WTI: unavailable")
+        self.assertEqual(data["WTI"]["formatted"], "DATA UNAVAILABLE")
         self.assertTrue(data["WTI"]["validation_failed"])
 
     def test_save_market_data_cache_writes_payload(self) -> None:
@@ -187,14 +191,14 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
 
     def test_build_metals_context_renders_unavailable_gold_cleanly(self) -> None:
         md = {
-            "GOLD": {"price": None, "formatted": "Gold: unavailable", "source_unavailable": True},
+            "GOLD": {"price": None, "formatted": "DATA UNAVAILABLE", "source_unavailable": True},
             "SILVER": {"price": 30.0, "formatted": "$30.00"},
             "REAL10Y": {"price": 2.0, "formatted": "2.00%", "is_yield": True},
         }
 
         metals = morning_edge._build_metals_context(md)
 
-        self.assertEqual(metals["cards"][0]["entry"]["formatted"], "Gold: unavailable")
+        self.assertEqual(metals["cards"][0]["entry"]["formatted"], "DATA UNAVAILABLE")
         self.assertEqual(metals["gold_silver_ratio"], "Unavailable")
 
     def test_build_financial_plumbing_includes_value_and_change_fields(self) -> None:

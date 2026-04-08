@@ -14,11 +14,12 @@ from zoneinfo import ZoneInfo
 import anthropic
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
+from reports.build_logging import append_report_log, generated_line, report_now
 from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import promote_report_artifact
-from signal_forge.data.commodity_resolver import LAST_GOOD, resolve_commodity, validate_price
-from signal_forge.data.providers import FMPProvider
-from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, UnifiedMarketDataClient
+from signal_forge.data.commodity_resolver import validate_price
+from signal_forge.data.providers import FMPProvider, StooqProvider
+from signal_forge.data.unified_data import DATA_SOURCE_UNAVAILABLE, FetchOutcome, UnifiedMarketDataClient
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 
@@ -57,7 +58,8 @@ TICKERS: dict[str, str] = {
 }
 
 YIELD_TICKERS = {"US10Y"}  # report change in bps, not pct
-METALS_FALLBACK_TEXT = "Source unavailable"
+DATA_UNAVAILABLE_TEXT = "DATA UNAVAILABLE"
+METALS_FALLBACK_TEXT = DATA_UNAVAILABLE_TEXT
 INVENTORY_FALLBACK_TEXT = "Inventory data unavailable"
 MARKET_VALIDATION_RANGES: dict[str, tuple[float, float]] = {
     "GOLD": (1000.0, 5500.0),
@@ -67,8 +69,8 @@ MARKET_VALIDATION_RANGES: dict[str, tuple[float, float]] = {
     "PALLADIUM": (500.0, 2500.0),
     "WTI": (20.0, 200.0),
 }
-GOLD_SOURCE_UNAVAILABLE = "Gold: unavailable"
-WTI_SOURCE_UNAVAILABLE = "WTI: unavailable"
+GOLD_SOURCE_UNAVAILABLE = DATA_UNAVAILABLE_TEXT
+WTI_SOURCE_UNAVAILABLE = DATA_UNAVAILABLE_TEXT
 NARRATIVE_RETRY_ATTEMPTS = 2
 # ── Ticker highlight filter ────────────────────────────────────────────────
 
@@ -155,7 +157,7 @@ def load_market_data_cache() -> dict | None:
     return data
 
 
-def _missing_market_entry(*, is_yield: bool = False, estimated: bool = False, reason: str = METALS_FALLBACK_TEXT) -> dict:
+def _missing_market_entry(*, is_yield: bool = False, estimated: bool = False, reason: str = DATA_UNAVAILABLE_TEXT) -> dict:
     entry = {
         "price": None,
         "day_chg": None,
@@ -202,18 +204,6 @@ def _build_market_entry_from_closes(closes: list[float], ticker: str) -> dict:
     }
 
 
-def _build_last_good_entry(symbol: str, price: float) -> dict:
-    return {
-        "price": price,
-        "day_chg": None,
-        "week_chg": None,
-        "formatted": _format_price(price, symbol),
-        "is_yield": False,
-        "source": "last_good",
-        "last_known_good": True,
-    }
-
-
 def _commodity_unavailable_entry(symbol: str, fallback_text: str) -> dict:
     invalid = _missing_market_entry(reason=fallback_text)
     invalid["validation_failed"] = True
@@ -226,34 +216,34 @@ def _resolve_commodity_entry(
     *,
     primary_entry: dict | None,
     secondary_entry: dict | None,
+    tertiary_entry: dict | None = None,
     fallback_text: str,
 ) -> dict:
-    resolved_price = resolve_commodity(
-        symbol,
-        fetch_primary=lambda: _entry_price(primary_entry),
-        fetch_secondary=(lambda: _entry_price(secondary_entry)) if secondary_entry is not None else None,
-    )
-    if resolved_price is None:
-        return _commodity_unavailable_entry(symbol, fallback_text)
-
-    if validate_price(symbol, _entry_price(primary_entry)) and isinstance(primary_entry, dict):
-        return dict(primary_entry)
-    if validate_price(symbol, _entry_price(secondary_entry)) and isinstance(secondary_entry, dict):
-        resolved = dict(secondary_entry)
-        resolved["source"] = resolved.get("source", "cache")
+    for entry, source in (
+        (primary_entry, "fmp"),
+        (secondary_entry, "stooq"),
+        (tertiary_entry, "cache"),
+    ):
+        if not isinstance(entry, dict):
+            continue
+        price = _entry_price(entry)
+        if not validate_price(symbol, price):
+            continue
+        if entry.get("day_chg") is None:
+            continue
+        resolved = dict(entry)
+        resolved["source"] = resolved.get("source", source)
         return resolved
-    if LAST_GOOD.get(symbol) == resolved_price:
-        return _build_last_good_entry(symbol, resolved_price)
     return _commodity_unavailable_entry(symbol, fallback_text)
 
 
-def _fetch_fmp_entry(symbol: str) -> dict | None:
-    gold_client = UnifiedMarketDataClient(providers=[FMPProvider()])
-    series = gold_client.fetch_series(symbol, fallback_builder=lambda _symbol: [])
+def _fetch_provider_entry(symbol: str, provider: object, source_name: str) -> dict | None:
+    client = UnifiedMarketDataClient(providers=[provider])
+    series = client.fetch_series(symbol, fallback_builder=lambda _symbol: [])
     if len(series) < 2:
         return None
     entry = _build_market_entry_from_closes(series, symbol)
-    entry["source"] = "fmp"
+    entry["source"] = source_name
     return entry
 
 
@@ -437,14 +427,23 @@ def _format_price(value: float, ticker: str) -> str:
 def fetch_market_data() -> dict:
     """Fetch live market data for all tracked tickers."""
     print("Fetching market data...")
-    client = UnifiedMarketDataClient()
-    outcome = client.fetch_entries(
-        list(TICKERS),
-        cache_path=MARKET_CACHE_PATH,
-        fallback_builder=build_stub_market_data,
-        formatter=_format_price,
-        yield_tickers=YIELD_TICKERS,
-    )
+    try:
+        client = UnifiedMarketDataClient()
+        outcome = client.fetch_entries(
+            list(TICKERS),
+            cache_path=MARKET_CACHE_PATH,
+            fallback_builder=build_stub_market_data,
+            formatter=_format_price,
+            yield_tickers=YIELD_TICKERS,
+        )
+    except Exception as exc:
+        print(f"  Warning: live market data fetch failed unexpectedly ({type(exc).__name__}).")
+        append_report_log("morning_edge.data_fetch", "failure", f"exception={type(exc).__name__}: {exc}")
+        cached = load_market_data_cache()
+        if cached is not None:
+            outcome = FetchOutcome(cached, "cache", True, DATA_SOURCE_UNAVAILABLE)
+        else:
+            outcome = FetchOutcome(build_stub_market_data(), "stub", True, DATA_SOURCE_UNAVAILABLE)
 
     if outcome.fallback_used:
         if outcome.source == "cache":
@@ -456,13 +455,11 @@ def fetch_market_data() -> dict:
 
     result = _sanitize_market_data(outcome.data)
     cached_market_data = load_market_data_cache() or {}
-    gold_secondary_entry = cached_market_data.get("GOLD")
-    if outcome.fallback_used and gold_secondary_entry is None:
-        gold_secondary_entry = result.get("GOLD")
     result["GOLD"] = _resolve_commodity_entry(
         "GOLD",
-        primary_entry=_fetch_fmp_entry("GOLD"),
-        secondary_entry=gold_secondary_entry,
+        primary_entry=_fetch_provider_entry("GOLD", FMPProvider(), "fmp"),
+        secondary_entry=_fetch_provider_entry("GOLD", StooqProvider(), "stooq"),
+        tertiary_entry=cached_market_data.get("GOLD"),
         fallback_text=GOLD_SOURCE_UNAVAILABLE,
     )
     result["WTI"] = _resolve_commodity_entry(
@@ -777,10 +774,10 @@ Return ONLY valid JSON. No markdown, no code blocks, no commentary."""
 # ── Report assembly ─────────────────────────────────────────────────────────
 
 def build_report_data(md: dict, narrative: dict) -> dict:
-    now_vancouver = datetime.now(ZoneInfo("America/Vancouver"))
+    now_vancouver = report_now()
     return {
         "timestamp": now_vancouver.strftime("%Y-%m-%d — %H:%M %Z"),
-        "generated_line": now_vancouver.strftime("Report Generated at %-I:%M %p %Z — %Y-%m-%d"),
+        "generated_line": generated_line(now_vancouver),
         "date": now_vancouver.strftime("%Y-%m-%d"),
         "archive_href": "archive/",
         "macro_bar": build_macro_bar(md),
@@ -866,8 +863,27 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
     print("=" * 60)
     print("Morning Macro Edge — Report Generator")
     print("=" * 60)
+    failed_stages: list[str] = []
 
-    report_data = get_macro_bundle(offline=offline)
+    try:
+        market_data = fetch_market_data()
+        append_report_log("morning_edge.data_fetch", "success")
+    except Exception as exc:
+        failed_stages.append("morning_edge.data_fetch")
+        append_report_log("morning_edge.data_fetch", "failure", f"exception={type(exc).__name__}: {exc}")
+        market_data = build_stub_market_data()
+
+    try:
+        narrative = _stub_narrative(market_data) if offline else generate_narrative(market_data)
+        report_data = build_report_data(market_data, narrative)
+        report_data["market_data"] = market_data
+        append_report_log("morning_edge.report_build", "success")
+    except Exception as exc:
+        failed_stages.append("morning_edge.report_build")
+        append_report_log("morning_edge.report_build", "failure", f"exception={type(exc).__name__}: {exc}")
+        fallback_market_data = build_stub_market_data()
+        report_data = build_report_data(fallback_market_data, _stub_narrative(fallback_market_data))
+        report_data["market_data"] = fallback_market_data
 
     with TemporaryDirectory(prefix="premarket-report-") as tmpdir:
         temp_dir = Path(tmpdir)
@@ -878,7 +894,11 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
             render_html(report_data, out_path=html_temp_path)
         except Exception as exc:
             print(f"[FAIL] Daily Premarket Report generation failed: {exc}")
-            raise
+            failed_stages.append("morning_edge.html_render")
+            append_report_log("morning_edge.html_render", "failure", f"exception={type(exc).__name__}: {exc}")
+            report_data["_failed_stages"] = failed_stages
+            return report_data
+        append_report_log("morning_edge.html_render", "success")
         print(f"[OK] Generated Daily Premarket Report HTML -> {html_temp_path}")
 
         pdf_generated = False
@@ -887,8 +907,11 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
                 render_pdf(html_temp_path, out_path=pdf_temp_path)
             except Exception as exc:
                 print(f"[FAIL] Daily Premarket Report PDF generation failed: {exc}")
+                failed_stages.append("morning_edge.pdf_render")
+                append_report_log("morning_edge.pdf_render", "failure", f"exception={type(exc).__name__}: {exc}")
             else:
                 pdf_generated = True
+                append_report_log("morning_edge.pdf_render", "success")
                 print(f"[OK] Generated Daily Premarket Report PDF -> {pdf_temp_path}")
 
         promote_report_artifact(
@@ -912,6 +935,7 @@ def run_report(*, offline: bool = False, with_pdf: bool = True) -> dict:
 
     print("=" * 60)
     print(f"Done. Thesis: {report_data['thesis']}")
+    report_data["_failed_stages"] = failed_stages
     return report_data
 
 

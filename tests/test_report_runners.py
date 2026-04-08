@@ -35,11 +35,12 @@ class ReportRunnerTests(unittest.TestCase):
                     with patch.object(morning_edge, "LATEST_HTML_PATH", latest_html):
                         with patch.object(morning_edge, "LATEST_PDF_PATH", latest_pdf):
                             with patch.object(morning_edge, "ARCHIVE_DIR", archive_dir):
-                                with patch("reports.morning_edge.get_macro_bundle", return_value=report_data):
-                                    with patch("reports.morning_edge.render_html", side_effect=fake_render_html):
-                                        with patch("reports.morning_edge.render_pdf", side_effect=fake_render_pdf):
-                                            morning_edge.run_report(offline=True, with_pdf=True)
-                                            morning_edge.run_report(offline=True, with_pdf=True)
+                                with patch("reports.morning_edge.fetch_market_data", return_value=morning_edge.build_stub_market_data()):
+                                    with patch("reports.morning_edge.build_report_data", return_value=report_data):
+                                        with patch("reports.morning_edge.render_html", side_effect=fake_render_html):
+                                            with patch("reports.morning_edge.render_pdf", side_effect=fake_render_pdf):
+                                                morning_edge.run_report(offline=True, with_pdf=True)
+                                                morning_edge.run_report(offline=True, with_pdf=True)
 
             html_archives = sorted(archive_dir.glob("premarket_*.html"))
             pdf_archives = sorted(archive_dir.glob("premarket_*.pdf"))
@@ -64,14 +65,24 @@ class ReportRunnerTests(unittest.TestCase):
             with patch.object(morning_edge, "LIVE_HTML_PATH", live_html):
                 with patch.object(morning_edge, "LATEST_HTML_PATH", latest_html):
                     with patch.object(morning_edge, "ARCHIVE_DIR", archive_dir):
-                        with patch("reports.morning_edge.get_macro_bundle", return_value={"thesis": "Daily thesis"}):
-                            with patch("reports.morning_edge.render_html", side_effect=RuntimeError("boom")):
-                                with self.assertRaises(RuntimeError):
-                                    morning_edge.run_report(offline=True, with_pdf=False)
+                        with patch(
+                            "reports.morning_edge.fetch_market_data",
+                            return_value=morning_edge.build_stub_market_data(),
+                        ):
+                            with patch(
+                                "reports.morning_edge.build_report_data",
+                                return_value={"thesis": "Daily thesis"},
+                            ):
+                                with patch(
+                                    "reports.morning_edge.render_html",
+                                    side_effect=RuntimeError("boom"),
+                                ):
+                                    result = morning_edge.run_report(offline=True, with_pdf=False)
 
             self.assertEqual(live_html.read_text(encoding="utf-8"), "<html>prior</html>")
             self.assertEqual(latest_html.read_text(encoding="utf-8"), "<html>prior-latest</html>")
             self.assertFalse(archive_dir.exists())
+            self.assertIn("morning_edge.html_render", result["_failed_stages"])
 
     def test_sunday_run_report_rotates_live_html_and_pdf(self) -> None:
         counter = {"value": 0}

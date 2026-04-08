@@ -11,7 +11,7 @@ DATA_SOURCE_UNAVAILABLE = "DATA_SOURCE_UNAVAILABLE"
 
 DEFAULT_PROVIDER_SYMBOLS: dict[str, dict[str, str]] = {
     "fmp": {
-        "GOLD": "GLD",
+        "GOLD": "XAUUSD",
         "SPY": "SPY",
         "QQQ": "QQQ",
         "TSLA": "TSLA",
@@ -23,7 +23,7 @@ DEFAULT_PROVIDER_SYMBOLS: dict[str, dict[str, str]] = {
         "WPM": "WPM",
     },
     "stooq": {
-        "GOLD": "gld.us",
+        "GOLD": "xauusd",
         "SPY": "spy.us",
         "QQQ": "qqq.us",
         "TSLA": "tsla.us",
@@ -193,7 +193,7 @@ class UnifiedMarketDataClient:
             "price": None,
             "day_chg": None,
             "week_chg": None,
-            "formatted": "Source unavailable",
+            "formatted": "DATA UNAVAILABLE",
             "is_yield": is_yield,
             "source_unavailable": True,
         }

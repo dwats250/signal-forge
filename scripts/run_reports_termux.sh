@@ -45,5 +45,5 @@ while IFS= read -r line; do
 done < "${OUTPUT_FILE}"
 rm -f "${OUTPUT_FILE}"
 
-append_log "STATUS=SUCCESS | reports refreshed"
+append_log "STATUS=SUCCESS | reports refreshed via build_all"
 exit 0

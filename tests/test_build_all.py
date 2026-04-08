@@ -12,7 +12,7 @@ class BuildSiteTests(unittest.TestCase):
     def test_build_site_uses_report_runner_entry_point(self) -> None:
         report_data = {
             "date": "2026-04-04",
-            "generated_line": "Report Generated at 9:00 AM PDT — 2026-04-04",
+            "generated_line": "Generated at 9:00 PST — 2026-04-04",
             "state_summary": {
                 "market_posture": "Mixed",
                 "market_quality": "Fragile",
@@ -72,10 +72,13 @@ class BuildSiteTests(unittest.TestCase):
                             with patch.object(build_all.morning_edge, "LATEST_HTML_PATH", latest_premarket_html):
                                 with patch.object(build_all.morning_edge, "LATEST_PDF_PATH", latest_premarket_pdf):
                                     with patch.object(build_all.sunday_report, "MARKET_CACHE_PATH", sunday_cache):
-                                        with patch.object(build_all.sunday_report, "LATEST_HTML_PATH", latest_sunday_html):
-                                            with patch.object(build_all.sunday_report, "LATEST_PDF_PATH", latest_sunday_pdf):
-                                                with patch("reports.build_all.morning_edge.run_report", return_value=report_data) as run_mock:
-                                                    build_all.build_site()
+                                            with patch.object(build_all.sunday_report, "LATEST_HTML_PATH", latest_sunday_html):
+                                                with patch.object(build_all.sunday_report, "LATEST_PDF_PATH", latest_sunday_pdf):
+                                                    with patch("reports.build_all.sunday_report.run_report", return_value={"generated_line": "Generated at 9:00 PST — 2026-04-04", "_failed_stages": []}):
+                                                        with patch("reports.build_all.append_report_log"):
+                                                            with patch("reports.build_all.report_timestamp", return_value="2026-04-04 09:00:00 PST"):
+                                                                with patch("reports.build_all.morning_edge.run_report", return_value=report_data) as run_mock:
+                                                                    build_all.build_site()
             run_mock.assert_called_once()
             self.assertTrue((site_dir / "latest_premarket.html").exists())
             self.assertTrue((site_dir / "latest_premarket.pdf").exists())
@@ -107,6 +110,19 @@ class BuildSiteTests(unittest.TestCase):
             self.assertLess(index_html.index("Invalidation</div>"), index_html.index("Posture</div>"))
             self.assertLess(index_html.index("Posture</div>"), index_html.index("Bias</div>"))
             self.assertLess(index_html.index("Bias</div>"), index_html.index("What Matters Now"))
+
+    def test_build_site_reports_partial_when_component_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            site_dir = Path(tmpdir) / "_site"
+            with patch.object(build_all, "SITE_DIR", site_dir):
+                with patch("reports.build_all.append_report_log"):
+                    with patch("reports.build_all.sunday_report.run_report", side_effect=RuntimeError("boom")):
+                        with patch("reports.build_all.morning_edge.run_report", return_value=build_all._fallback_report_data()):
+                            with patch("builtins.print") as print_mock:
+                                build_all.build_site()
+
+        printed = "\n".join(str(call.args[0]) for call in print_mock.call_args_list if call.args)
+        self.assertIn("REPORT BUILD PARTIAL — sunday_report", printed)
 
 
 if __name__ == "__main__":

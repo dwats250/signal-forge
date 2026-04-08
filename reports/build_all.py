@@ -10,11 +10,23 @@ from html import escape
 from pathlib import Path
 
 from reports import morning_edge, sunday_report
+from reports.build_logging import append_report_log, generated_line, report_timestamp
 from reports.design_system import shared_design_system_css
 from reports.report_lifecycle import vancouver_date_str
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 SITE_DIR = ROOT_DIR / "_site"
+
+
+def _fallback_report_data() -> dict:
+    return {
+        "generated_line": generated_line(),
+        "state_summary": {
+            "market_posture": "Mixed",
+            "market_quality": "Mixed",
+        },
+        "no_setups": True,
+    }
 
 
 def _copy_if_exists(src: Path, dst: Path) -> bool:
@@ -859,29 +871,65 @@ def build_site() -> Path:
     offline = not bool(os.environ.get("ANTHROPIC_API_KEY"))
     if offline:
         print("ANTHROPIC_API_KEY not set — using stub narrative.")
-    report_data = morning_edge.run_report(offline=offline, with_pdf=True)
+    failed_components: list[str] = []
+    append_report_log("build_all.run", "start", "manual_or_scheduled_build_started")
+
+    sunday_data: dict | None = None
+    try:
+        sunday_data = sunday_report.run_report(offline=offline, with_pdf=True)
+        stage_failures = sunday_data.get("_failed_stages", []) if isinstance(sunday_data, dict) else []
+        failed_components.extend(stage_failures)
+        append_report_log("build_all.sunday_report", "success")
+    except Exception as exc:
+        failed_components.append("sunday_report")
+        append_report_log("build_all.sunday_report", "failure", f"exception={type(exc).__name__}: {exc}")
+
+    report_data: dict = _fallback_report_data()
+    try:
+        report_data = morning_edge.run_report(offline=offline, with_pdf=True)
+        failed_components.extend(report_data.get("_failed_stages", []))
+        append_report_log("build_all.morning_edge", "success")
+    except Exception as exc:
+        failed_components.append("morning_edge")
+        append_report_log("build_all.morning_edge", "failure", f"exception={type(exc).__name__}: {exc}")
+
     html_path = morning_edge.LIVE_HTML_PATH
 
     archive_matches = sorted(morning_edge.ARCHIVE_DIR.glob(f"premarket_{vancouver_date_str()}" + "*.html"))
     archive_src = archive_matches[-1] if archive_matches else None
     site_archive_dir = SITE_DIR / "archive"
     site_archive_dir.mkdir(parents=True, exist_ok=True)
-    dashboard_data = _build_dashboard_data(report_data)
-    (SITE_DIR / "index.html").write_text(_render_dashboard_html(dashboard_data), encoding="utf-8")
-    shutil.copy2(html_path, SITE_DIR / "morning_edge.html")
-    _copy_if_exists(morning_edge.LATEST_HTML_PATH, SITE_DIR / "latest_premarket.html")
-    _copy_if_exists(morning_edge.LATEST_PDF_PATH, SITE_DIR / "latest_premarket.pdf")
-    _copy_if_exists(sunday_report.LATEST_HTML_PATH, SITE_DIR / "latest_sunday.html")
-    _copy_if_exists(sunday_report.LATEST_PDF_PATH, SITE_DIR / "latest_sunday.pdf")
-    if archive_src is not None:
-        shutil.copy2(archive_src, site_archive_dir / archive_src.name)
-    _write_archive_index(report_data)
+    try:
+        dashboard_data = _build_dashboard_data(report_data)
+        (SITE_DIR / "index.html").write_text(_render_dashboard_html(dashboard_data), encoding="utf-8")
+        if html_path.exists():
+            shutil.copy2(html_path, SITE_DIR / "morning_edge.html")
+        _copy_if_exists(morning_edge.LATEST_HTML_PATH, SITE_DIR / "latest_premarket.html")
+        _copy_if_exists(morning_edge.LATEST_PDF_PATH, SITE_DIR / "latest_premarket.pdf")
+        _copy_if_exists(sunday_report.LATEST_HTML_PATH, SITE_DIR / "latest_sunday.html")
+        _copy_if_exists(sunday_report.LATEST_PDF_PATH, SITE_DIR / "latest_sunday.pdf")
+        if archive_src is not None:
+            shutil.copy2(archive_src, site_archive_dir / archive_src.name)
+        _write_archive_index(report_data)
+        append_report_log("build_all.dashboard", "success")
+    except Exception as exc:
+        failed_components.append("dashboard")
+        append_report_log("build_all.dashboard", "failure", f"exception={type(exc).__name__}: {exc}")
 
     print(f"Site index: {SITE_DIR / 'index.html'}")
     print(f"Latest report: {SITE_DIR / 'morning_edge.html'}")
     if archive_src is not None:
         print(f"Archive copy: {site_archive_dir / archive_src.name}")
     print(f"Archive index: {site_archive_dir / 'index.html'}")
+    unique_failures = sorted(set(failed_components))
+    if unique_failures:
+        summary = ", ".join(unique_failures)
+        print(f"REPORT BUILD PARTIAL — {summary}")
+        append_report_log("build_all.run", "partial", summary)
+    else:
+        success_line = f"REPORT BUILD SUCCESS — {report_timestamp()}"
+        print(success_line)
+        append_report_log("build_all.run", "success", success_line)
     return SITE_DIR
 
 
