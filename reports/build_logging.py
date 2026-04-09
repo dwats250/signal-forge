@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -44,3 +45,15 @@ def append_data_source_log(symbol: str, source: str, *, fallback_used: bool = Fa
 
 def append_confidence_score_log(score: int) -> None:
     append_report_log("data.health", "info", f"CONFIDENCE SCORE -> {score}")
+
+
+def write_json_file(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def append_jsonl_file(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True))
+        handle.write("\n")

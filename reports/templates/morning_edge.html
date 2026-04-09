@@ -126,6 +126,57 @@
 
   /* ── TIER 2: System State ── */
   .state-card { padding: 18px 20px 16px; }
+  .healthcheck-card {
+    padding: 18px 20px 16px;
+  }
+  .healthcheck-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .healthcheck-metric {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .healthcheck-metric.green {
+    border-color: rgba(63, 211, 122, 0.4);
+    background: rgba(63, 211, 122, 0.07);
+  }
+  .healthcheck-metric.yellow {
+    border-color: rgba(245, 158, 11, 0.32);
+    background: rgba(245, 158, 11, 0.08);
+  }
+  .healthcheck-metric.red {
+    border-color: rgba(240, 107, 107, 0.36);
+    background: rgba(240, 107, 107, 0.08);
+  }
+  .healthcheck-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+  .healthcheck-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+  .healthcheck-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .healthcheck-inline .status-badge {
+    max-width: 100%;
+  }
   .state-summary {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -497,7 +548,9 @@
     .macro-item .value { font-size: 0.98rem; }
     .macro-item .change { font-size: 1.16rem; }
     .state-summary { grid-template-columns: 1fr; }
+    .healthcheck-grid { grid-template-columns: 1fr; }
     .state-card { padding: 16px 16px 14px; }
+    .healthcheck-card { padding: 16px 16px 14px; }
     .state-metric { padding: 10px 11px; }
     .state-value { font-size: 0.98rem; }
     .system-state p { font-size: 0.96rem; line-height: 1.66; }
@@ -635,6 +688,45 @@
   <section class="card thesis-card">
     <div class="thesis-label">One-Line Thesis</div>
     <div class="thesis-text">{{ thesis }}</div>
+  </section>
+
+  <section class="card healthcheck-card">
+    <div class="card-title">System Healthcheck</div>
+    <div class="healthcheck-grid">
+      <div class="healthcheck-metric {{ healthcheck.build_status_tone }}">
+        <div class="healthcheck-label">Build Status</div>
+        <div class="healthcheck-value">{{ healthcheck.build_status }}</div>
+      </div>
+      <div class="healthcheck-metric {{ healthcheck.core_macro_tone }}">
+        <div class="healthcheck-label">Core Macro Health</div>
+        <div class="healthcheck-value">{{ healthcheck.core_macro_status | upper }}</div>
+      </div>
+      <div class="healthcheck-metric {{ healthcheck.execution_mode_tone }}">
+        <div class="healthcheck-label">Execution Mode</div>
+        <div class="healthcheck-value">{{ healthcheck.execution_mode }}</div>
+      </div>
+      <div class="healthcheck-metric {{ confidence_badge_tone }}">
+        <div class="healthcheck-label">Data Confidence</div>
+        <div class="healthcheck-value">{{ healthcheck.data_confidence_score }}</div>
+      </div>
+      <div class="healthcheck-metric">
+        <div class="healthcheck-label">Setup Outcomes</div>
+        <div class="healthcheck-value">
+          Ready {{ healthcheck.setup_counts.ready }} / Watchlist {{ healthcheck.setup_counts.watchlist }} / Blocked {{ healthcheck.setup_counts.blocked }}
+        </div>
+      </div>
+      <div class="healthcheck-metric">
+        <div class="healthcheck-label">Top Block Reason</div>
+        <div class="healthcheck-value">{{ healthcheck.top_block_reason }}</div>
+      </div>
+    </div>
+    <div class="healthcheck-inline">
+      {% if healthcheck.fallback_symbols %}
+      <span class="status-badge yellow">Fallback: {{ healthcheck.fallback_symbols | join(', ') }}</span>
+      {% else %}
+      <span class="status-badge green">Fallback: none</span>
+      {% endif %}
+    </div>
   </section>
 
   <section class="macro-bar">

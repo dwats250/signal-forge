@@ -160,13 +160,42 @@ class MorningEdgeMarketDataTests(unittest.TestCase):
 
     def test_build_report_data_exposes_confidence_badge_and_banner(self) -> None:
         market_data = morning_edge.build_stub_market_data()
-        market_data["_meta"] = {"confidence_score": 68}
+        market_data["_meta"] = {"confidence_score": 68, "core_macro_health": "blind", "fallback_symbols": ["DXY", "US10Y"]}
 
         report_data = morning_edge.build_report_data(market_data, morning_edge._stub_narrative(market_data))
 
         self.assertEqual(report_data["confidence_score"], 68)
         self.assertEqual(report_data["confidence_badge_tone"], "red")
         self.assertTrue(report_data["show_low_confidence_banner"])
+        self.assertEqual(report_data["healthcheck"]["core_macro_status"], "blind")
+
+    def test_render_html_includes_healthcheck_panel_and_fallback_symbols(self) -> None:
+        market_data = morning_edge.build_stub_market_data()
+        market_data["_meta"] = {"confidence_score": 48, "core_macro_health": "blind", "fallback_symbols": ["DXY", "US10Y"]}
+        report_data = morning_edge.build_report_data(market_data, morning_edge._stub_narrative(market_data))
+        report_data["healthcheck"] = {
+            "build_status": "FAILURE",
+            "build_status_tone": "red",
+            "data_confidence_score": 48,
+            "core_macro_status": "blind",
+            "core_macro_tone": "red",
+            "execution_mode": "NO_TRADE",
+            "execution_mode_tone": "red",
+            "setup_counts": {"ready": 0, "watchlist": 0, "blocked": 2},
+            "fallback_symbols": ["DXY", "US10Y"],
+            "top_block_reason": "CORE_MACRO_BLIND",
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_path = Path(tmpdir) / "morning_edge.html"
+            morning_edge.render_html(report_data, out_path=out_path)
+            html = out_path.read_text(encoding="utf-8")
+
+        self.assertIn("System Healthcheck", html)
+        self.assertIn("FAILURE", html)
+        self.assertIn("NO_TRADE", html)
+        self.assertIn("CORE_MACRO_BLIND", html)
+        self.assertIn("Fallback: DXY, US10Y", html)
 
     def test_generate_narrative_falls_back_on_invalid_json(self) -> None:
         market_data = morning_edge.build_stub_market_data()

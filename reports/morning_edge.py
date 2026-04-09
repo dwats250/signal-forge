@@ -22,12 +22,14 @@ from reports.build_logging import (
     report_now,
 )
 from reports.design_system import shared_design_system_css
+from reports.morning_healthcheck import HEALTHCHECK_LATEST_PATH
 from reports.report_lifecycle import promote_report_artifact
 from signal_forge.data.commodity_resolver import validate_price
 from signal_forge.data.unified_data import (
     DATA_SOURCE_UNAVAILABLE,
     FetchOutcome,
     UnifiedMarketDataClient,
+    classify_core_macro_health,
     compute_data_confidence,
     validate_data_point,
 )
@@ -417,6 +419,47 @@ def _build_state_summary(md: dict, narrative: dict) -> dict:
         "bias_color": bias_color,
     }
 
+
+def _healthcheck_tone(value: str) -> str:
+    upper = value.upper()
+    if upper in {"SUCCESS", "NORMAL", "HEALTHY"}:
+        return "green"
+    if upper in {"PARTIAL", "SELECTIVE", "DEGRADED"}:
+        return "yellow"
+    return "red"
+
+
+def _load_latest_healthcheck() -> dict | None:
+    if not HEALTHCHECK_LATEST_PATH.exists():
+        return None
+    try:
+        payload = json.loads(HEALTHCHECK_LATEST_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _build_healthcheck_panel(md: dict, narrative: dict, summary: dict | None = None) -> dict:
+    meta = md.get("_meta", {})
+    confidence_score = int(meta.get("confidence_score", compute_data_confidence(md)))
+    panel = dict(summary or {})
+    setup_counts = panel.get("setup_counts", {})
+    panel.setdefault("build_status", "PARTIAL")
+    panel.setdefault("data_confidence_score", confidence_score)
+    panel.setdefault("core_macro_status", meta.get("core_macro_health", classify_core_macro_health(md)))
+    panel.setdefault("execution_mode", "NO_TRADE" if confidence_score < 70 else "SELECTIVE")
+    panel.setdefault("fallback_symbols", meta.get("fallback_symbols", []))
+    panel.setdefault("top_block_reason", "LOW_DATA_CONFIDENCE" if confidence_score < 70 else "NO_VALID_CANDIDATES")
+    panel["setup_counts"] = {
+        "ready": int(setup_counts.get("ready", 0)),
+        "watchlist": int(setup_counts.get("watchlist", len(narrative.get("setups", [])) if narrative.get("no_setups", True) else 0)),
+        "blocked": int(setup_counts.get("blocked", 0)),
+    }
+    panel["build_status_tone"] = _healthcheck_tone(str(panel["build_status"]))
+    panel["core_macro_tone"] = _healthcheck_tone(str(panel["core_macro_status"]))
+    panel["execution_mode_tone"] = _healthcheck_tone(str(panel["execution_mode"]))
+    return panel
+
 def _format_price(value: float, ticker: str) -> str:
     if ticker in ("GOLD", "SILVER", "COPPER", "PLATINUM", "PALLADIUM", "WTI", "OXY", "GDX", "NEM", "WPM", "TSLA", "MU"):
         return f"${value:.2f}"
@@ -467,6 +510,8 @@ def fetch_market_data() -> dict:
     meta["confidence_score"] = int(meta.get("confidence_score", compute_data_confidence(result)))
     meta["critical_missing"] = [ticker for ticker in ("DXY", "US10Y", "VIX") if not bool(result.get(ticker, {}).get("valid"))]
     meta["fail_safe_no_trade"] = len(meta["critical_missing"]) == 3
+    meta["fallback_used"] = bool(meta.get("fallback_symbols"))
+    meta["core_macro_health"] = classify_core_macro_health(result)
 
     # Estimate REAL10Y: US10Y minus approximate 10Y breakeven inflation (~2.2%)
     us10y = result.get("US10Y", {}).get("price")
@@ -792,6 +837,7 @@ def build_report_data(md: dict, narrative: dict) -> dict:
     meta = md.get("_meta", {})
     confidence_score = int(meta.get("confidence_score", compute_data_confidence(md)))
     confidence_text, confidence_tone = _confidence_badge(confidence_score)
+    latest_healthcheck = _load_latest_healthcheck()
     return {
         "timestamp": now_vancouver.strftime("%Y-%m-%d — %H:%M %Z"),
         "generated_line": generated_line(now_vancouver),
@@ -802,6 +848,7 @@ def build_report_data(md: dict, narrative: dict) -> dict:
         "confidence_badge_tone": confidence_tone,
         "show_low_confidence_banner": confidence_score < 70,
         "macro_bar": build_macro_bar(md),
+        "healthcheck": _build_healthcheck_panel(md, narrative, latest_healthcheck),
         "state_summary": _build_state_summary(md, narrative),
         "financial_plumbing": _build_financial_plumbing(md),
         "system_state": narrative.get("system_state", ""),

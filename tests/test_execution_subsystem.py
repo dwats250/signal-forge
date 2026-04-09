@@ -15,6 +15,7 @@ from signal_forge.execution import (
     TradeDirection,
     TradeState,
 )
+from signal_forge.execution.orchestrator import build_execution_health_payload
 from signal_forge.execution.gates import calculate_trade_ticket
 
 
@@ -131,6 +132,8 @@ class ExecutionSubsystemTests(unittest.TestCase):
             decision = json.loads(decision_lines[-1])
             self.assertEqual(decision["data_confidence_score"], 65)
             self.assertEqual(decision["execution_status"], "blocked")
+            self.assertEqual(decision["execution_mode"], "NO_TRADE")
+            self.assertEqual(decision["setup_outcome"], "BLOCKED")
 
     def test_mid_data_confidence_allows_only_high_score_setups(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -158,6 +161,35 @@ class ExecutionSubsystemTests(unittest.TestCase):
                     account_size=10_000,
                     risk_percent=0.01,
                 )
+
+    def test_execution_mode_export_classifies_selective_and_normal(self) -> None:
+        selective = build_execution_health_payload(
+            market_context={
+                "regime": "MIXED",
+                "market_quality": "MIXED",
+                "data_confidence_score": 78,
+                "core_macro_health": "degraded",
+            },
+            execution_status="blocked",
+            execution_reason="NO VALID CANDIDATES",
+            policy_decision="pass",
+        )
+        normal = build_execution_health_payload(
+            market_context={
+                "regime": "RISK_ON",
+                "market_quality": "CLEAN",
+                "data_confidence_score": 92,
+                "core_macro_health": "healthy",
+            },
+            execution_status="ready",
+            execution_reason="ready",
+            policy_decision="pass",
+        )
+
+        self.assertEqual(selective["execution_mode"], "SELECTIVE")
+        self.assertEqual(selective["setup_outcome"], "WATCHLIST")
+        self.assertEqual(normal["execution_mode"], "NORMAL")
+        self.assertEqual(normal["setup_outcome"], "READY")
 
     def test_fail_safe_missing_core_macro_inputs_forces_no_trade(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

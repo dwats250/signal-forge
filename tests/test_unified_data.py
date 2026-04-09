@@ -6,6 +6,7 @@ from pathlib import Path
 
 from signal_forge.data.unified_data import (
     UnifiedMarketDataClient,
+    classify_core_macro_health,
     compute_data_confidence,
     validate_data_point,
 )
@@ -170,7 +171,34 @@ class UnifiedDataTests(unittest.TestCase):
         }
         self.assertEqual(compute_data_confidence(data), 75)
 
+    def test_classify_core_macro_health_distinguishes_healthy_degraded_and_blind(self) -> None:
+        healthy = {
+            "DXY": {"valid": True},
+            "US10Y": {"valid": True},
+            "VIX": {"valid": True},
+            "WTI": {"valid": True},
+            "GOLD": {"valid": True},
+            "SILVER": {"valid": True},
+            "SPY": {"valid": True},
+        }
+        degraded = {
+            **healthy,
+            "VIX": {"valid": False},
+        }
+        blind = {
+            "DXY": {"valid": False},
+            "US10Y": {"valid": False},
+            "VIX": {"valid": False},
+            "WTI": {"valid": False},
+            "GOLD": {"valid": False},
+            "SILVER": {"valid": False},
+            "SPY": {"valid": True},
+        }
+
+        self.assertEqual(classify_core_macro_health(healthy), "healthy")
+        self.assertEqual(classify_core_macro_health(degraded), "degraded")
+        self.assertEqual(classify_core_macro_health(blind), "blind")
+
 
 if __name__ == "__main__":
     unittest.main()
-

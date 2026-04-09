@@ -22,6 +22,24 @@ CONFIDENCE_WEIGHTS: dict[str, int] = {
 }
 
 DEFAULT_PROVIDER_SYMBOLS: dict[str, dict[str, str]] = {
+    "yfinance": {
+        "DXY": "DX-Y.NYB",
+        "US10Y": "^TNX",
+        "WTI": "CL=F",
+        "GOLD": "GC=F",
+        "SILVER": "SI=F",
+        "SPY": "SPY",
+        "QQQ": "QQQ",
+        "BTC": "BTC-USD",
+        "VIX": "^VIX",
+        "XLE": "XLE",
+        "OXY": "OXY",
+        "GDX": "GDX",
+        "NEM": "NEM",
+        "WPM": "WPM",
+        "TSLA": "TSLA",
+        "MU": "MU",
+    },
     "fmp": {
         "DXY": "UUP",
         "US10Y": "TLT",
@@ -113,6 +131,16 @@ def compute_data_confidence(data: dict[str, dict]) -> int:
     return int((score / total) * 100) if total else 0
 
 
+def classify_core_macro_health(data: dict[str, dict]) -> str:
+    confidence_score = compute_data_confidence(data)
+    valid_count = sum(bool((data.get(symbol) or {}).get("valid")) for symbol in CRITICAL_DATA_SYMBOLS)
+    if confidence_score < 50 or valid_count == 0:
+        return "blind"
+    if valid_count == len(CRITICAL_DATA_SYMBOLS):
+        return "healthy"
+    return "degraded"
+
+
 class UnifiedMarketDataClient:
     """Single entry point for provider selection and fallback policy."""
 
@@ -140,6 +168,7 @@ class UnifiedMarketDataClient:
         sources: list[str] = []
         reasons: list[str] = []
         fallback_used = False
+        fallback_symbols: list[str] = []
 
         for ticker in tickers:
             entry, source, used_fallback, reason = self.fetch_with_fallback(
@@ -152,6 +181,8 @@ class UnifiedMarketDataClient:
             result[ticker] = entry
             sources.append(source)
             fallback_used = fallback_used or used_fallback
+            if used_fallback:
+                fallback_symbols.append(ticker)
             if reason:
                 reasons.append(reason)
 
@@ -162,6 +193,9 @@ class UnifiedMarketDataClient:
             "confidence_score": confidence_score,
             "critical_missing": critical_missing,
             "fail_safe_no_trade": fail_safe_no_trade,
+            "fallback_used": fallback_used,
+            "fallback_symbols": fallback_symbols,
+            "core_macro_health": classify_core_macro_health(result),
             "fetched_at": _utc_now().isoformat(),
             "sources": sorted(set(sources)),
         }

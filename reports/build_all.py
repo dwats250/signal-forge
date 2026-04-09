@@ -12,6 +12,11 @@ from pathlib import Path
 from reports import morning_edge, sunday_report
 from reports.build_logging import append_report_log, generated_line, report_timestamp
 from reports.design_system import shared_design_system_css
+from reports.morning_healthcheck import (
+    build_cli_summary,
+    build_morning_healthcheck_summary,
+    write_healthcheck_outputs,
+)
 from reports.report_lifecycle import vancouver_date_str
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -872,6 +877,11 @@ def build_site() -> Path:
     if offline:
         print("ANTHROPIC_API_KEY not set — using stub narrative.")
     failed_components: list[str] = []
+    stage_statuses = {
+        "sunday_report": "failure",
+        "morning_edge": "failure",
+        "dashboard": "failure",
+    }
     append_report_log("build_all.run", "start", "manual_or_scheduled_build_started")
 
     sunday_data: dict | None = None
@@ -880,6 +890,7 @@ def build_site() -> Path:
         stage_failures = sunday_data.get("_failed_stages", []) if isinstance(sunday_data, dict) else []
         failed_components.extend(stage_failures)
         append_report_log("build_all.sunday_report", "success")
+        stage_statuses["sunday_report"] = "success"
     except Exception as exc:
         failed_components.append("sunday_report")
         append_report_log("build_all.sunday_report", "failure", f"exception={type(exc).__name__}: {exc}")
@@ -889,6 +900,7 @@ def build_site() -> Path:
         report_data = morning_edge.run_report(offline=offline, with_pdf=True)
         failed_components.extend(report_data.get("_failed_stages", []))
         append_report_log("build_all.morning_edge", "success")
+        stage_statuses["morning_edge"] = "success"
     except Exception as exc:
         failed_components.append("morning_edge")
         append_report_log("build_all.morning_edge", "failure", f"exception={type(exc).__name__}: {exc}")
@@ -912,6 +924,7 @@ def build_site() -> Path:
             shutil.copy2(archive_src, site_archive_dir / archive_src.name)
         _write_archive_index(report_data)
         append_report_log("build_all.dashboard", "success")
+        stage_statuses["dashboard"] = "success"
     except Exception as exc:
         failed_components.append("dashboard")
         append_report_log("build_all.dashboard", "failure", f"exception={type(exc).__name__}: {exc}")
@@ -921,6 +934,22 @@ def build_site() -> Path:
     if archive_src is not None:
         print(f"Archive copy: {site_archive_dir / archive_src.name}")
     print(f"Archive index: {site_archive_dir / 'index.html'}")
+    healthcheck_summary = build_morning_healthcheck_summary(
+        stage_statuses=stage_statuses,
+        report_data=report_data,
+    )
+    report_data["healthcheck"] = healthcheck_summary
+    try:
+        if "macro_bar" in report_data and "thesis" in report_data:
+            morning_edge.render_html(report_data, out_path=morning_edge.LIVE_HTML_PATH)
+            morning_edge.render_html(report_data, out_path=morning_edge.LATEST_HTML_PATH)
+            if html_path.exists():
+                shutil.copy2(html_path, SITE_DIR / "morning_edge.html")
+            _copy_if_exists(morning_edge.LATEST_HTML_PATH, SITE_DIR / "latest_premarket.html")
+    except Exception as exc:
+        failed_components.append("healthcheck_render")
+        append_report_log("build_all.healthcheck_render", "failure", f"exception={type(exc).__name__}: {exc}")
+    write_healthcheck_outputs(healthcheck_summary)
     unique_failures = sorted(set(failed_components))
     if unique_failures:
         summary = ", ".join(unique_failures)
@@ -930,6 +959,7 @@ def build_site() -> Path:
         success_line = f"REPORT BUILD SUCCESS — {report_timestamp()}"
         print(success_line)
         append_report_log("build_all.run", "success", success_line)
+    print(build_cli_summary(healthcheck_summary))
     return SITE_DIR
 
 

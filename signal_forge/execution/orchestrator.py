@@ -28,6 +28,108 @@ class ExecutionError(ValueError):
     pass
 
 
+def normalize_execution_reason(
+    reason: object,
+    market_context: dict[str, object] | None = None,
+    *,
+    policy_decision: object | None = None,
+    execution_status: object | None = None,
+) -> str | None:
+    context = market_context or {}
+    text = str(reason or "").strip()
+    upper_text = text.upper()
+    if upper_text in {
+        "LOW_DATA_CONFIDENCE",
+        "CORE_MACRO_BLIND",
+        "MIXED_REGIME",
+        "NO_VALID_CANDIDATES",
+        "POLICY_BLOCK",
+        "FAILED_RR",
+        "FAILED_EMA",
+        "NO_POLICY_PERMISSION",
+    }:
+        return upper_text
+    if str(context.get("core_macro_health", "")).lower() == "blind":
+        return "CORE_MACRO_BLIND"
+    if "DXY, US10Y, AND VIX" in upper_text or "CRITICAL MACRO INPUTS MISSING" in upper_text:
+        return "CORE_MACRO_BLIND"
+    if "LOW DATA CONFIDENCE" in upper_text or "MODERATE DATA CONFIDENCE" in upper_text:
+        return "LOW_DATA_CONFIDENCE"
+    if "NO VALID CANDIDATES" in upper_text:
+        return "NO_VALID_CANDIDATES"
+    if "RISK-OFF REGIME" in upper_text or "MIXED" in upper_text:
+        return "MIXED_REGIME"
+    if "REWARD-TO-RISK" in upper_text:
+        return "FAILED_RR"
+    if "EMA ALIGNMENT" in upper_text:
+        return "FAILED_EMA"
+    if "DIRECTION " in upper_text or "STRUCTURE " in upper_text or "AVERAGING DOWN" in upper_text:
+        return "NO_POLICY_PERMISSION"
+    if "NO_TRADE" in upper_text or "BLOCKS" in upper_text or str(policy_decision).lower() == "block":
+        return "POLICY_BLOCK"
+    if execution_status is not None and str(execution_status).lower() == "blocked":
+        return "POLICY_BLOCK"
+    return None
+
+
+def build_execution_health_payload(
+    *,
+    market_context: dict[str, object] | None,
+    execution_status: str,
+    execution_reason: str,
+    policy_decision: str,
+) -> dict[str, str]:
+    context = market_context or {}
+    confidence = context.get("data_confidence_score", context.get("confidence_score"))
+    try:
+        confidence_score = int(confidence) if confidence is not None else 0
+    except (TypeError, ValueError):
+        confidence_score = 0
+    core_macro_status = str(context.get("core_macro_health", "healthy")).lower()
+    regime = str(context.get("regime", "MIXED")).upper()
+    market_quality = str(context.get("market_quality", "MIXED")).upper()
+    hard_block = (
+        bool(context.get("fail_safe_no_trade"))
+        or core_macro_status == "blind"
+        or policy_decision == "block"
+    )
+    mixed_regime = regime == "MIXED" or market_quality in {"MIXED", "CHAOTIC"}
+    dominant_reason = normalize_execution_reason(
+        execution_reason,
+        context,
+        policy_decision=policy_decision,
+        execution_status=execution_status,
+    )
+
+    if execution_status == "ready" and confidence_score > 85 and not hard_block and not mixed_regime:
+        execution_mode = "NORMAL"
+    elif hard_block or confidence_score < 70:
+        execution_mode = "NO_TRADE"
+    elif 70 <= confidence_score <= 85 or mixed_regime or dominant_reason in {"MIXED_REGIME", "NO_VALID_CANDIDATES"}:
+        execution_mode = "SELECTIVE"
+        dominant_reason = dominant_reason or ("MIXED_REGIME" if mixed_regime else "LOW_DATA_CONFIDENCE")
+    else:
+        execution_mode = "NORMAL"
+
+    if execution_mode == "NO_TRADE":
+        dominant_reason = dominant_reason or (
+            "CORE_MACRO_BLIND" if core_macro_status == "blind" else "LOW_DATA_CONFIDENCE"
+        )
+
+    if execution_status == "ready":
+        setup_outcome = "READY"
+    elif execution_mode == "SELECTIVE":
+        setup_outcome = "WATCHLIST"
+    else:
+        setup_outcome = "BLOCKED"
+
+    return {
+        "execution_mode": execution_mode,
+        "dominant_reason": dominant_reason or "POLICY_BLOCK",
+        "setup_outcome": setup_outcome,
+    }
+
+
 class ExecutionOrchestrator:
     def __init__(self, log_dir: Path, policy: ExecutionPolicy | None = None) -> None:
         self.log_dir = log_dir
@@ -394,12 +496,19 @@ class ExecutionOrchestrator:
         rejection_stage: str | None,
     ) -> None:
         market_context = market_regime or {}
+        health = build_execution_health_payload(
+            market_context=market_context,
+            execution_status="blocked" if trades_blocked else "ready",
+            execution_reason=reason_blocked or "ready",
+            policy_decision="block" if trades_blocked else "pass",
+        )
         payload = {
             "timestamp": utc_now(),
             "regime": market_context.get("regime", "MIXED"),
             "market_quality": market_context.get("market_quality", "MIXED"),
             "data_confidence_score": market_context.get("data_confidence_score", market_context.get("confidence_score")),
             "fail_safe_no_trade": bool(market_context.get("fail_safe_no_trade")),
+            "core_macro_status": market_context.get("core_macro_health"),
             "policy_state": trade_policy["policy_state"],
             "candidates_seen": 1,
             "trades_taken": trades_taken,
@@ -407,6 +516,8 @@ class ExecutionOrchestrator:
             "rejected": trades_blocked > 0,
             "rejection_stage": rejection_stage,
             "reason_blocked": reason_blocked,
+            "execution_mode": health["execution_mode"],
+            "dominant_reason": health["dominant_reason"],
         }
         with self.trade_policy_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, sort_keys=True))
@@ -424,6 +535,12 @@ class ExecutionOrchestrator:
         sized: bool,
         risk: float | None = None,
     ) -> None:
+        health = build_execution_health_payload(
+            market_context=market_regime,
+            execution_status=execution_status,
+            execution_reason=execution_reason,
+            policy_decision=policy_decision,
+        )
         payload: dict[str, object] = {
             "timestamp": utc_now(),
             "symbol": candidate.symbol,
@@ -431,11 +548,15 @@ class ExecutionOrchestrator:
             "market_quality": str(market_regime.get("market_quality", "MIXED")),
             "data_confidence_score": market_regime.get("data_confidence_score", market_regime.get("confidence_score")),
             "fail_safe_no_trade": bool(market_regime.get("fail_safe_no_trade")),
+            "core_macro_status": market_regime.get("core_macro_health"),
             "candidate_score": candidate.score,
             "policy_decision": policy_decision,
             "policy_reason": policy_reason,
             "execution_status": execution_status,
             "execution_reason": execution_reason,
+            "execution_mode": health["execution_mode"],
+            "dominant_reason": health["dominant_reason"],
+            "setup_outcome": health["setup_outcome"],
             "sized": sized,
             "side": candidate.direction.value,
             "stop_reference": candidate.stop_level,

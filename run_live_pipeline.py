@@ -10,6 +10,7 @@ from pathlib import Path
 
 from signal_forge.data import build_live_context
 from signal_forge.data.live_fetch import REQUIRED_TICKERS, SnapshotFetchResult, collect_market_snapshot
+from signal_forge.execution.orchestrator import build_execution_health_payload
 from signal_forge.pipeline import SignalForgePipeline
 
 LOG_DIR = Path("signal_forge/logs")
@@ -111,6 +112,19 @@ def _append_decision_log(
         "sized": False,
         "side": result["thesis"]["direction"],
     }
+    health = build_execution_health_payload(
+        market_context={
+            "regime": payload["regime"],
+            "market_quality": payload["market_quality"],
+            "data_confidence_score": result["execution_input"]["confidence_score"],
+            "core_macro_health": meta.get("core_macro_health", "healthy"),
+            "fail_safe_no_trade": bool(meta.get("fail_safe_no_trade")),
+        },
+        execution_status=str(payload["execution_status"]),
+        execution_reason=str(payload["execution_reason"]),
+        policy_decision=str(payload["policy_decision"]),
+    )
+    payload.update(health)
     with DECISION_LOG_PATH.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(payload, sort_keys=True))
         handle.write("\n")
