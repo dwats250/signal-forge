@@ -1,0 +1,394 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0
+// © signal-forge
+// ARCHIVED — VP draft applied to 0dte_momentum_setup.pine (wrong target)
+// Correct target: signal_forge_v1.pine
+// Archived: 2026-04-09
+
+//@version=5
+indicator("0DTE Momentum Setup + Volume Profile [SMB]", overlay=true,
+         max_lines_count=10, max_boxes_count=10, max_labels_count=200)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  INPUTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Bollinger Band Squeeze ───────────────────────────────────────────────────
+var g_sq = "Bollinger Band Squeeze"
+bb_len      = input.int(20,   "BB Length",            group=g_sq)
+bb_mult     = input.float(2.0,"BB Std Dev Multiplier", group=g_sq, step=0.1)
+kc_len      = input.int(20,   "KC Length",            group=g_sq)
+kc_mult     = input.float(1.5,"KC ATR Multiplier",    group=g_sq, step=0.1)
+sq_min_bars = input.int(5,    "Min Bars in Squeeze",  group=g_sq, minval=1,
+     tooltip="Minimum consecutive bars inside the squeeze before a signal fires.")
+
+// ── NYSE TICK ────────────────────────────────────────────────────────────────
+var g_tk = "NYSE TICK"
+tick_sym    = input.symbol("USI:TICK", "TICK Symbol",  group=g_tk,
+     tooltip="TradingView symbol for the NYSE TICK. Common: USI:TICK, TVC:TICK")
+tick_tf     = input.timeframe("", "TICK Timeframe",   group=g_tk,
+     tooltip="Leave blank to match chart timeframe.")
+
+// ── ATR Trailing Stop ────────────────────────────────────────────────────────
+var g_ts = "ATR Trailing Stop"
+ts_len      = input.int(3,    "ATR Period",     group=g_ts)
+ts_mult     = input.float(1.0,"ATR Multiplier", group=g_ts, step=0.1)
+
+// ── Display ──────────────────────────────────────────────────────────────────
+var g_ui = "Display"
+show_bb     = input.bool(true,  "Show Bollinger Bands", group=g_ui)
+show_kc     = input.bool(true,  "Show Keltner Channel", group=g_ui)
+show_labels = input.bool(true,  "Show Entry Labels",    group=g_ui)
+show_table  = input.bool(true,  "Show Status Table",    group=g_ui)
+
+// ── Volume Profile ───────────────────────────────────────────────────────────
+var g_vp = "Volume Profile"
+vp_lookback      = input.int(75,    "Lookback Period (bars)",         group=g_vp, minval=20, maxval=300)
+vp_va_pct        = input.float(70.0,"Value Area %",                  group=g_vp, step=0.5, minval=50, maxval=95)
+vp_accept_bars   = input.int(2,     "Acceptance Bars",                group=g_vp, minval=1, maxval=5)
+vp_vol_thresh    = input.float(1.3, "Volume Threshold (×avg)",       group=g_vp, step=0.1, minval=1.0)
+vp_ema_len       = input.int(21,    "EMA Length (trend filter)",     group=g_vp, minval=5)
+vp_retest_bars   = input.int(10,    "Retest Zone Duration (bars)",   group=g_vp, minval=1)
+vp_show_bg       = input.bool(true,  "Show Background State",        group=g_vp)
+vp_show_signals  = input.bool(true,  "Show VP Signals",              group=g_vp)
+vp_show_retest   = input.bool(true,  "Show Retest Zones",            group=g_vp)
+vp_show_poc      = input.bool(false, "Show POC Line",                group=g_vp)
+vp_strict        = input.bool(false, "Strict Mode (score ≥ 2 only)", group=g_vp)
+vp_enable_lvn    = input.bool(true,  "Enable LVN Momentum Signal",   group=g_vp)
+vp_filter_entries= input.bool(false, "Filter 0DTE Entries by VP State",
+     group=g_vp, tooltip="When enabled, long entries are blocked below value and short entries are blocked above value.")
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  BOLLINGER BAND SQUEEZE
+// ══════════════════════════════════════════════════════════════════════════════
+bb_basis    = ta.sma(close, bb_len)
+bb_dev      = ta.stdev(close, bb_len) * bb_mult
+bb_upper    = bb_basis + bb_dev
+bb_lower    = bb_basis - bb_dev
+
+kc_basis    = ta.sma(close, kc_len)
+kc_atr      = ta.atr(kc_len)
+kc_upper    = kc_basis + kc_mult * kc_atr
+kc_lower    = kc_basis - kc_mult * kc_atr
+
+in_squeeze  = bb_upper < kc_upper and bb_lower > kc_lower
+
+var int sq_count = 0
+sq_count       := in_squeeze ? sq_count + 1 : 0
+sq_ready        = sq_count >= sq_min_bars
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  NYSE TICK
+// ══════════════════════════════════════════════════════════════════════════════
+_tick_tf    = tick_tf == "" ? timeframe.period : tick_tf
+tick_val    = request.security(tick_sym, _tick_tf, close, ignore_invalid_symbol=true)
+
+tick_bull   = not na(tick_val) and tick_val > 0
+tick_bear   = not na(tick_val) and tick_val < 0
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ATR TRAILING STOP
+// ══════════════════════════════════════════════════════════════════════════════
+ts_atr      = ta.atr(ts_len) * ts_mult
+
+var float ts_level = na
+var int   ts_dir   = 0
+
+if na(ts_level)
+    ts_level := close - ts_atr
+    ts_dir   := 1
+else
+    if ts_dir == 1
+        if close < ts_level
+            ts_dir   := -1
+            ts_level := close + ts_atr
+        else
+            ts_level := math.max(ts_level, close - ts_atr)
+    else
+        if close > ts_level
+            ts_dir   := 1
+            ts_level := close - ts_atr
+        else
+            ts_level := math.min(ts_level, close + ts_atr)
+
+ts_flipped_long  = ts_dir == 1  and ts_dir[1] == -1
+ts_flipped_short = ts_dir == -1 and ts_dir[1] == 1
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  VALUE AREA COMPUTATION
+// ══════════════════════════════════════════════════════════════════════════════
+var float[] vp_prices = array.new_float(0)
+var float[] vp_vols   = array.new_float(0)
+
+array.push(vp_prices, (high + low + close) / 3)
+array.push(vp_vols,   volume)
+if array.size(vp_prices) > vp_lookback
+    array.shift(vp_prices)
+    array.shift(vp_vols)
+
+var float vp_vah = na
+var float vp_val = na
+var float vp_poc = na
+
+n = array.size(vp_prices)
+if n >= 2
+    float total_vol = 0.0
+    float max_vol   = 0.0
+    int   poc_idx   = 0
+    for i = 0 to n - 1
+        v = array.get(vp_vols, i)
+        total_vol += v
+        if v > max_vol
+            max_vol := v
+            poc_idx := i
+
+    vp_poc := array.get(vp_prices, poc_idx)
+
+    float target   = total_vol * (vp_va_pct / 100.0)
+    float accum    = max_vol
+    int   lo_idx   = poc_idx
+    int   hi_idx   = poc_idx
+
+    while accum < target and (lo_idx > 0 or hi_idx < n - 1)
+        float step_lo = lo_idx > 0     ? array.get(vp_vols, lo_idx - 1) : 0.0
+        float step_hi = hi_idx < n - 1 ? array.get(vp_vols, hi_idx + 1) : 0.0
+        if step_lo >= step_hi and lo_idx > 0
+            lo_idx -= 1
+            accum  += step_lo
+        else if hi_idx < n - 1
+            hi_idx += 1
+            accum  += step_hi
+        else
+            break
+
+    float range_lo = array.get(vp_prices, lo_idx)
+    float range_hi = array.get(vp_prices, hi_idx)
+    for i = lo_idx to hi_idx
+        p = array.get(vp_prices, i)
+        range_lo := math.min(range_lo, p)
+        range_hi := math.max(range_hi, p)
+
+    vp_val := range_lo
+    vp_vah := range_hi
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  VP STATE ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+vp_tol = close * 0.001
+
+var int vp_state      = 0
+var int vp_prev_state = 0
+
+vp_prev_state := vp_state[1]
+vp_state      := not na(vp_vah) and close > vp_vah + vp_tol ? 1 :
+                 not na(vp_val) and close < vp_val - vp_tol ? 2 : 0
+
+vp_above  = vp_state == 1
+vp_below  = vp_state == 2
+vp_inside = vp_state == 0
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  VP SIGNAL ENGINE
+// ══════════════════════════════════════════════════════════════════════════════
+vp_atr        = ta.atr(vp_lookback)
+vp_avg_vol    = ta.sma(volume, vp_lookback)
+vp_vol_expand = volume >= vp_avg_vol * vp_vol_thresh
+
+vp_candle_range = high - low
+vp_wick_up      = vp_candle_range > 0 ? (high - close) / vp_candle_range : 0.0
+vp_wick_dn      = vp_candle_range > 0 ? (close - low)  / vp_candle_range : 0.0
+vp_clean_long   = vp_wick_up < 0.40
+vp_clean_short  = vp_wick_dn < 0.40
+
+var int vp_acc_long  = 0
+var int vp_acc_short = 0
+vp_acc_long  := vp_above ? vp_acc_long  + 1 : 0
+vp_acc_short := vp_below ? vp_acc_short + 1 : 0
+
+signal_vp_brk_long  = vp_acc_long  == vp_accept_bars and vp_clean_long  and vp_vol_expand
+signal_vp_brk_short = vp_acc_short == vp_accept_bars and vp_clean_short and vp_vol_expand
+
+signal_vp_fade_long  = vp_inside and vp_prev_state == 2 and vp_wick_dn >= 0.40
+signal_vp_fade_short = vp_inside and vp_prev_state == 1 and vp_wick_up >= 0.40
+
+vp_near_va   = math.abs(close - vp_vah) < 0.5 * vp_atr or
+               math.abs(close - vp_val) < 0.5 * vp_atr
+
+signal_vp_lvn = vp_enable_lvn and not vp_inside and
+                vp_candle_range > vp_atr * 1.8 and
+                volume < vp_avg_vol * 0.85 and
+                not vp_near_va
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  VP SIGNAL SCORING
+// ══════════════════════════════════════════════════════════════════════════════
+vp_score_vol   = vp_vol_expand ? 1 : 0
+vp_score_clean = (signal_vp_brk_long and vp_clean_long) or
+                 (signal_vp_brk_short and vp_clean_short) ? 1 : 0
+vp_score_trend = (vp_above and close > ta.ema(close, vp_ema_len)) or
+                 (vp_below and close < ta.ema(close, vp_ema_len)) ? 1 : 0
+
+vp_score = vp_score_vol + vp_score_clean + vp_score_trend
+vp_gate  = not vp_strict or vp_score >= 2
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ENTRY SIGNALS
+// ══════════════════════════════════════════════════════════════════════════════
+vp_long_ok  = not vp_filter_entries or (vp_above or vp_inside)
+vp_short_ok = not vp_filter_entries or (vp_below or vp_inside)
+
+long_entry  = sq_ready and tick_bull and ts_flipped_long  and vp_long_ok
+short_entry = sq_ready and tick_bear and ts_flipped_short and vp_short_ok
+
+long_setup  = sq_ready and tick_bull and ts_dir == 1
+short_setup = sq_ready and tick_bear and ts_dir == -1
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  EXIT SIGNAL
+// ══════════════════════════════════════════════════════════════════════════════
+long_exit   = ts_flipped_short
+short_exit  = ts_flipped_long
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  PLOTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+C_HDR  = color.new(#263238, 0)
+C_TXT  = color.white
+C_BULL = color.new(#00C853, 50)
+C_BEAR = color.new(#F44336, 50)
+C_WARN = color.new(#FF9800, 50)
+C_OFF  = color.new(#455A64, 50)
+
+C_VAH      = color.new(#F44336, 0)
+C_VAL      = color.new(#00C853, 0)
+C_POC      = color.new(#FFD600, 0)
+C_VP_BG_IN = color.new(#2196F3, 92)
+C_VP_BG_AB = color.new(#00C853, 92)
+C_VP_BG_BL = color.new(#F44336, 92)
+C_VP_BRK_L = color.new(#00E676, 0)
+C_VP_BRK_S = color.new(#F44336, 0)
+C_VP_FADE  = color.new(#FF9800, 0)
+C_VP_LVN   = color.new(#00BCD4, 0)
+C_VP_RTL   = color.new(#00C853, 85)
+C_VP_RTS   = color.new(#F44336, 85)
+
+ts_color = ts_dir == 1 ? color.new(#2962FF, 0) : color.new(#E91E8C, 0)
+plot(ts_level, "ATR Trailing Stop", color=ts_color, linewidth=2, style=plot.style_line)
+
+p_bb_hi = plot(show_bb ? bb_upper : na, "BB Upper", color=color.new(#9C27B0, 55), linewidth=1)
+p_bb_lo = plot(show_bb ? bb_lower : na, "BB Lower", color=color.new(#9C27B0, 55), linewidth=1)
+fill(p_bb_hi, p_bb_lo, color=color.new(#9C27B0, 88))
+
+p_kc_hi = plot(show_kc ? kc_upper : na, "KC Upper", color=color.new(#2962FF, 55), linewidth=1)
+p_kc_lo = plot(show_kc ? kc_lower : na, "KC Lower", color=color.new(#2962FF, 55), linewidth=1)
+fill(p_kc_hi, p_kc_lo, color=color.new(#2962FF, 92))
+
+sq_dot_col = sq_ready ? color.new(#F44336, 0) : in_squeeze ? color.new(#FF9800, 0) : color.new(#9E9E9E, 80)
+plotshape(true, "Squeeze Dots", shape.circle, location.bottom, color=sq_dot_col, size=size.tiny)
+
+plotshape(long_entry,  "Long Entry",  shape.triangleup,   location.belowbar, color=color.new(#00C853, 0), size=size.normal, text="BUY",  textcolor=color.new(#00C853, 0))
+plotshape(short_entry, "Short Entry", shape.triangledown,  location.abovebar, color=color.new(#F44336, 0), size=size.normal, text="SELL", textcolor=color.new(#F44336, 0))
+plotshape(long_setup  and not long_entry,  "Long Setup",  shape.diamond, location.belowbar, color=color.new(#00C853, 70), size=size.tiny)
+plotshape(short_setup and not short_entry, "Short Setup", shape.diamond, location.abovebar, color=color.new(#F44336, 70), size=size.tiny)
+plotshape(long_exit  and not long_entry,  "Long Exit",  shape.xcross, location.abovebar, color=color.new(#2962FF, 20), size=size.small)
+plotshape(short_exit and not short_entry, "Short Exit", shape.xcross, location.belowbar, color=color.new(#E91E8C, 20), size=size.small)
+
+vp_bg = vp_show_bg ? (vp_above ? C_VP_BG_AB : vp_below ? C_VP_BG_BL : C_VP_BG_IN) : na
+bgcolor(vp_bg)
+
+var line vp_ln_vah = na
+var line vp_ln_val = na
+var line vp_ln_poc = na
+
+if not na(vp_vah)
+    line.delete(vp_ln_vah)
+    line.delete(vp_ln_val)
+    vp_ln_vah := line.new(bar_index, vp_vah, bar_index + 1, vp_vah, extend=extend.right, color=C_VAH, width=1)
+    vp_ln_val := line.new(bar_index, vp_val, bar_index + 1, vp_val, extend=extend.right, color=C_VAL, width=1)
+
+if vp_show_poc and not na(vp_poc)
+    line.delete(vp_ln_poc)
+    vp_ln_poc := line.new(bar_index, vp_poc, bar_index + 1, vp_poc, extend=extend.right, color=C_POC, width=1, style=line.style_dotted)
+
+vp_no_fade = not signal_vp_fade_long and not signal_vp_fade_short
+
+plotshape(vp_show_signals and signal_vp_brk_long  and vp_gate and vp_no_fade, "VP Breakout Long",  shape.arrowup,   location.belowbar, C_VP_BRK_L, size=size.small)
+plotshape(vp_show_signals and signal_vp_brk_short and vp_gate and vp_no_fade, "VP Breakout Short", shape.arrowdown, location.abovebar, C_VP_BRK_S, size=size.small)
+plotshape(vp_show_signals and signal_vp_fade_long  and vp_gate,               "VP Fade Long",      shape.xcross,    location.abovebar, C_VP_FADE,  size=size.small)
+plotshape(vp_show_signals and signal_vp_fade_short and vp_gate,               "VP Fade Short",     shape.xcross,    location.belowbar, C_VP_FADE,  size=size.small)
+plotshape(vp_show_signals and signal_vp_lvn        and vp_gate,               "VP LVN",            shape.circle,    vp_above ? location.belowbar : location.abovebar, C_VP_LVN, size=size.tiny)
+
+var box vp_box_l     = na
+var box vp_box_s     = na
+var int vp_box_l_bar = na
+var int vp_box_s_bar = na
+
+if signal_vp_brk_long and vp_show_retest and not na(vp_vah)
+    box.delete(vp_box_l)
+    vp_box_l     := box.new(bar_index, vp_vah + 0.25 * vp_atr, bar_index + vp_retest_bars, vp_vah - 0.25 * vp_atr, bgcolor=C_VP_RTL, border_color=na)
+    vp_box_l_bar := bar_index
+
+if signal_vp_brk_short and vp_show_retest and not na(vp_val)
+    box.delete(vp_box_s)
+    vp_box_s     := box.new(bar_index, vp_val + 0.25 * vp_atr, bar_index + vp_retest_bars, vp_val - 0.25 * vp_atr, bgcolor=C_VP_RTS, border_color=na)
+    vp_box_s_bar := bar_index
+
+if not na(vp_box_l_bar) and bar_index > vp_box_l_bar + vp_retest_bars
+    box.delete(vp_box_l)
+    vp_box_l_bar := na
+
+if not na(vp_box_s_bar) and bar_index > vp_box_s_bar + vp_retest_bars
+    box.delete(vp_box_s)
+    vp_box_s_bar := na
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  STATUS TABLE
+// ══════════════════════════════════════════════════════════════════════════════
+var table status = table.new(position.top_right, 2, 8,
+     bgcolor=color.new(#263238, 10), border_color=color.new(#546E7A, 40), border_width=1,
+     frame_color=color.new(#546E7A, 40), frame_width=1)
+
+if barstate.islast and show_table
+    table.cell(status, 0, 0, "0DTE SETUP", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 0, "STATUS",     bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    tick_bg  = tick_bull ? C_BULL : tick_bear ? C_BEAR : C_OFF
+    tick_str = na(tick_val) ? "N/A" : str.tostring(math.round(tick_val)) + (tick_bull ? " ▲" : tick_bear ? " ▼" : " –")
+    table.cell(status, 0, 1, "TICK",   bgcolor=C_HDR,  text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 1, tick_str, bgcolor=tick_bg, text_color=C_TXT, text_size=size.small)
+    sq_bg  = sq_ready ? C_BEAR : in_squeeze ? C_WARN : C_OFF
+    sq_str = sq_ready ? "READY (" + str.tostring(sq_count) + "b)" : in_squeeze ? "FORMING (" + str.tostring(sq_count) + "b)" : "NONE"
+    table.cell(status, 0, 2, "SQUEEZE", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 2, sq_str,   bgcolor=sq_bg,  text_color=C_TXT, text_size=size.small)
+    ts_bg  = ts_dir == 1 ? C_BULL : C_BEAR
+    ts_str = ts_dir == 1 ? "LONG" : "SHORT"
+    table.cell(status, 0, 3, "ATR TRAIL", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 3, ts_str,      bgcolor=ts_bg,  text_color=C_TXT, text_size=size.small)
+    setup_dir = long_setup ? "LONG ✓" : short_setup ? "SHORT ✓" : "WAITING"
+    setup_bg  = long_setup ? C_BULL : short_setup ? C_BEAR : C_OFF
+    table.cell(status, 0, 4, "SETUP",    bgcolor=C_HDR,   text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 4, setup_dir,  bgcolor=setup_bg, text_color=C_TXT, text_size=size.small)
+    va_str = vp_above ? "ABOVE" : vp_below ? "BELOW" : "INSIDE"
+    va_bg  = vp_above ? C_BULL  : vp_below ? C_BEAR  : C_OFF
+    table.cell(status, 0, 5, "VALUE AREA", bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 5, va_str,       bgcolor=va_bg,  text_color=C_TXT, text_size=size.small)
+    vah_str = not na(vp_vah) ? str.tostring(vp_vah, "#.##") : "–"
+    table.cell(status, 0, 6, "VAH",    bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 6, vah_str,  bgcolor=color.new(#F44336, 70), text_color=C_TXT, text_size=size.small)
+    val_str = not na(vp_val) ? str.tostring(vp_val, "#.##") : "–"
+    table.cell(status, 0, 7, "VAL",    bgcolor=C_HDR, text_color=C_TXT, text_size=size.small)
+    table.cell(status, 1, 7, val_str,  bgcolor=color.new(#00C853, 70), text_color=C_TXT, text_size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  ALERTS
+// ══════════════════════════════════════════════════════════════════════════════
+alertcondition(long_entry,  "0DTE Long Entry",  "0DTE Momentum: LONG entry — squeeze + TICK bull + ATR flip long")
+alertcondition(short_entry, "0DTE Short Entry", "0DTE Momentum: SHORT entry — squeeze + TICK bear + ATR flip short")
+alertcondition(long_exit,   "0DTE Long Exit",   "0DTE Momentum: Exit LONG — ATR trailing stop flipped short")
+alertcondition(short_exit,  "0DTE Short Exit",  "0DTE Momentum: Exit SHORT — ATR trailing stop flipped long")
+alertcondition(long_setup,  "0DTE Long Setup",  "0DTE Momentum: LONG setup aligned — waiting for ATR flip")
+alertcondition(short_setup, "0DTE Short Setup", "0DTE Momentum: SHORT setup aligned — waiting for ATR flip")
+alertcondition(signal_vp_brk_long  and vp_gate, "VP Breakout Long",  "VP: Breakout Long — accepted above VAH")
+alertcondition(signal_vp_brk_short and vp_gate, "VP Breakout Short", "VP: Breakout Short — accepted below VAL")
+alertcondition(signal_vp_fade_long  and vp_gate, "VP Fade Long",      "VP: Fade Long — failed breakdown, long from VAL")
+alertcondition(signal_vp_fade_short and vp_gate, "VP Fade Short",     "VP: Fade Short — failed breakout, short from VAH")
+alertcondition(signal_vp_lvn        and vp_gate, "VP LVN Momentum",   "VP: LVN momentum — fast expansion detected")

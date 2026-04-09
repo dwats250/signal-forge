@@ -1,0 +1,280 @@
+2026-04-07 23:41:14 PST | stage=build_all.run | status=start | manual_or_scheduled_build_started
+2026-04-07 23:41:14 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:41:14 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:41:14 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:41:14 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:41:14 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:41:14 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:41:14 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:41:15 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:41:15 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:41:15 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:41:15 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:41:15 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:41:32 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:42:06 PST | stage=sunday_report.report_build | status=failure | exception=JSONDecodeError: Expecting value: line 146 column 130 (char 10689)
+2026-04-07 23:42:06 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:42:14 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:42:14 PST | stage=build_all.sunday_report | status=success
+2026-04-07 23:42:35 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:43:15 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:43:15 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:43:15 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:43:22 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:22 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:43:30 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:43:30 PST | stage=build_all.morning_edge | status=success
+2026-04-07 23:43:30 PST | stage=build_all.dashboard | status=success
+2026-04-07 23:43:30 PST | stage=build_all.run | status=partial | sunday_report.report_build
+2026-04-07 23:43:45 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:43:45 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:43:45 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:43:45 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:43:45 PST | stage=build_all.run | status=start | manual_or_scheduled_build_started
+2026-04-07 23:44:01 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:44:20 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:44:20 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:44:20 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:44:37 PST | stage=sunday_report.report_build | status=failure | exception=JSONDecodeError: Unterminated string starting at: line 137 column 5 (char 10798)
+2026-04-07 23:44:37 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:44:46 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:44:46 PST | stage=build_all.sunday_report | status=success
+2026-04-07 23:45:11 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:45:59 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:46:00 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:46:08 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:46:08 PST | stage=build_all.morning_edge | status=success
+2026-04-07 23:46:08 PST | stage=build_all.dashboard | status=success
+2026-04-07 23:46:08 PST | stage=build_all.run | status=partial | sunday_report.report_build
+2026-04-07 23:55:06 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.report_build | status=failure | exception=FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpk39xz2r2/output/sunday_narrative_failure.latest.json'
+2026-04-07 23:55:06 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:55:06 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:55:06 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:06 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.narrative | status=recovered | reason=empty_response detail=model returned empty text artifact=/tmp/tmpkd3zyv_l/output/sunday_narrative_failure.latest.json
+2026-04-07 23:55:42 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:55:42 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:55:42 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:55:42 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.narrative | status=recovered | reason=empty_response detail=model returned empty text artifact=/tmp/tmprk44lcz6/output/sunday_narrative_failure.latest.json
+2026-04-07 23:56:23 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.html_render | status=failure | exception=RuntimeError: boom
+2026-04-07 23:56:23 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:56:23 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:56:23 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:56:24 PST | stage=build_all.run | status=start | manual_or_scheduled_build_started
+2026-04-07 23:56:43 PST | stage=sunday_report.data_fetch | status=success
+2026-04-07 23:57:16 PST | stage=sunday_report.narrative | status=recovered | reason=malformed_json detail=JSONDecodeError: Expecting ',' delimiter: line 131 column 6 (char 7621) artifact=/home/dustin/signal-forge/reports/output/sunday_narrative_failure.latest.json
+2026-04-07 23:57:16 PST | stage=sunday_report.report_build | status=success
+2026-04-07 23:57:16 PST | stage=sunday_report.html_render | status=success
+2026-04-07 23:57:25 PST | stage=sunday_report.pdf_render | status=success
+2026-04-07 23:57:25 PST | stage=build_all.sunday_report | status=success
+2026-04-07 23:57:55 PST | stage=morning_edge.data_fetch | status=success
+2026-04-07 23:58:21 PST | stage=morning_edge.report_build | status=success
+2026-04-07 23:58:21 PST | stage=morning_edge.html_render | status=success
+2026-04-07 23:58:30 PST | stage=morning_edge.pdf_render | status=success
+2026-04-07 23:58:30 PST | stage=build_all.morning_edge | status=success
+2026-04-07 23:58:30 PST | stage=build_all.dashboard | status=success
+2026-04-07 23:58:30 PST | stage=build_all.run | status=success | REPORT BUILD SUCCESS — 2026-04-07 23:58:30 PST
+2026-04-08 06:52:03 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 06:52:03 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 10
+2026-04-08 06:52:03 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:03 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 06:52:30 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 06:52:30 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 10
+2026-04-08 06:52:30 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 06:52:30 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 07:33:14 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 07:33:14 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 10
+2026-04-08 07:33:14 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:14 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 07:33:51 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
+2026-04-08 07:33:51 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 10
+2026-04-08 07:33:51 PST | stage=data.health | status=info | DXY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | US10Y -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | WTI -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | GOLD -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SILVER -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | VIX -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | SPY -> UNAVAILABLE (stale risk)
+2026-04-08 07:33:51 PST | stage=data.health | status=info | CONFIDENCE SCORE -> 0
