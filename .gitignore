@@ -10,3 +10,8 @@ outputs/*.jsonl
 reports/output/
 reports/archive/
 _site/
+
+# Runtime artifacts
+logs/
+data/
+.sf_commit_msg
